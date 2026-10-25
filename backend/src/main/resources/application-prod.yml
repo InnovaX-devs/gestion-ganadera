@@ -1,0 +1,12 @@
+# Producción: todo sale de variables de entorno, sin valores por defecto
+spring:
+  datasource:
+    url: ${DB_URL}
+    username: ${DB_USERNAME}
+    password: ${DB_PASSWORD}
+    hikari:
+      maximum-pool-size: ${DB_POOL_SIZE:10}
+
+logging:
+  level:
+    root: INFO

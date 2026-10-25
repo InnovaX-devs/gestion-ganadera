@@ -1,0 +1,38 @@
+@import 'tailwindcss';
+
+/* Modo oscuro por clase .dark en <html> (lo maneja useTheme) */
+@custom-variant dark (&:where(.dark, .dark *));
+
+/*
+  Tokens de marca. Paleta provisoria hasta definir la identidad (issue #1):
+  cambiá estos valores y se actualiza toda la app.
+*/
+@theme {
+  --font-sans: 'Inter', ui-sans-serif, system-ui, sans-serif;
+
+  --color-brand-50: #fffbeb;
+  --color-brand-100: #fef3c7;
+  --color-brand-200: #fde68a;
+  --color-brand-500: #d97706;
+  --color-brand-600: #b45309;
+  --color-brand-700: #92400e;
+  --color-brand-900: #451a03;
+}
+
+@layer base {
+  body {
+    @apply bg-stone-50 text-stone-900 antialiased dark:bg-stone-950 dark:text-stone-100;
+  }
+}
+
+html {
+  color-scheme: light;
+}
+html.dark {
+  color-scheme: dark;
+}
+
+/* Scroll fino en el menú lateral */
+nav {
+  scrollbar-width: thin;
+}
