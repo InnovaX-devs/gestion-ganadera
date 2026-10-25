@@ -24,3 +24,15 @@
     @apply bg-stone-50 text-stone-900 antialiased dark:bg-stone-950 dark:text-stone-100;
   }
 }
+
+html {
+  color-scheme: light;
+}
+html.dark {
+  color-scheme: dark;
+}
+
+/* Scroll fino en el menú lateral */
+nav {
+  scrollbar-width: thin;
+}
