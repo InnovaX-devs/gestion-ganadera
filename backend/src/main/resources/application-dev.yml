@@ -1,0 +1,10 @@
+# Desarrollo local: usa la base de docker compose (valores por defecto de .env.example)
+spring:
+  datasource:
+    url: jdbc:postgresql://localhost:${POSTGRES_PORT:5432}/${POSTGRES_DB:ganadera}
+    username: ${POSTGRES_USER:ganadera}
+    password: ${POSTGRES_PASSWORD:ganadera}
+
+logging:
+  level:
+    com.innovax.ganadera: DEBUG

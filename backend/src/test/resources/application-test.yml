@@ -1,0 +1,6 @@
+# Tests: base en memoria con modo PostgreSQL, no hace falta Docker
+spring:
+  datasource:
+    url: jdbc:h2:mem:ganadera;MODE=PostgreSQL;DATABASE_TO_LOWER=TRUE;DB_CLOSE_DELAY=-1
+    username: sa
+    password:
