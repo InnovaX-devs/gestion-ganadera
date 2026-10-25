@@ -49,6 +49,45 @@ com.innovax.ganadera
 └── <modulo>/        Un paquete por módulo de negocio (establecimiento, animal, evento...)
 ```
 
+## Multi-tenant (leer antes de crear una entidad)
+
+Cada cuenta es una **organización** y nadie puede ver datos de otra. Esto lo resuelve Hibernate con `@TenantId`, así que **nunca hay que setear ni filtrar `organizacion_id` a mano**.
+
+Para una entidad de negocio nueva (establecimiento, lote, animal, evento...):
+
+1. Que extienda `TenantEntity`, que ya trae `id` (UUID), `organizacionId`, `createdAt` y `updatedAt`:
+
+   ```java
+   @Entity
+   @Table(name = "establecimiento")
+   public class Establecimiento extends TenantEntity {
+       private String nombre;
+   }
+   ```
+
+2. En la migración, la tabla lleva estas columnas:
+
+   ```sql
+   CREATE TABLE establecimiento (
+       id               UUID                     PRIMARY KEY,
+       organizacion_id  UUID                     NOT NULL REFERENCES organizacion (id),
+       nombre           VARCHAR(150)             NOT NULL,
+       created_at       TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT CURRENT_TIMESTAMP,
+       updated_at       TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT CURRENT_TIMESTAMP
+   );
+   CREATE INDEX idx_establecimiento_organizacion ON establecimiento (organizacion_id);
+   ```
+
+3. Listo: al guardar se completa la organización del usuario logueado, y todo `findAll`, `findById`, `count` o consulta derivada filtra solo por ella.
+
+Para saber quién está logueado desde un servicio: `TenantContext.requerirUsuario()` (devuelve `userId`, `organizacionId` y `email`).
+
+Reglas:
+
+- `Organizacion` y `Usuario` son las únicas que **no** extienden `TenantEntity` (el login busca usuarios antes de saber su organización).
+- Usar `TIMESTAMP WITH TIME ZONE` en las migraciones (funciona en PostgreSQL y en el H2 de los tests).
+- Las queries nativas (`nativeQuery = true`) **no** se filtran solas: evitarlas, o agregar el filtro y un test.
+
 ## Errores
 
 Toda la API responde los errores con este formato:
