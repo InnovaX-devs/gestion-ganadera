@@ -6,6 +6,9 @@ import java.util.UUID;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import com.innovax.ganadera.agrupacion.LoteRepository;
+import com.innovax.ganadera.agrupacion.RodeoRepository;
+import com.innovax.ganadera.common.error.BusinessException;
 import com.innovax.ganadera.common.error.ConflictException;
 import com.innovax.ganadera.common.error.NotFoundException;
 import com.innovax.ganadera.establecimiento.dto.EstablecimientoRequest;
@@ -24,6 +27,8 @@ import lombok.RequiredArgsConstructor;
 public class EstablecimientoService {
 
     private final EstablecimientoRepository repository;
+    private final LoteRepository loteRepository;
+    private final RodeoRepository rodeoRepository;
 
     @Transactional(readOnly = true)
     public List<EstablecimientoResponse> listar() {
@@ -57,10 +62,27 @@ public class EstablecimientoService {
         return EstablecimientoResponse.from(repository.saveAndFlush(establecimiento));
     }
 
-    /** Baja lógica. Cuando existan lotes y animales, acá se valida que esté vacío. */
+    /**
+     * Baja lógica. Solo si no tiene lotes ni rodeos activos, para que no quede hacienda "perdida"
+     * en un campo eliminado por error.
+     */
     @Transactional
     public void eliminar(UUID id) {
-        buscar(id).darDeBaja();
+        Establecimiento establecimiento = buscar(id);
+        long lotes = loteRepository.countByEstablecimientoIdAndActivoTrue(id);
+        long rodeos = rodeoRepository.countByEstablecimientoIdAndActivoTrue(id);
+        if (lotes + rodeos > 0) {
+            String detalle = java.util.stream.Stream.of(
+                    cantidad(lotes, "lote", "lotes"), cantidad(rodeos, "rodeo", "rodeos"))
+                .filter(t -> !t.isEmpty())
+                .collect(java.util.stream.Collectors.joining(" y "));
+            throw new BusinessException("No se puede eliminar: todavía tiene " + detalle + ". Eliminalos primero.");
+        }
+        establecimiento.darDeBaja();
+    }
+
+    private static String cantidad(long n, String singular, String plural) {
+        return n == 0 ? "" : n + " " + (n == 1 ? singular : plural);
     }
 
     private Establecimiento buscar(UUID id) {

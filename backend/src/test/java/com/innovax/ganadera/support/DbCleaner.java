@@ -13,6 +13,8 @@ import org.springframework.jdbc.core.JdbcTemplate;
 public final class DbCleaner {
 
     private static final List<String> TABLAS_EN_ORDEN = List.of(
+        "lote",
+        "rodeo",
         "establecimiento",
         "usuario",
         "organizacion"
