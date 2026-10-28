@@ -1,3 +1,5 @@
+import type { Rol } from './permisos'
+
 export interface Establecimiento {
   id: string
   nombre: string
@@ -8,6 +10,8 @@ export interface Establecimiento {
   latitud: number | null
   longitud: number | null
   createdAt: string
+  /** Rol del usuario logueado en este establecimiento. */
+  rol: Rol
 }
 
 export interface EstablecimientoInput {

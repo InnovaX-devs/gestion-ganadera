@@ -121,6 +121,19 @@ Para una entidad de negocio nueva (establecimiento, lote, animal, evento...):
 
 3. Listo: al guardar se completa la organización del usuario logueado, y todo `findAll`, `findById`, `count` o consulta derivada filtra solo por ella.
 
+## Roles y permisos (leer antes de crear un endpoint)
+
+Cada usuario tiene un rol por establecimiento (`DUENO`, `ENCARGADO`, `VETERINARIO`, `SOCIO`). La matriz está en [`docs/permisos.md`](../docs/permisos.md). **Todo endpoint de negocio tiene que autorizar**: al empezar el método del servicio,
+
+```java
+autorizacion.exigir(establecimientoId, Permiso.GESTIONAR_AGRUPACIONES);
+```
+
+- Sin membresía en ese establecimiento: 404. Con membresía pero sin el permiso: 403.
+- Todo ABM nuevo tiene que tener un test por rol (ver `MembresiaControllerTest` como modelo).
+
+Equipo del establecimiento (`/api/establecimientos/{id}/miembros`): `GET` lista, `POST {email, rol}` agrega, `PUT /{membresiaId} {rol}` cambia el rol y `DELETE /{membresiaId}` quita. Solo el dueño puede modificar.
+
 Para saber quién está logueado desde un servicio: `TenantContext.requerirUsuario()` (devuelve `userId`, `organizacionId` y `email`).
 
 Reglas:

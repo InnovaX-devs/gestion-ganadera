@@ -9,6 +9,7 @@ import { AgrupacionFormDialog } from '@/features/agrupaciones/AgrupacionFormDial
 import { AGRUPACIONES } from '@/features/agrupaciones/config'
 import { useAgrupaciones, useEliminarAgrupacion } from '@/features/agrupaciones/queries'
 import type { Agrupacion, TipoAgrupacion } from '@/features/agrupaciones/types'
+import { puede } from '@/features/establecimientos/permisos'
 import { useEstablecimientoActivo } from '@/features/establecimientos/useEstablecimientoActivo'
 import { getErrorMessage } from '@/lib/api'
 
@@ -49,6 +50,7 @@ export function AgrupacionesPage({ tipo }: { tipo: TipoAgrupacion }) {
       tipo={tipo}
       establecimientoId={activo.id}
       establecimientoNombre={activo.nombre}
+      puedeGestionar={puede(activo.rol, 'GESTIONAR_AGRUPACIONES')}
     />
   )
 }
@@ -57,10 +59,13 @@ function Listado({
   tipo,
   establecimientoId,
   establecimientoNombre,
+  puedeGestionar,
 }: {
   tipo: TipoAgrupacion
   establecimientoId: string
   establecimientoNombre: string
+  /** Crear, editar y eliminar. Los demás roles solo ven el listado. */
+  puedeGestionar: boolean
 }) {
   const config = AGRUPACIONES[tipo]
   const { data, isPending, error } = useAgrupaciones(tipo, establecimientoId)
@@ -80,6 +85,7 @@ function Listado({
         title={config.titulo}
         description={`${config.descripcion} · ${establecimientoNombre}`}
         actions={
+          puedeGestionar &&
           data &&
           data.length > 0 && (
             <Button onClick={nuevo}>
@@ -99,10 +105,12 @@ function Listado({
           titulo={`Todavía no hay ${config.plural} en ${establecimientoNombre}`}
           texto={config.descripcion}
           accion={
-            <Button className="mt-6" onClick={nuevo}>
-              <Plus className="size-4" />
-              Crear {config.singular}
-            </Button>
+            puedeGestionar && (
+              <Button className="mt-6" onClick={nuevo}>
+                <Plus className="size-4" />
+                Crear {config.singular}
+              </Button>
+            )
           }
         />
       )}
@@ -123,17 +131,19 @@ function Listado({
               <span className="hidden shrink-0 rounded-full bg-stone-100 px-2.5 py-0.5 text-xs font-medium text-stone-600 tabular-nums sm:inline dark:bg-stone-800 dark:text-stone-300">
                 {a.cantidadAnimales} {a.cantidadAnimales === 1 ? 'animal' : 'animales'}
               </span>
-              <div className="flex shrink-0 gap-1">
-                <BotonIcono
-                  label={`Editar ${a.nombre}`}
-                  onClick={() => setFormulario({ agrupacion: a })}
-                >
-                  <Pencil className="size-4" />
-                </BotonIcono>
-                <BotonIcono label={`Eliminar ${a.nombre}`} peligro onClick={() => setABorrar(a)}>
-                  <Trash2 className="size-4" />
-                </BotonIcono>
-              </div>
+              {puedeGestionar && (
+                <div className="flex shrink-0 gap-1">
+                  <BotonIcono
+                    label={`Editar ${a.nombre}`}
+                    onClick={() => setFormulario({ agrupacion: a })}
+                  >
+                    <Pencil className="size-4" />
+                  </BotonIcono>
+                  <BotonIcono label={`Eliminar ${a.nombre}`} peligro onClick={() => setABorrar(a)}>
+                    <Trash2 className="size-4" />
+                  </BotonIcono>
+                </div>
+              )}
             </li>
           ))}
         </ul>

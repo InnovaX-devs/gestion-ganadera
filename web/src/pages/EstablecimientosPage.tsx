@@ -10,6 +10,7 @@ import {
   useEliminarEstablecimiento,
   useEstablecimientos,
 } from '@/features/establecimientos/queries'
+import { ETIQUETA_ROL, puede } from '@/features/establecimientos/permisos'
 import type { Establecimiento } from '@/features/establecimientos/types'
 import { useEstablecimientoActivo } from '@/features/establecimientos/useEstablecimientoActivo'
 import { getErrorMessage } from '@/lib/api'
@@ -102,11 +103,16 @@ export function EstablecimientosPage() {
               >
                 <div className="flex items-start justify-between gap-3">
                   <h2 className="min-w-0 truncate font-semibold">{e.nombre}</h2>
-                  {esActivo && (
-                    <span className="bg-brand-50 text-brand-700 dark:bg-brand-900/40 dark:text-brand-200 shrink-0 rounded-full px-2 py-0.5 text-xs font-medium">
-                      Activo
+                  <div className="flex shrink-0 items-center gap-1.5">
+                    <span className="rounded-full bg-stone-100 px-2 py-0.5 text-xs font-medium text-stone-600 dark:bg-stone-800 dark:text-stone-300">
+                      {ETIQUETA_ROL[e.rol]}
                     </span>
-                  )}
+                    {esActivo && (
+                      <span className="bg-brand-50 text-brand-700 dark:bg-brand-900/40 dark:text-brand-200 rounded-full px-2 py-0.5 text-xs font-medium">
+                        Activo
+                      </span>
+                    )}
+                  </div>
                 </div>
 
                 <dl className="mt-3 flex-1 space-y-1.5 text-sm text-stone-600 dark:text-stone-400">
@@ -138,19 +144,23 @@ export function EstablecimientosPage() {
                     </Button>
                   )}
                   <div className="ml-auto flex gap-1">
-                    <IconButton
-                      label={`Editar ${e.nombre}`}
-                      onClick={() => setFormulario({ abierto: true, establecimiento: e })}
-                    >
-                      <Pencil className="size-4" />
-                    </IconButton>
-                    <IconButton
-                      label={`Eliminar ${e.nombre}`}
-                      peligro
-                      onClick={() => setABorrar(e)}
-                    >
-                      <Trash2 className="size-4" />
-                    </IconButton>
+                    {puede(e.rol, 'EDITAR_ESTABLECIMIENTO') && (
+                      <IconButton
+                        label={`Editar ${e.nombre}`}
+                        onClick={() => setFormulario({ abierto: true, establecimiento: e })}
+                      >
+                        <Pencil className="size-4" />
+                      </IconButton>
+                    )}
+                    {puede(e.rol, 'ELIMINAR_ESTABLECIMIENTO') && (
+                      <IconButton
+                        label={`Eliminar ${e.nombre}`}
+                        peligro
+                        onClick={() => setABorrar(e)}
+                      >
+                        <Trash2 className="size-4" />
+                      </IconButton>
+                    )}
                   </div>
                 </div>
               </li>
