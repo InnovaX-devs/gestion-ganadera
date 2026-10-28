@@ -2,15 +2,20 @@ import { createBrowserRouter } from 'react-router'
 import { allNavItems } from '@/config/navigation'
 import { PublicOnly, RequireAuth } from '@/features/auth/RouteGuards'
 import { AppLayout } from '@/layouts/AppLayout'
+import { AgrupacionesPage } from '@/pages/AgrupacionesPage'
+import { EstablecimientosPage } from '@/pages/EstablecimientosPage'
 import { InicioPage } from '@/pages/InicioPage'
 import { LoginPage } from '@/pages/LoginPage'
 import { NotFoundPage } from '@/pages/NotFoundPage'
 import { PlaceholderPage } from '@/pages/PlaceholderPage'
 import { RegisterPage } from '@/pages/RegisterPage'
 
-// Secciones del menú que todavía no tienen página propia: se reemplazan a medida que se implementan.
+// Páginas ya implementadas. Al terminar una sección, agregala acá y a `children` de abajo.
+const IMPLEMENTADAS = new Set(['/', '/establecimientos', '/lotes', '/rodeos'])
+
+// Secciones del menú que todavía no tienen página propia
 const placeholderRoutes = allNavItems
-  .filter((item) => item.path !== '/')
+  .filter((item) => !IMPLEMENTADAS.has(item.path))
   .map((item) => ({
     path: item.path.slice(1),
     element: <PlaceholderPage title={item.label} />,
@@ -34,6 +39,10 @@ export const router = createBrowserRouter([
         element: <AppLayout />,
         children: [
           { index: true, element: <InicioPage /> },
+          { path: 'establecimientos', element: <EstablecimientosPage /> },
+          // key: al pasar de lotes a rodeos la página arranca de cero
+          { path: 'lotes', element: <AgrupacionesPage key="lotes" tipo="lotes" /> },
+          { path: 'rodeos', element: <AgrupacionesPage key="rodeos" tipo="rodeos" /> },
           ...placeholderRoutes,
           { path: '*', element: <NotFoundPage /> },
         ],
