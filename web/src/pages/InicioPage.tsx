@@ -1,14 +1,27 @@
 import { useEffect, useState } from 'react'
 import { CircleCheck, CircleX, LoaderCircle } from 'lucide-react'
 import { PageHeader } from '@/components/PageHeader'
+import { useAuth } from '@/features/auth/useAuth'
 import { api, getErrorMessage } from '@/lib/api'
 
 type Estado = { tipo: 'cargando' } | { tipo: 'ok' } | { tipo: 'error'; mensaje: string }
 
+function saludo() {
+  const hora = new Date().getHours()
+  if (hora < 13) return 'Buen día'
+  if (hora < 20) return 'Buenas tardes'
+  return 'Buenas noches'
+}
+
 export function InicioPage() {
+  const { usuario } = useAuth()
+
   return (
     <>
-      <PageHeader title="Inicio" description="Resumen del establecimiento." />
+      <PageHeader
+        title={`${saludo()}, ${usuario?.nombre ?? ''}`}
+        description={usuario?.organizacionNombre}
+      />
       <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
         <EstadoBackend />
         <Tarjeta titulo="Stock total" texto="Se completa en el milestone M4 - Dashboard." />
