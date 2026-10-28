@@ -11,8 +11,15 @@ import com.innovax.ganadera.agrupacion.RodeoRepository;
 import com.innovax.ganadera.common.error.BusinessException;
 import com.innovax.ganadera.common.error.ConflictException;
 import com.innovax.ganadera.common.error.NotFoundException;
+import com.innovax.ganadera.common.tenant.TenantContext;
 import com.innovax.ganadera.establecimiento.dto.EstablecimientoRequest;
 import com.innovax.ganadera.establecimiento.dto.EstablecimientoResponse;
+import com.innovax.ganadera.membresia.AutorizacionService;
+import com.innovax.ganadera.membresia.Membresia;
+import com.innovax.ganadera.membresia.MembresiaRepository;
+import com.innovax.ganadera.membresia.Permiso;
+import com.innovax.ganadera.membresia.Rol;
+import com.innovax.ganadera.usuario.UsuarioRepository;
 
 import lombok.RequiredArgsConstructor;
 
@@ -20,7 +27,8 @@ import lombok.RequiredArgsConstructor;
  * ABM de establecimientos. No hay que filtrar por organización: lo hace Hibernate (@TenantId).
  * Un establecimiento de otra organización simplemente "no existe" (404).
  *
- * <p>Permisos por rol: se agregan en el issue de membresías y roles (#11).
+ * <p>Qué puede hacer cada rol está en {@link Rol} y en docs/permisos.md. Cada operación empieza
+ * pidiendo el permiso a {@link AutorizacionService}; quien crea un establecimiento queda como dueño.
  */
 @Service
 @RequiredArgsConstructor
@@ -29,17 +37,23 @@ public class EstablecimientoService {
     private final EstablecimientoRepository repository;
     private final LoteRepository loteRepository;
     private final RodeoRepository rodeoRepository;
+    private final MembresiaRepository membresiaRepository;
+    private final UsuarioRepository usuarioRepository;
+    private final AutorizacionService autorizacion;
 
     @Transactional(readOnly = true)
     public List<EstablecimientoResponse> listar() {
-        return repository.findByActivoTrueOrderByNombreAsc().stream()
-            .map(EstablecimientoResponse::from)
+        // Solo los establecimientos donde el usuario tiene una membresía
+        UUID usuarioId = TenantContext.requerirUsuario().userId();
+        return membresiaRepository.findDelUsuario(usuarioId).stream()
+            .map(m -> EstablecimientoResponse.from(m.getEstablecimiento(), m.getRol()))
             .toList();
     }
 
     @Transactional(readOnly = true)
     public EstablecimientoResponse obtener(UUID id) {
-        return EstablecimientoResponse.from(buscar(id));
+        Rol rol = autorizacion.exigir(id, Permiso.VER);
+        return EstablecimientoResponse.from(buscar(id), rol);
     }
 
     @Transactional
@@ -49,17 +63,23 @@ public class EstablecimientoService {
         }
         Establecimiento establecimiento = new Establecimiento(request.nombre());
         copiarDatos(request, establecimiento);
-        return EstablecimientoResponse.from(repository.save(establecimiento));
+        repository.save(establecimiento);
+        // Quien lo crea queda como dueño
+        UUID usuarioId = TenantContext.requerirUsuario().userId();
+        membresiaRepository.save(
+            new Membresia(usuarioRepository.getReferenceById(usuarioId), establecimiento, Rol.DUENO));
+        return EstablecimientoResponse.from(establecimiento, Rol.DUENO);
     }
 
     @Transactional
     public EstablecimientoResponse actualizar(UUID id, EstablecimientoRequest request) {
+        Rol rol = autorizacion.exigir(id, Permiso.EDITAR_ESTABLECIMIENTO);
         Establecimiento establecimiento = buscar(id);
         if (repository.existsByNombreIgnoreCaseAndActivoTrueAndIdNot(request.nombre(), id)) {
             throw nombreRepetido(request.nombre());
         }
         copiarDatos(request, establecimiento);
-        return EstablecimientoResponse.from(repository.saveAndFlush(establecimiento));
+        return EstablecimientoResponse.from(repository.saveAndFlush(establecimiento), rol);
     }
 
     /**
@@ -68,6 +88,7 @@ public class EstablecimientoService {
      */
     @Transactional
     public void eliminar(UUID id) {
+        autorizacion.exigir(id, Permiso.ELIMINAR_ESTABLECIMIENTO);
         Establecimiento establecimiento = buscar(id);
         long lotes = loteRepository.countByEstablecimientoIdAndActivoTrue(id);
         long rodeos = rodeoRepository.countByEstablecimientoIdAndActivoTrue(id);

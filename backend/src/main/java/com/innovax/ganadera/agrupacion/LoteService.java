@@ -4,12 +4,14 @@ import org.springframework.stereotype.Service;
 
 import com.innovax.ganadera.establecimiento.Establecimiento;
 import com.innovax.ganadera.establecimiento.EstablecimientoRepository;
+import com.innovax.ganadera.membresia.AutorizacionService;
 
 @Service
 public class LoteService extends AgrupacionService<Lote> {
 
-    public LoteService(LoteRepository repository, EstablecimientoRepository establecimientoRepository) {
-        super(repository, establecimientoRepository);
+    public LoteService(LoteRepository repository, EstablecimientoRepository establecimientoRepository,
+            AutorizacionService autorizacion) {
+        super(repository, establecimientoRepository, autorizacion);
     }
 
     @Override

@@ -5,6 +5,7 @@ import java.time.Instant;
 import java.util.UUID;
 
 import com.innovax.ganadera.establecimiento.Establecimiento;
+import com.innovax.ganadera.membresia.Rol;
 
 public record EstablecimientoResponse(
     UUID id,
@@ -15,11 +16,13 @@ public record EstablecimientoResponse(
     String renspa,
     BigDecimal latitud,
     BigDecimal longitud,
-    Instant createdAt
+    Instant createdAt,
+    /** Rol del usuario logueado en este establecimiento. */
+    Rol rol
 ) {
 
-    public static EstablecimientoResponse from(Establecimiento e) {
+    public static EstablecimientoResponse from(Establecimiento e, Rol rol) {
         return new EstablecimientoResponse(e.getId(), e.getNombre(), e.getLocalidad(), e.getProvincia(),
-            e.getSuperficieHa(), e.getRenspa(), e.getLatitud(), e.getLongitud(), e.getCreatedAt());
+            e.getSuperficieHa(), e.getRenspa(), e.getLatitud(), e.getLongitud(), e.getCreatedAt(), rol);
     }
 }

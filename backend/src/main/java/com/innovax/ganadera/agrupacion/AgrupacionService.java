@@ -12,20 +12,27 @@ import com.innovax.ganadera.common.error.ConflictException;
 import com.innovax.ganadera.common.error.NotFoundException;
 import com.innovax.ganadera.establecimiento.Establecimiento;
 import com.innovax.ganadera.establecimiento.EstablecimientoRepository;
+import com.innovax.ganadera.membresia.AutorizacionService;
+import com.innovax.ganadera.membresia.Permiso;
 
 /**
  * Lógica común del ABM de lotes y rodeos. Todo cuelga de un establecimiento: si el establecimiento
- * no existe, está dado de baja o es de otra organización, responde 404.
+ * no existe, está dado de baja, es de otra organización o el usuario no es miembro, responde 404.
+ * Ver lotes y rodeos lo puede hacer cualquier miembro; crearlos, editarlos y borrarlos, solo quien
+ * tenga el permiso {@link Permiso#GESTIONAR_AGRUPACIONES}.
  */
 public abstract class AgrupacionService<E extends Agrupacion> {
 
     private final AgrupacionRepository<E> repository;
     private final EstablecimientoRepository establecimientoRepository;
+    private final AutorizacionService autorizacion;
 
     protected AgrupacionService(AgrupacionRepository<E> repository,
-                                EstablecimientoRepository establecimientoRepository) {
+                                EstablecimientoRepository establecimientoRepository,
+                                AutorizacionService autorizacion) {
         this.repository = repository;
         this.establecimientoRepository = establecimientoRepository;
+        this.autorizacion = autorizacion;
     }
 
     /** Ej: "lote". Se usa en los mensajes de error. */
@@ -35,6 +42,7 @@ public abstract class AgrupacionService<E extends Agrupacion> {
 
     @Transactional(readOnly = true)
     public List<AgrupacionResponse> listar(UUID establecimientoId) {
+        autorizacion.exigir(establecimientoId, Permiso.VER);
         validarEstablecimiento(establecimientoId);
         return repository.findByEstablecimientoIdAndActivoTrueOrderByNombreAsc(establecimientoId).stream()
             .map(this::aRespuesta)
@@ -43,11 +51,13 @@ public abstract class AgrupacionService<E extends Agrupacion> {
 
     @Transactional(readOnly = true)
     public AgrupacionResponse obtener(UUID establecimientoId, UUID id) {
+        autorizacion.exigir(establecimientoId, Permiso.VER);
         return aRespuesta(buscar(establecimientoId, id));
     }
 
     @Transactional
     public AgrupacionResponse crear(UUID establecimientoId, AgrupacionRequest request) {
+        autorizacion.exigir(establecimientoId, Permiso.GESTIONAR_AGRUPACIONES);
         Establecimiento establecimiento = validarEstablecimiento(establecimientoId);
         if (repository.existsByEstablecimientoIdAndNombreIgnoreCaseAndActivoTrue(establecimientoId, request.nombre())) {
             throw nombreRepetido(request.nombre());
@@ -59,6 +69,7 @@ public abstract class AgrupacionService<E extends Agrupacion> {
 
     @Transactional
     public AgrupacionResponse actualizar(UUID establecimientoId, UUID id, AgrupacionRequest request) {
+        autorizacion.exigir(establecimientoId, Permiso.GESTIONAR_AGRUPACIONES);
         E agrupacion = buscar(establecimientoId, id);
         if (repository.existsByEstablecimientoIdAndNombreIgnoreCaseAndActivoTrueAndIdNot(
                 establecimientoId, request.nombre(), id)) {
@@ -72,6 +83,7 @@ public abstract class AgrupacionService<E extends Agrupacion> {
     /** Baja lógica. No se puede si tiene animales asignados. */
     @Transactional
     public void eliminar(UUID establecimientoId, UUID id) {
+        autorizacion.exigir(establecimientoId, Permiso.GESTIONAR_AGRUPACIONES);
         E agrupacion = buscar(establecimientoId, id);
         long animales = contarAnimales(agrupacion);
         if (animales > 0) {
