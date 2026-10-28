@@ -7,6 +7,8 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import com.innovax.ganadera.agrupacion.LoteRepository;
+import com.innovax.ganadera.animal.AnimalRepository;
+import com.innovax.ganadera.animal.EstadoAnimal;
 import com.innovax.ganadera.agrupacion.RodeoRepository;
 import com.innovax.ganadera.common.error.BusinessException;
 import com.innovax.ganadera.common.error.ConflictException;
@@ -37,6 +39,7 @@ public class EstablecimientoService {
     private final EstablecimientoRepository repository;
     private final LoteRepository loteRepository;
     private final RodeoRepository rodeoRepository;
+    private final AnimalRepository animalRepository;
     private final MembresiaRepository membresiaRepository;
     private final UsuarioRepository usuarioRepository;
     private final AutorizacionService autorizacion;
@@ -83,20 +86,26 @@ public class EstablecimientoService {
     }
 
     /**
-     * Baja lógica. Solo si no tiene lotes ni rodeos activos, para que no quede hacienda "perdida"
-     * en un campo eliminado por error.
+     * Baja lógica. Solo si no tiene animales, lotes ni rodeos activos, para que no quede hacienda
+     * "perdida" en un campo eliminado por error.
      */
     @Transactional
     public void eliminar(UUID id) {
         autorizacion.exigir(id, Permiso.ELIMINAR_ESTABLECIMIENTO);
         Establecimiento establecimiento = buscar(id);
+        long animales = animalRepository.countByEstablecimientoIdAndEstado(id, EstadoAnimal.ACTIVO);
         long lotes = loteRepository.countByEstablecimientoIdAndActivoTrue(id);
         long rodeos = rodeoRepository.countByEstablecimientoIdAndActivoTrue(id);
-        if (lotes + rodeos > 0) {
-            String detalle = java.util.stream.Stream.of(
-                    cantidad(lotes, "lote", "lotes"), cantidad(rodeos, "rodeo", "rodeos"))
+        if (animales + lotes + rodeos > 0) {
+            List<String> partes = java.util.stream.Stream.of(
+                    cantidad(animales, "animal", "animales"),
+                    cantidad(lotes, "lote", "lotes"),
+                    cantidad(rodeos, "rodeo", "rodeos"))
                 .filter(t -> !t.isEmpty())
-                .collect(java.util.stream.Collectors.joining(" y "));
+                .toList();
+            // "1 lote y 1 rodeo" / "3 animales, 1 lote y 1 rodeo"
+            String detalle = partes.size() == 1 ? partes.get(0)
+                : String.join(", ", partes.subList(0, partes.size() - 1)) + " y " + partes.get(partes.size() - 1);
             throw new BusinessException("No se puede eliminar: todavía tiene " + detalle + ". Eliminalos primero.");
         }
         establecimiento.darDeBaja();

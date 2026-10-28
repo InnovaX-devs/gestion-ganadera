@@ -94,10 +94,8 @@ public abstract class AgrupacionService<E extends Agrupacion> {
         agrupacion.darDeBaja();
     }
 
-    /** Se completa cuando exista el modelo Animal (#13). */
-    protected long contarAnimales(E agrupacion) {
-        return 0;
-    }
+    /** Animales activos asignados. Lo implementa cada subclase (lote o rodeo). */
+    protected abstract long contarAnimales(E agrupacion);
 
     private AgrupacionResponse aRespuesta(E agrupacion) {
         return AgrupacionResponse.from(agrupacion, contarAnimales(agrupacion));

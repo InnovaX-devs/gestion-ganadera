@@ -13,6 +13,7 @@ import org.springframework.jdbc.core.JdbcTemplate;
 public final class DbCleaner {
 
     private static final List<String> TABLAS_EN_ORDEN = List.of(
+        "animal",
         "membresia",
         "lote",
         "rodeo",
@@ -25,6 +26,8 @@ public final class DbCleaner {
     }
 
     public static void limpiar(JdbcTemplate jdbc) {
+        // animal se referencia a sí misma (madre/padre): primero se cortan esas relaciones
+        jdbc.update("UPDATE animal SET madre_id = NULL, padre_id = NULL");
         TABLAS_EN_ORDEN.forEach(tabla -> jdbc.update("DELETE FROM " + tabla));
     }
 }

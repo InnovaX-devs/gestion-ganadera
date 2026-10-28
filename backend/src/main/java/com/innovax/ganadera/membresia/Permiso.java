@@ -13,6 +13,8 @@ public enum Permiso {
     ELIMINAR_ESTABLECIMIENTO,
     /** Crear, editar y eliminar lotes y rodeos. */
     GESTIONAR_AGRUPACIONES,
+    /** Cargar, editar y borrar (por error de carga) animales. */
+    GESTIONAR_ANIMALES,
     /** Agregar usuarios al establecimiento, cambiarles el rol o quitarlos. */
     GESTIONAR_MIEMBROS,
     /** Registrar eventos sanitarios (tratamientos, tactos, vacunas). Se usa cuando existan esos módulos. */
