@@ -106,9 +106,10 @@ class AnimalControllerTest {
 
         api.get(token, url())
             .andExpect(status().isOk())
-            .andExpect(jsonPath("$.length()").value(3))
-            .andExpect(jsonPath("$[0].caravana").value("A-1"))
-            .andExpect(jsonPath("$[2].caravana").value("C-3"));
+            .andExpect(jsonPath("$.total").value(3))
+            .andExpect(jsonPath("$.contenido.length()").value(3))
+            .andExpect(jsonPath("$.contenido[0].caravana").value("A-1"))
+            .andExpect(jsonPath("$.contenido[2].caravana").value("C-3"));
     }
 
     // ---------- Validaciones ----------
@@ -295,7 +296,7 @@ class AnimalControllerTest {
 
         api.delete(token, url() + "/" + criaId).andExpect(status().isNoContent());
         api.delete(token, url() + "/" + madre).andExpect(status().isNoContent());
-        api.get(token, url()).andExpect(jsonPath("$.length()").value(0));
+        api.get(token, url()).andExpect(jsonPath("$.total").value(0));
     }
 
     // ---------- Permisos y aislamiento ----------
@@ -306,7 +307,7 @@ class AnimalControllerTest {
         crear(animal("A-1", "HEMBRA", "VACA"));
         String tokenRol = tokenConRol(rol);
 
-        api.get(tokenRol, url()).andExpect(status().isOk()).andExpect(jsonPath("$.length()").value(1));
+        api.get(tokenRol, url()).andExpect(status().isOk()).andExpect(jsonPath("$.total").value(1));
         api.post(tokenRol, url(), animal("A-2", "HEMBRA", "VACA")).andExpect(status().is(esperado));
     }
 
@@ -333,6 +334,110 @@ class AnimalControllerTest {
         api.post(token, url(), cria)
             .andExpect(status().isUnprocessableEntity())
             .andExpect(jsonPath("$.message").value("La madre elegida no existe"));
+    }
+
+    // ---------- Listado: filtros, búsqueda y paginación (#14) ----------
+
+    @Test
+    void filtraPorCategoriaSexoLoteYBusqueda() throws Exception {
+        String loteId = crearAgrupacion("lotes", "Recría");
+        var enLote = animal("R-10", "MACHO", "TERNERO");
+        enLote.put("loteId", loteId);
+        enLote.put("caravanaElectronica", "032000999");
+        crear(enLote);
+        crear(animal("V-11", "HEMBRA", "VACA"));
+        crear(animal("V-12", "HEMBRA", "VACA"));
+        crear(animal("T-13", "MACHO", "TORO"));
+
+        api.get(token, url() + "?categoria=VACA").andExpect(jsonPath("$.total").value(2));
+        api.get(token, url() + "?sexo=MACHO").andExpect(jsonPath("$.total").value(2));
+        api.get(token, url() + "?loteId=" + loteId)
+            .andExpect(jsonPath("$.total").value(1))
+            .andExpect(jsonPath("$.contenido[0].caravana").value("R-10"));
+        api.get(token, url() + "?sinLote=true").andExpect(jsonPath("$.total").value(3));
+        api.get(token, url() + "?q=v-1").andExpect(jsonPath("$.total").value(2));
+        api.get(token, url() + "?q=999").andExpect(jsonPath("$.contenido[0].caravana").value("R-10"));
+        api.get(token, url() + "?q=%25").andExpect(jsonPath("$.total").value(0));
+        api.get(token, url() + "?sexo=HEMBRA&q=12").andExpect(jsonPath("$.total").value(1));
+    }
+
+    @Test
+    void paginaLosResultados() throws Exception {
+        for (int i = 1; i <= 5; i++) crear(animal("A-" + i, "HEMBRA", "VACA"));
+
+        api.get(token, url() + "?tamanio=2&pagina=1")
+            .andExpect(jsonPath("$.total").value(5))
+            .andExpect(jsonPath("$.totalPaginas").value(3))
+            .andExpect(jsonPath("$.pagina").value(1))
+            .andExpect(jsonPath("$.contenido.length()").value(2))
+            .andExpect(jsonPath("$.contenido[0].caravana").value("A-3"));
+    }
+
+    @Test
+    void resumenCuentaPorSexoYCategoria() throws Exception {
+        crear(animal("V-1", "HEMBRA", "VACA"));
+        crear(animal("V-2", "HEMBRA", "VACA"));
+        crear(animal("H-1", "HEMBRA", "TERNERA"));
+        crear(animal("T-1", "MACHO", "TORO"));
+
+        api.get(token, url() + "/resumen")
+            .andExpect(status().isOk())
+            .andExpect(jsonPath("$.total").value(4))
+            .andExpect(jsonPath("$.hembras").value(3))
+            .andExpect(jsonPath("$.machos").value(1))
+            .andExpect(jsonPath("$.porCategoria.VACA").value(2))
+            .andExpect(jsonPath("$.porCategoria.TERNERA").value(1))
+            .andExpect(jsonPath("$.porCategoria.NOVILLO").value(0));
+    }
+
+    // ---------- Asignación masiva de lote y rodeo (#14) ----------
+
+    @Test
+    void asignaYQuitaElLoteAVariosAnimales() throws Exception {
+        String loteId = crearAgrupacion("lotes", "Recría");
+        String a1 = crear(animal("A-1", "HEMBRA", "VACA"));
+        String a2 = crear(animal("A-2", "HEMBRA", "VACA"));
+
+        api.post(token, url() + "/asignar", Map.of("animalIds", java.util.List.of(a1, a2), "campo", "LOTE", "destinoId", loteId))
+            .andExpect(status().isOk())
+            .andExpect(jsonPath("$.actualizados").value(2));
+        api.get(token, url(establecimientoId, "lotes")).andExpect(jsonPath("$[0].cantidadAnimales").value(2));
+
+        var quitar = new HashMap<String, Object>();
+        quitar.put("animalIds", java.util.List.of(a1));
+        quitar.put("campo", "LOTE");
+        quitar.put("destinoId", null);
+        api.post(token, url() + "/asignar", quitar).andExpect(status().isOk());
+        api.get(token, url(establecimientoId, "lotes")).andExpect(jsonPath("$[0].cantidadAnimales").value(1));
+    }
+
+    @Test
+    void asignarConAnimalesODestinoDeOtroEstablecimientoNoCambiaNada() throws Exception {
+        String rodeoId = crearAgrupacion("rodeos", "Cría");
+        String a1 = crear(animal("A-1", "HEMBRA", "VACA"));
+        String otro = crearEstablecimiento(token, "El Ombú");
+        String animalDeOtro = api.leer(api.post(token, url(otro), animal("Z-1", "HEMBRA", "VACA")), "id");
+        String rodeoDeOtro = api.leer(api.post(token, url(otro, "rodeos"), Map.of("nombre", "Ajeno")), "id");
+
+        api.post(token, url() + "/asignar",
+                Map.of("animalIds", java.util.List.of(a1, animalDeOtro), "campo", "RODEO", "destinoId", rodeoId))
+            .andExpect(status().isUnprocessableEntity());
+        api.post(token, url() + "/asignar",
+                Map.of("animalIds", java.util.List.of(a1), "campo", "RODEO", "destinoId", rodeoDeOtro))
+            .andExpect(status().isUnprocessableEntity());
+
+        api.get(token, url(establecimientoId, "rodeos")).andExpect(jsonPath("$[0].cantidadAnimales").value(0));
+    }
+
+    @ParameterizedTest
+    @CsvSource({"ENCARGADO, 200", "VETERINARIO, 403", "SOCIO, 403"})
+    void soloQuienGestionaAnimalesPuedeAsignar(Rol rol, int esperado) throws Exception {
+        String loteId = crearAgrupacion("lotes", "Recría");
+        String a1 = crear(animal("A-1", "HEMBRA", "VACA"));
+        String tokenRol = tokenConRol(rol);
+
+        api.post(tokenRol, url() + "/asignar", Map.of("animalIds", java.util.List.of(a1), "campo", "LOTE", "destinoId", loteId))
+            .andExpect(status().is(esperado));
     }
 
     // ---------- Helpers ----------

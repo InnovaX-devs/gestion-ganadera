@@ -4,15 +4,22 @@ import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.jpa.domain.Specification;
 import org.springframework.data.jpa.repository.EntityGraph;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.JpaSpecificationExecutor;
+import org.springframework.data.jpa.repository.Query;
+import org.springframework.data.repository.query.Param;
 
-/** Filtra solo por organización (@TenantId). */
-public interface AnimalRepository extends JpaRepository<Animal, UUID> {
+/** Filtra solo por organización (@TenantId), también en las consultas con Specification. */
+public interface AnimalRepository extends JpaRepository<Animal, UUID>, JpaSpecificationExecutor<Animal> {
 
-    /** Trae lote, rodeo, madre y padre en la misma consulta (evita una consulta por animal). */
+    /** Listado con filtros (ver AnimalSpecs). Trae lote, rodeo, madre y padre en la misma consulta. */
+    @Override
     @EntityGraph(attributePaths = {"lote", "rodeo", "madre", "padre"})
-    List<Animal> findByEstablecimientoIdAndEstadoOrderByCaravanaAsc(UUID establecimientoId, EstadoAnimal estado);
+    Page<Animal> findAll(Specification<Animal> spec, Pageable pageable);
 
     @EntityGraph(attributePaths = {"lote", "rodeo", "madre", "padre"})
     Optional<Animal> findByIdAndEstablecimientoId(UUID id, UUID establecimientoId);
@@ -37,4 +44,13 @@ public interface AnimalRepository extends JpaRepository<Animal, UUID> {
     long countByEstado(EstadoAnimal estado);
 
     boolean existsByMadreIdOrPadreId(UUID madreId, UUID padreId);
+
+    /** Cantidad por categoría de los animales en un estado. Cada fila: [Categoria, Long]. */
+    @Query("""
+        select a.categoria, count(a) from Animal a
+        where a.establecimiento.id = :establecimientoId and a.estado = :estado
+        group by a.categoria
+        """)
+    List<Object[]> contarPorCategoria(@Param("establecimientoId") UUID establecimientoId,
+                                      @Param("estado") EstadoAnimal estado);
 }

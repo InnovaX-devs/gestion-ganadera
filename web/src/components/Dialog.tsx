@@ -34,7 +34,7 @@ export function Dialog({ open, onClose, title, description, children, size = 'md
       }}
       // Clic en el fondo (fuera del contenido) cierra
       onClick={(e) => e.target === ref.current && onClose()}
-      className={`m-auto w-[calc(100%-2rem)] rounded-2xl border border-stone-200 bg-white p-0 text-stone-900 shadow-xl backdrop:bg-stone-950/50 dark:border-stone-800 dark:bg-stone-900 dark:text-stone-100 ${
+      className={`m-auto max-h-[calc(100dvh-2rem)] w-[calc(100%-2rem)] overscroll-contain rounded-2xl border border-stone-200 bg-white p-0 text-stone-900 shadow-xl backdrop:bg-stone-950/50 dark:border-stone-800 dark:bg-stone-900 dark:text-stone-100 ${
         size === 'sm' ? 'max-w-sm' : 'max-w-lg'
       }`}
     >

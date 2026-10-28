@@ -1,7 +1,14 @@
 package com.innovax.ganadera.animal;
 
+import java.util.EnumMap;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Map;
+import java.util.Set;
 import java.util.UUID;
+
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Sort;
 
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -10,8 +17,12 @@ import com.innovax.ganadera.agrupacion.Lote;
 import com.innovax.ganadera.agrupacion.LoteRepository;
 import com.innovax.ganadera.agrupacion.Rodeo;
 import com.innovax.ganadera.agrupacion.RodeoRepository;
+import com.innovax.ganadera.animal.dto.AnimalFiltro;
 import com.innovax.ganadera.animal.dto.AnimalRequest;
 import com.innovax.ganadera.animal.dto.AnimalResponse;
+import com.innovax.ganadera.animal.dto.AsignacionRequest;
+import com.innovax.ganadera.animal.dto.ResumenAnimalesResponse;
+import com.innovax.ganadera.common.dto.PaginaResponse;
 import com.innovax.ganadera.common.error.BusinessException;
 import com.innovax.ganadera.common.error.ConflictException;
 import com.innovax.ganadera.common.error.NotFoundException;
@@ -39,14 +50,59 @@ public class AnimalService {
     private final RodeoRepository rodeoRepository;
     private final AutorizacionService autorizacion;
 
+    /** Listado paginado con filtros (#14). Ordenado por caravana. */
     @Transactional(readOnly = true)
-    public List<AnimalResponse> listar(UUID establecimientoId) {
+    public PaginaResponse<AnimalResponse> listar(UUID establecimientoId, AnimalFiltro filtro) {
         autorizacion.exigir(establecimientoId, Permiso.VER);
         establecimientoActivo(establecimientoId);
-        return repository.findByEstablecimientoIdAndEstadoOrderByCaravanaAsc(establecimientoId, EstadoAnimal.ACTIVO)
-            .stream()
-            .map(AnimalResponse::from)
+        var pageable = PageRequest.of(filtro.paginaValida(), filtro.tamanioValido(), Sort.by("caravana"));
+        return PaginaResponse.de(repository.findAll(AnimalSpecs.de(establecimientoId, filtro), pageable),
+            AnimalResponse::from);
+    }
+
+    /** Stock del establecimiento: activos en total, por sexo y por categoría. */
+    @Transactional(readOnly = true)
+    public ResumenAnimalesResponse resumen(UUID establecimientoId) {
+        autorizacion.exigir(establecimientoId, Permiso.VER);
+        establecimientoActivo(establecimientoId);
+        Map<Categoria, Long> porCategoria = new EnumMap<>(Categoria.class);
+        for (Categoria c : Categoria.values()) porCategoria.put(c, 0L);
+        for (Object[] fila : repository.contarPorCategoria(establecimientoId, EstadoAnimal.ACTIVO)) {
+            porCategoria.put((Categoria) fila[0], (Long) fila[1]);
+        }
+        long hembras = sumar(porCategoria, Sexo.HEMBRA);
+        long machos = sumar(porCategoria, Sexo.MACHO);
+        return new ResumenAnimalesResponse(hembras + machos, hembras, machos, porCategoria);
+    }
+
+    /**
+     * Asigna (o quita, si destinoId es null) el mismo lote o rodeo a varios animales. Todos tienen
+     * que ser activos y del establecimiento; si alguno no lo es, no se cambia ninguno.
+     *
+     * <p>Cuando exista el evento Movimiento (#22), esto va a dejar registro en el historial.
+     */
+    @Transactional
+    public int asignar(UUID establecimientoId, AsignacionRequest request) {
+        autorizacion.exigir(establecimientoId, Permiso.GESTIONAR_ANIMALES);
+        establecimientoActivo(establecimientoId);
+        Set<UUID> ids = new HashSet<>(request.animalIds());
+        List<Animal> animales = repository.findAllById(ids).stream()
+            .filter(a -> a.getEstablecimiento().getId().equals(establecimientoId) && a.isActivo())
             .toList();
+        if (animales.size() != ids.size()) {
+            throw new BusinessException("Alguno de los animales elegidos no está en este establecimiento");
+        }
+        switch (request.campo()) {
+            case LOTE -> {
+                Lote lote = lote(request.destinoId(), establecimientoId);
+                animales.forEach(a -> a.setLote(lote));
+            }
+            case RODEO -> {
+                Rodeo rodeo = rodeo(request.destinoId(), establecimientoId);
+                animales.forEach(a -> a.setRodeo(rodeo));
+            }
+        }
+        return animales.size();
     }
 
     @Transactional(readOnly = true)
@@ -173,6 +229,13 @@ public class AnimalService {
         establecimientoActivo(establecimientoId);
         return repository.findByIdAndEstablecimientoId(id, establecimientoId)
             .orElseThrow(() -> NotFoundException.of("Animal", id));
+    }
+
+    private static long sumar(Map<Categoria, Long> porCategoria, Sexo sexo) {
+        return porCategoria.entrySet().stream()
+            .filter(e -> e.getKey().sexo() == sexo)
+            .mapToLong(Map.Entry::getValue)
+            .sum();
     }
 
     private static String texto(Enum<?> valor) {
