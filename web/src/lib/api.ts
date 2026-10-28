@@ -1,4 +1,5 @@
-import axios, { AxiosError } from 'axios'
+import axios, { AxiosError, type InternalAxiosRequestConfig } from 'axios'
+import type { AuthResponse } from '@/features/auth/types'
 import { authStorage } from './auth-storage'
 
 /** Formato de error estándar que devuelve el backend (ver backend/README.md). */
@@ -17,25 +18,74 @@ export const api = axios.create({
   timeout: 15000,
 })
 
-// Agrega el token a cada request
+// Endpoints que no llevan token (si se manda uno vencido, el backend respondería 401)
+const RUTAS_PUBLICAS = ['/auth/login', '/auth/register', '/auth/refresh']
+const esRutaPublica = (url?: string) => !!url && RUTAS_PUBLICAS.some((ruta) => url.endsWith(ruta))
+
 api.interceptors.request.use((config) => {
-  const token = authStorage.getToken()
-  if (token) {
+  const token = authStorage.getAccessToken()
+  if (token && !esRutaPublica(config.url)) {
     config.headers.Authorization = `Bearer ${token}`
   }
   return config
 })
 
-// Sesión vencida: se borra el token. La redirección al login se agrega en el issue de auth.
+// ---------- Renovación automática del access token ----------
+
+let onSessionExpired: (() => void) | null = null
+
+/** Lo registra AuthProvider para enterarse cuando la sesión venció del todo. */
+export function setOnSessionExpired(callback: (() => void) | null) {
+  onSessionExpired = callback
+}
+
+// Si varios requests reciben 401 a la vez, se hace un solo refresh y todos esperan ese.
+let refreshEnCurso: Promise<string | null> | null = null
+
+function refrescarAccessToken(): Promise<string | null> {
+  const refreshToken = authStorage.getRefreshToken()
+  if (!refreshToken) return Promise.resolve(null)
+
+  refreshEnCurso ??= api
+    .post<AuthResponse>('/auth/refresh', { refreshToken })
+    .then(({ data }) => {
+      authStorage.setTokens(data.accessToken, data.refreshToken)
+      return data.accessToken
+    })
+    .catch(() => null)
+    .finally(() => {
+      refreshEnCurso = null
+    })
+  return refreshEnCurso
+}
+
+type RequestReintentable = InternalAxiosRequestConfig & { _reintentado?: boolean }
+
 api.interceptors.response.use(
   (response) => response,
-  (error: AxiosError<ApiError>) => {
-    if (error.response?.status === 401) {
+  async (error: AxiosError<ApiError>) => {
+    const original = error.config as RequestReintentable | undefined
+    const puedeReintentar =
+      error.response?.status === 401 &&
+      original &&
+      !original._reintentado &&
+      !esRutaPublica(original.url)
+
+    if (!puedeReintentar) return Promise.reject(error)
+
+    original._reintentado = true
+    const nuevoToken = await refrescarAccessToken()
+    if (!nuevoToken) {
       authStorage.clear()
+      onSessionExpired?.()
+      return Promise.reject(error)
     }
-    return Promise.reject(error)
+    original.headers.Authorization = `Bearer ${nuevoToken}`
+    return api(original)
   },
 )
+
+// ---------- Helpers de errores ----------
 
 /** Mensaje legible para mostrar al usuario a partir de cualquier error de la API. */
 export function getErrorMessage(error: unknown): string {
@@ -44,4 +94,14 @@ export function getErrorMessage(error: unknown): string {
     if (!error.response) return 'No se pudo conectar con el servidor'
   }
   return 'Ocurrió un error inesperado'
+}
+
+/** Errores de validación por campo: { email: 'El email no es válido', ... } */
+export function getFieldErrors(error: unknown): Record<string, string> {
+  if (!axios.isAxiosError<ApiError>(error)) return {}
+  const errores: Record<string, string> = {}
+  for (const { field, message } of error.response?.data?.fieldErrors ?? []) {
+    errores[field] ??= message
+  }
+  return errores
 }

@@ -36,6 +36,8 @@ Variables de entorno de producción:
 | `DB_URL` | `jdbc:postgresql://host:5432/base` |
 | `DB_USERNAME` / `DB_PASSWORD` | Credenciales |
 | `CORS_ALLOWED_ORIGINS` | URL del frontend, separadas por coma |
+| `JWT_SECRET` | Clave para firmar los tokens, **obligatoria**, mínimo 32 caracteres (`openssl rand -base64 48`) |
+| `JWT_ACCESS_TTL` / `JWT_REFRESH_TTL` | Duración de los tokens (default `15m` y `7d`) |
 | `PORT` | Puerto HTTP (default 8080) |
 
 ## Estructura
@@ -48,6 +50,39 @@ com.innovax.ganadera
 │   └── health/      GET /api/health
 └── <modulo>/        Un paquete por módulo de negocio (establecimiento, animal, evento...)
 ```
+
+## Autenticación
+
+| Endpoint | Público | Qué hace |
+|----------|---------|----------|
+| `POST /api/auth/register` | Sí | Crea la organización y su primer usuario. Devuelve tokens (201) |
+| `POST /api/auth/login` | Sí | Devuelve tokens. Credenciales inválidas: 401 |
+| `POST /api/auth/refresh` | Sí | Recibe `{ "refreshToken": "..." }` y devuelve tokens nuevos |
+| `GET /api/auth/me` | No | Usuario logueado y su organización |
+
+Respuesta de login/register/refresh:
+
+```json
+{
+  "accessToken": "eyJ...",
+  "refreshToken": "eyJ...",
+  "tokenType": "Bearer",
+  "expiresIn": 900,
+  "usuario": { "id": "...", "email": "...", "nombre": "...", "organizacionId": "...", "organizacionNombre": "..." }
+}
+```
+
+- Todo endpoint no público necesita `Authorization: Bearer <accessToken>`.
+- El **access token** dura 15 minutos; el **refresh token**, 7 días. Cada uno lleva un claim `type` y no sirve en lugar del otro.
+- Los tokens son JWT firmados con HS256 (Spring Security OAuth2 Resource Server). Traen `sub` (usuario), `org` (organización) y `email`: de ahí sale el `AuthenticatedUser` que usa el filtro multi-tenant.
+- Probar a mano:
+
+  ```bash
+  curl -s -X POST localhost:8080/api/auth/register -H 'Content-Type: application/json' \
+    -d '{"nombreOrganizacion":"Mi campo","nombre":"Juan","email":"juan@campo.com","password":"clave-segura-123"}'
+  ```
+
+Pendiente para más adelante: invalidar refresh tokens al cerrar sesión o cambiar la contraseña, y limitar intentos de login.
 
 ## Multi-tenant (leer antes de crear una entidad)
 

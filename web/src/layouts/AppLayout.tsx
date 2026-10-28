@@ -1,7 +1,8 @@
-import { useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { NavLink, Outlet } from 'react-router'
-import { ChevronDown, Menu, Moon, Sun, X } from 'lucide-react'
+import { ChevronDown, LogOut, Menu, Moon, Sun, X } from 'lucide-react'
 import { navigation } from '@/config/navigation'
+import { useAuth } from '@/features/auth/useAuth'
 import { useTheme } from '@/hooks/useTheme'
 
 export function AppLayout() {
@@ -121,10 +122,71 @@ function Header({ onOpenMenu }: { onOpenMenu: () => void }) {
         >
           {isDark ? <Sun className="size-5" /> : <Moon className="size-5" />}
         </button>
-        <span className="bg-brand-600 grid size-8 place-items-center rounded-full text-sm font-semibold text-white">
-          U
-        </span>
+        <UserMenu />
       </div>
     </header>
+  )
+}
+
+function UserMenu() {
+  const { usuario, logout } = useAuth()
+  const [abierto, setAbierto] = useState(false)
+  const ref = useRef<HTMLDivElement>(null)
+
+  // Cierra el menú al hacer clic afuera o con Escape
+  useEffect(() => {
+    if (!abierto) return
+    const onClick = (e: MouseEvent) => {
+      if (!ref.current?.contains(e.target as Node)) setAbierto(false)
+    }
+    const onKey = (e: KeyboardEvent) => e.key === 'Escape' && setAbierto(false)
+    document.addEventListener('mousedown', onClick)
+    document.addEventListener('keydown', onKey)
+    return () => {
+      document.removeEventListener('mousedown', onClick)
+      document.removeEventListener('keydown', onKey)
+    }
+  }, [abierto])
+
+  if (!usuario) return null
+  const iniciales = `${usuario.nombre[0] ?? ''}${usuario.apellido?.[0] ?? ''}`.toUpperCase()
+
+  return (
+    <div ref={ref} className="relative">
+      <button
+        type="button"
+        onClick={() => setAbierto((a) => !a)}
+        aria-haspopup="menu"
+        aria-expanded={abierto}
+        aria-label="Menú de usuario"
+        className="bg-brand-600 focus-visible:ring-brand-300 grid size-8 place-items-center rounded-full text-sm font-semibold text-white outline-none focus-visible:ring-2"
+      >
+        {iniciales}
+      </button>
+
+      {abierto && (
+        <div
+          role="menu"
+          className="absolute right-0 mt-2 w-64 overflow-hidden rounded-xl border border-stone-200 bg-white shadow-lg dark:border-stone-800 dark:bg-stone-900"
+        >
+          <div className="border-b border-stone-200 px-4 py-3 dark:border-stone-800">
+            <p className="truncate text-sm font-medium">
+              {usuario.nombre} {usuario.apellido}
+            </p>
+            <p className="truncate text-xs text-stone-500">{usuario.email}</p>
+            <p className="mt-1 truncate text-xs text-stone-500">{usuario.organizacionNombre}</p>
+          </div>
+          <button
+            type="button"
+            role="menuitem"
+            onClick={logout}
+            className="flex w-full items-center gap-2 px-4 py-2.5 text-left text-sm text-stone-700 hover:bg-stone-100 dark:text-stone-300 dark:hover:bg-stone-800"
+          >
+            <LogOut className="size-4" />
+            Cerrar sesión
+          </button>
+        </div>
+      )}
+    </div>
   )
 }
