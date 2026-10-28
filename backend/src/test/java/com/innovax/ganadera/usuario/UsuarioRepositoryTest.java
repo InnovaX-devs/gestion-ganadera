@@ -13,6 +13,7 @@ import org.springframework.test.context.ActiveProfiles;
 
 import com.innovax.ganadera.organizacion.Organizacion;
 import com.innovax.ganadera.organizacion.OrganizacionRepository;
+import com.innovax.ganadera.support.DbCleaner;
 
 @SpringBootTest
 @ActiveProfiles("test")
@@ -31,8 +32,7 @@ class UsuarioRepositoryTest {
 
     @BeforeEach
     void preparar() {
-        jdbc.update("DELETE FROM usuario");
-        jdbc.update("DELETE FROM organizacion");
+        DbCleaner.limpiar(jdbc);
         organizacion = organizacionRepository.save(new Organizacion("Estancia La Prueba"));
     }
 

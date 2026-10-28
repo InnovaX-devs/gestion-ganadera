@@ -1,34 +1,39 @@
-import { useEffect, useRef, useState } from 'react'
+import { useCallback, useRef, useState } from 'react'
 import { NavLink, Outlet } from 'react-router'
-import { ChevronDown, LogOut, Menu, Moon, Sun, X } from 'lucide-react'
+import { LogOut, Menu, Moon, Sun, X } from 'lucide-react'
 import { navigation } from '@/config/navigation'
 import { useAuth } from '@/features/auth/useAuth'
+import { EstablecimientoActivoProvider } from '@/features/establecimientos/EstablecimientoActivoProvider'
+import { EstablecimientoSelector } from '@/features/establecimientos/EstablecimientoSelector'
+import { useDismiss } from '@/hooks/useDismiss'
 import { useTheme } from '@/hooks/useTheme'
 
 export function AppLayout() {
   const [sidebarOpen, setSidebarOpen] = useState(false)
 
   return (
-    <div className="min-h-dvh lg:grid lg:grid-cols-[16rem_1fr]">
-      {/* Fondo oscuro del menú en celular */}
-      {sidebarOpen && (
-        <button
-          type="button"
-          aria-label="Cerrar menú"
-          className="fixed inset-0 z-30 bg-stone-950/40 lg:hidden"
-          onClick={() => setSidebarOpen(false)}
-        />
-      )}
+    <EstablecimientoActivoProvider>
+      <div className="min-h-dvh lg:grid lg:grid-cols-[16rem_1fr]">
+        {/* Fondo oscuro del menú en celular */}
+        {sidebarOpen && (
+          <button
+            type="button"
+            aria-label="Cerrar menú"
+            className="fixed inset-0 z-30 bg-stone-950/40 lg:hidden"
+            onClick={() => setSidebarOpen(false)}
+          />
+        )}
 
-      <Sidebar open={sidebarOpen} onClose={() => setSidebarOpen(false)} />
+        <Sidebar open={sidebarOpen} onClose={() => setSidebarOpen(false)} />
 
-      <div className="flex min-w-0 flex-col">
-        <Header onOpenMenu={() => setSidebarOpen(true)} />
-        <main className="flex-1 px-4 py-6 sm:px-6 lg:px-8">
-          <Outlet />
-        </main>
+        <div className="flex min-w-0 flex-col">
+          <Header onOpenMenu={() => setSidebarOpen(true)} />
+          <main className="flex-1 px-4 py-6 sm:px-6 lg:px-8">
+            <Outlet />
+          </main>
+        </div>
       </div>
-    </div>
+    </EstablecimientoActivoProvider>
   )
 }
 
@@ -104,14 +109,7 @@ function Header({ onOpenMenu }: { onOpenMenu: () => void }) {
         <Menu className="size-5" />
       </button>
 
-      {/* Selector de establecimiento activo: se conecta en el issue de Establecimientos */}
-      <button
-        type="button"
-        className="flex items-center gap-2 rounded-lg border border-stone-200 px-3 py-1.5 text-sm font-medium hover:bg-stone-50 dark:border-stone-700 dark:hover:bg-stone-800"
-      >
-        Sin establecimiento
-        <ChevronDown className="size-4 text-stone-500" />
-      </button>
+      <EstablecimientoSelector />
 
       <div className="ml-auto flex items-center gap-2">
         <button
@@ -132,21 +130,8 @@ function UserMenu() {
   const { usuario, logout } = useAuth()
   const [abierto, setAbierto] = useState(false)
   const ref = useRef<HTMLDivElement>(null)
-
-  // Cierra el menú al hacer clic afuera o con Escape
-  useEffect(() => {
-    if (!abierto) return
-    const onClick = (e: MouseEvent) => {
-      if (!ref.current?.contains(e.target as Node)) setAbierto(false)
-    }
-    const onKey = (e: KeyboardEvent) => e.key === 'Escape' && setAbierto(false)
-    document.addEventListener('mousedown', onClick)
-    document.addEventListener('keydown', onKey)
-    return () => {
-      document.removeEventListener('mousedown', onClick)
-      document.removeEventListener('keydown', onKey)
-    }
-  }, [abierto])
+  const cerrar = useCallback(() => setAbierto(false), [])
+  useDismiss(ref, abierto, cerrar)
 
   if (!usuario) return null
   const iniciales = `${usuario.nombre[0] ?? ''}${usuario.apellido?.[0] ?? ''}`.toUpperCase()

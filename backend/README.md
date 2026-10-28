@@ -20,6 +20,12 @@ mvn verify
 
 Los tests usan H2 en memoria (perfil `test`), no necesitan Docker.
 
+Helpers en `src/test/java/.../support`:
+
+- `ApiTestClient`: registra cuentas reales y hace requests con token (`api.registrarCuenta("Org A")`, `api.post(token, url, body)`...). Ver `EstablecimientoControllerTest` como modelo.
+- `DbCleaner.limpiar(jdbc)`: vacía las tablas en orden. **Al crear una tabla nueva, agregala a su lista.**
+- Todo ABM nuevo tiene que tener un test de que otra organización no puede ver, editar ni borrar sus datos.
+
 ## Perfiles
 
 | Perfil | Uso | Base |

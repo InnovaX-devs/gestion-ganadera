@@ -1,7 +1,9 @@
 import { useEffect, useState } from 'react'
-import { CircleCheck, CircleX, LoaderCircle } from 'lucide-react'
+import { Link } from 'react-router'
+import { ArrowRight, CircleCheck, CircleX, LoaderCircle, MapPinned } from 'lucide-react'
 import { PageHeader } from '@/components/PageHeader'
 import { useAuth } from '@/features/auth/useAuth'
+import { useEstablecimientoActivo } from '@/features/establecimientos/useEstablecimientoActivo'
 import { api, getErrorMessage } from '@/lib/api'
 
 type Estado = { tipo: 'cargando' } | { tipo: 'ok' } | { tipo: 'error'; mensaje: string }
@@ -15,13 +17,17 @@ function saludo() {
 
 export function InicioPage() {
   const { usuario } = useAuth()
+  const { activo, cargando } = useEstablecimientoActivo()
 
   return (
     <>
       <PageHeader
         title={`${saludo()}, ${usuario?.nombre ?? ''}`}
-        description={usuario?.organizacionNombre}
+        description={
+          activo ? `${usuario?.organizacionNombre} · ${activo.nombre}` : usuario?.organizacionNombre
+        }
       />
+      {!cargando && !activo && <PrimerosPasos />}
       <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
         <EstadoBackend />
         <Tarjeta titulo="Stock total" texto="Se completa en el milestone M4 - Dashboard." />
@@ -31,6 +37,31 @@ export function InicioPage() {
         />
       </div>
     </>
+  )
+}
+
+/** Se muestra mientras la organización no tiene ningún establecimiento. */
+function PrimerosPasos() {
+  return (
+    <section className="border-brand-200 bg-brand-50 dark:border-brand-900 dark:bg-brand-900/20 mb-6 flex flex-col gap-4 rounded-xl border p-5 sm:flex-row sm:items-center">
+      <span className="text-brand-600 dark:text-brand-200 grid size-10 shrink-0 place-items-center rounded-full bg-white dark:bg-stone-900">
+        <MapPinned className="size-5" />
+      </span>
+      <div className="flex-1">
+        <h2 className="font-semibold">Primer paso: cargá tu establecimiento</h2>
+        <p className="mt-0.5 text-sm text-stone-600 dark:text-stone-400">
+          Todo se organiza por campo: lotes, rodeos, animales y eventos.
+        </p>
+      </div>
+      <Link
+        to="/establecimientos"
+        state={{ crear: true }}
+        className="bg-brand-600 hover:bg-brand-700 inline-flex items-center justify-center gap-2 rounded-lg px-4 py-2 text-sm font-medium text-white"
+      >
+        Crear establecimiento
+        <ArrowRight className="size-4" />
+      </Link>
+    </section>
   )
 }
 

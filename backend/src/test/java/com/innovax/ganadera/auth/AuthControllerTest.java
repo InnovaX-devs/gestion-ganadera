@@ -28,6 +28,7 @@ import org.springframework.test.web.servlet.ResultActions;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.innovax.ganadera.support.DbCleaner;
 
 @SpringBootTest
 @AutoConfigureMockMvc
@@ -51,8 +52,7 @@ class AuthControllerTest {
 
     @BeforeEach
     void limpiar() {
-        jdbc.update("DELETE FROM usuario");
-        jdbc.update("DELETE FROM organizacion");
+        DbCleaner.limpiar(jdbc);
     }
 
     // ---------- Registro ----------
