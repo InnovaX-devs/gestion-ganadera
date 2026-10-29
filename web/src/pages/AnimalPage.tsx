@@ -22,18 +22,25 @@ import { GraficoPeso } from '@/features/animales/GraficoPeso'
 import { SEXOS, formatearEdad } from '@/features/animales/config'
 import { useAnimal, useCrias } from '@/features/animales/queries'
 import type { Animal, Referencia } from '@/features/animales/types'
-import { puede } from '@/features/establecimientos/permisos'
+import { type Rol, puede } from '@/features/establecimientos/permisos'
 import { useEstablecimientoActivo } from '@/features/establecimientos/useEstablecimientoActivo'
+import { NacimientoDialog } from '@/features/eventos/NacimientoDialog'
 import { ObservacionDialog } from '@/features/eventos/ObservacionDialog'
-import { TIPOS_EVENTO, formatearKg } from '@/features/eventos/config'
+import { TIPOS_EVENTO, formatearKg, puedeRegistrarTipo } from '@/features/eventos/config'
 import { formatearFecha } from '@/features/eventos/fechas'
 import { useAnularEvento, useEventos } from '@/features/eventos/queries'
 import type { Evento, PesajeDatos, TipoEvento } from '@/features/eventos/types'
 import { useDismiss } from '@/hooks/useDismiss'
 import { getErrorMessage } from '@/lib/api'
 
-/** Tipos que ya se pueden cargar desde la ficha. Sumar acá cada tipo nuevo (#18 a #23). */
-const REGISTRABLES: TipoEvento[] = ['OBSERVACION']
+/**
+ * Tipos que ya se pueden cargar desde la ficha y a qué animales aplican. Sumar acá cada tipo nuevo
+ * (#18 a #23). El permiso de cada tipo sale de TIPOS_EVENTO.
+ */
+const REGISTRABLES: { tipo: TipoEvento; aplica: (animal: Animal) => boolean }[] = [
+  { tipo: 'NACIMIENTO', aplica: (a) => a.sexo === 'HEMBRA' },
+  { tipo: 'OBSERVACION', aplica: () => true },
+]
 
 const ESTADOS = { VENDIDO: 'Vendido', MUERTO: 'Muerto' } as const
 
@@ -71,18 +78,13 @@ export function AnimalPage() {
     )
   }
 
-  const activoEnCampo = animal.estado === 'ACTIVO'
   return (
     <Ficha
       // Al pasar de un animal a su madre o a una cría, la ficha arranca de cero
       key={animal.id}
       animal={animal}
       establecimientoId={activo.id}
-      puedeEditar={activoEnCampo && puede(activo.rol, 'GESTIONAR_ANIMALES')}
-      puedeRegistrar={
-        activoEnCampo &&
-        (puede(activo.rol, 'GESTIONAR_ANIMALES') || puede(activo.rol, 'REGISTRAR_SANIDAD'))
-      }
+      rol={activo.rol}
     />
   )
 }
@@ -90,14 +92,21 @@ export function AnimalPage() {
 function Ficha({
   animal,
   establecimientoId,
-  puedeEditar,
-  puedeRegistrar,
+  rol,
 }: {
   animal: Animal
   establecimientoId: string
-  puedeEditar: boolean
-  puedeRegistrar: boolean
+  rol: Rol
 }) {
+  // Sobre un animal vendido o muerto no se registra ni se anula nada desde la ficha
+  const activoEnCampo = animal.estado === 'ACTIVO'
+  const puedeEditar = activoEnCampo && puede(rol, 'GESTIONAR_ANIMALES')
+  const registrables = activoEnCampo
+    ? REGISTRABLES.filter((r) => r.aplica(animal) && puedeRegistrarTipo(rol, r.tipo)).map(
+        (r) => r.tipo,
+      )
+    : []
+  const puedeAnular = (tipo: TipoEvento) => activoEnCampo && puedeRegistrarTipo(rol, tipo)
   const [editando, setEditando] = useState(false)
   const [registrando, setRegistrando] = useState<TipoEvento | null>(null)
   const edad = formatearEdad(animal.fechaNacimiento, animal.fechaNacimientoEstimada)
@@ -130,7 +139,9 @@ function Ficha({
               Editar
             </Button>
           )}
-          {puedeRegistrar && <MenuRegistrar onElegir={setRegistrando} />}
+          {registrables.length > 0 && (
+            <MenuRegistrar tipos={registrables} onElegir={setRegistrando} />
+          )}
         </div>
       </div>
 
@@ -166,7 +177,7 @@ function Ficha({
           <Historial
             animalId={animal.id}
             establecimientoId={establecimientoId}
-            puedeAnular={puedeRegistrar}
+            puedeAnular={puedeAnular}
           />
         </div>
       </div>
@@ -183,11 +194,23 @@ function Ficha({
         animalIds={[animal.id]}
         onClose={() => setRegistrando(null)}
       />
+      <NacimientoDialog
+        establecimientoId={establecimientoId}
+        open={registrando === 'NACIMIENTO'}
+        madre={{ id: animal.id, caravana: animal.caravana }}
+        onClose={() => setRegistrando(null)}
+      />
     </>
   )
 }
 
-function MenuRegistrar({ onElegir }: { onElegir: (tipo: TipoEvento) => void }) {
+function MenuRegistrar({
+  tipos,
+  onElegir,
+}: {
+  tipos: TipoEvento[]
+  onElegir: (tipo: TipoEvento) => void
+}) {
   const [abierto, setAbierto] = useState(false)
   const ref = useRef<HTMLDivElement>(null)
   const cerrar = useCallback(() => setAbierto(false), [])
@@ -205,7 +228,7 @@ function MenuRegistrar({ onElegir }: { onElegir: (tipo: TipoEvento) => void }) {
           role="menu"
           className="absolute right-0 z-20 mt-1 w-52 rounded-xl border border-stone-200 bg-white p-1 shadow-lg dark:border-stone-700 dark:bg-stone-900"
         >
-          {REGISTRABLES.map((tipo) => {
+          {tipos.map((tipo) => {
             const { etiqueta, icono: Icono } = TIPOS_EVENTO[tipo]
             return (
               <button
@@ -328,7 +351,7 @@ function Historial({
 }: {
   animalId: string
   establecimientoId: string
-  puedeAnular: boolean
+  puedeAnular: (tipo: TipoEvento) => boolean
 }) {
   const [pagina, setPagina] = useState(0)
   const [aAnular, setAAnular] = useState<Evento | null>(null)
@@ -393,7 +416,7 @@ function Historial({
                   )}
                   <p className="mt-0.5 text-xs text-stone-500">{e.registradoPor.nombre}</p>
                 </div>
-                {puedeAnular && (
+                {puedeAnular(e.tipo) && (
                   <button
                     type="button"
                     onClick={() => setAAnular(e)}
