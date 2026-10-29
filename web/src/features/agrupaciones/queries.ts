@@ -1,4 +1,5 @@
-import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
+import { type QueryClient, useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
+import { stockKey } from '@/features/stock/queries'
 import { api } from '@/lib/api'
 import type { Agrupacion, AgrupacionInput, TipoAgrupacion } from './types'
 
@@ -7,6 +8,14 @@ const base = (tipo: TipoAgrupacion, establecimientoId: string) =>
 
 export const agrupacionesKey = (tipo: TipoAgrupacion, establecimientoId: string | undefined) =>
   ['agrupaciones', tipo, establecimientoId] as const
+
+/** El stock muestra el nombre de cada lote y rodeo: también se refresca al cambiarlos. */
+function invalidar(queryClient: QueryClient, tipo: TipoAgrupacion, establecimientoId: string) {
+  return Promise.all([
+    queryClient.invalidateQueries({ queryKey: agrupacionesKey(tipo, establecimientoId) }),
+    queryClient.invalidateQueries({ queryKey: stockKey(establecimientoId) }),
+  ])
+}
 
 /** Lotes o rodeos del establecimiento. No pide nada mientras no haya establecimiento. */
 export function useAgrupaciones(tipo: TipoAgrupacion, establecimientoId: string | undefined) {
@@ -25,8 +34,7 @@ export function useGuardarAgrupacion(tipo: TipoAgrupacion, establecimientoId: st
         ? api.put<Agrupacion>(`${base(tipo, establecimientoId)}/${id}`, data)
         : api.post<Agrupacion>(base(tipo, establecimientoId), data)
       ).then((r) => r.data),
-    onSuccess: () =>
-      queryClient.invalidateQueries({ queryKey: agrupacionesKey(tipo, establecimientoId) }),
+    onSuccess: () => invalidar(queryClient, tipo, establecimientoId),
   })
 }
 
@@ -34,7 +42,6 @@ export function useEliminarAgrupacion(tipo: TipoAgrupacion, establecimientoId: s
   const queryClient = useQueryClient()
   return useMutation({
     mutationFn: (id: string) => api.delete(`${base(tipo, establecimientoId)}/${id}`),
-    onSuccess: () =>
-      queryClient.invalidateQueries({ queryKey: agrupacionesKey(tipo, establecimientoId) }),
+    onSuccess: () => invalidar(queryClient, tipo, establecimientoId),
   })
 }

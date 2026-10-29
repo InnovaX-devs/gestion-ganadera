@@ -170,6 +170,30 @@ DELETE /api/establecimientos/{id}/eventos/{eventoId}   // anula, no borra
 3. Tests en un `XxxEventoTest` usando `ApiTestClient`.
 
 `ObservacionHandler` es el ejemplo más simple. El permiso que pide cada tipo está en `TipoEvento`.
+## Stock (#25)
+
+`GET /api/stock?establecimientoId=<uuid>`: animales **activos** del establecimiento, por sexo, categoría, lote y rodeo. Lo ve cualquier miembro (`VER`).
+
+- No hay tabla de stock: se calcula en cada request con una sola consulta JPQL agrupada (`StockRepository`), así que nunca se desincroniza ni se edita a mano. Es JPQL y no una vista de la base para que la filtre `@TenantId`. La acompaña el índice `idx_animal_stock` (`V7`).
+- `porSexo` y `porCategoria` traen siempre todas las claves (en 0 si no hay).
+- `porLote` / `porRodeo`: todos los lotes y rodeos activos, también los vacíos, por nombre. Al final va el grupo **sin** `id` ni `nombre` = animales sin lote (o sin rodeo), solo si hay alguno. La suma de los `total` de cada lista es el `total` general.
+- Falta `establecimientoId` o no es un UUID: 400. Establecimiento ajeno, inexistente o dado de baja: 404.
+
+```json
+{
+  "establecimientoId": "...",
+  "total": 354,
+  "porSexo": { "HEMBRA": 202, "MACHO": 152 },
+  "porCategoria": { "VACA": 127, "VAQUILLONA": 34, "TERNERA": 41, "TERNERO": 41, "NOVILLITO": 38, "NOVILLO": 64, "TORITO": 3, "TORO": 6 },
+  "porLote": [
+    { "id": "...", "nombre": "Recría 2026", "total": 90, "porSexo": { ... }, "porCategoria": { ... } },
+    { "total": 13, "porSexo": { ... }, "porCategoria": { ... } }
+  ],
+  "porRodeo": [ ... ]
+}
+```
+
+`StockControllerTest.elStockCoincideConLaListaDeAnimales` verifica que el stock coincida siempre con el listado de animales (`GET /establecimientos/{id}/animales`) y sus filtros.
 
 ## Errores
 

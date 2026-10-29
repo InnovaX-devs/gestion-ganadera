@@ -1,6 +1,7 @@
 import { keepPreviousData, useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { api } from '@/lib/api'
-import type { Animal, AnimalInput, FiltroAnimales, Pagina, ResumenAnimales } from './types'
+import { stockKey } from '@/features/stock/queries'
+import type { Animal, AnimalInput, FiltroAnimales, Pagina } from './types'
 
 const base = (establecimientoId: string) => `/establecimientos/${establecimientoId}/animales`
 
@@ -32,15 +33,6 @@ export function useAnimales(establecimientoId: string | undefined, filtro: Filtr
   })
 }
 
-export function useResumenAnimales(establecimientoId: string | undefined) {
-  return useQuery({
-    queryKey: ['animales', establecimientoId, 'resumen'],
-    queryFn: () =>
-      api.get<ResumenAnimales>(`${base(establecimientoId!)}/resumen`).then((r) => r.data),
-    enabled: !!establecimientoId,
-  })
-}
-
 export function useAnimal(establecimientoId: string | undefined, id: string | undefined) {
   return useQuery({
     queryKey: ['animales', establecimientoId, 'ficha', id],
@@ -61,7 +53,7 @@ export function useCrias(establecimientoId: string | undefined, id: string | und
 }
 
 /**
- * Cualquier cambio en animales refresca listados y resumen, y también lotes y rodeos
+ * Cualquier cambio en animales refresca los listados, el stock y también lotes y rodeos
  * (muestran cuántos animales tienen).
  */
 function useInvalidar(establecimientoId: string) {
@@ -69,6 +61,7 @@ function useInvalidar(establecimientoId: string) {
   return () =>
     Promise.all([
       queryClient.invalidateQueries({ queryKey: ['animales', establecimientoId] }),
+      queryClient.invalidateQueries({ queryKey: stockKey(establecimientoId) }),
       queryClient.invalidateQueries({ queryKey: ['agrupaciones'] }),
     ])
 }
