@@ -1,5 +1,7 @@
 package com.innovax.ganadera.animal;
 
+import java.time.LocalDate;
+import java.util.Collection;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
@@ -53,4 +55,18 @@ public interface AnimalRepository extends JpaRepository<Animal, UUID>, JpaSpecif
         """)
     List<Object[]> contarPorCategoria(@Param("establecimientoId") UUID establecimientoId,
                                       @Param("estado") EstadoAnimal estado);
+
+    /**
+     * Candidatos del job de cambio de categoría por edad: activos, de establecimientos activos, en
+     * alguna de esas categorías y nacidos hasta esa fecha.
+     */
+    @Query("""
+        select a from Animal a
+        where a.estado = :estado and a.establecimiento.activo = true
+          and a.categoria in :categorias
+          and a.fechaNacimiento is not null and a.fechaNacimiento <= :nacidosHasta
+        """)
+    List<Animal> candidatosACambioPorEdad(@Param("estado") EstadoAnimal estado,
+                                          @Param("categorias") Collection<Categoria> categorias,
+                                          @Param("nacidosHasta") LocalDate nacidosHasta);
 }

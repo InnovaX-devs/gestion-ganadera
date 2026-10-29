@@ -142,6 +142,44 @@ Reglas:
 - Usar `TIMESTAMP WITH TIME ZONE` en las migraciones (funciona en PostgreSQL y en el H2 de los tests).
 - Las queries nativas (`nativeQuery = true`) **no** se filtran solas: evitarlas, o agregar el filtro y un test.
 
+## Jobs programados
+
+Corren sin usuario logueado, así que fijan la organización a mano (ver [ADR 0003](../docs/decisiones/0003-jobs-multi-tenant.md)):
+
+```java
+for (UUID organizacionId : organizaciones) {
+    int procesados = TenantContext.ejecutarComo(organizacionId, () -> servicio.procesar(hoy)); // @Transactional
+}
+```
+
+Para tareas que no devuelven nada: `TenantContext.ejecutarSinResultadoComo(organizacionId, () -> ...)`.
+
+- Se apagan con `JOBS_HABILITADOS=false` (`app.jobs.habilitados`). En los tests están apagados y se llaman a mano.
+- Tienen que ser idempotentes: si corren dos veces, el resultado es el mismo.
+
+## Cambio automático de categoría (#16)
+
+Paquete `animal.categoria`. Las reglas están en `ReglasCategoria` (sin Spring ni base, testeadas en `ReglasCategoriaTest`):
+
+| De | A | Cuándo |
+|----|---|--------|
+| Ternera | Vaquillona | Destete, o al cumplir `meses-destete` |
+| Vaquillona (o ternera) | Vaca | Primer parto |
+| Ternero castrado / entero | Novillito / Torito | Destete, o al cumplir `meses-destete` |
+| Novillito | Novillo | Al cumplir `meses-adulto`, o un pesaje ≥ `kilos-novillo` |
+| Torito | Toro | Al cumplir `meses-adulto`, o un pesaje ≥ `kilos-toro` |
+
+- **Eventos**: al registrar un destete, parto o pesaje, el módulo de eventos llama, dentro de su transacción,
+  `categoriaService.aplicar(animal, new Hecho.Destete(fecha))` (o `Hecho.Parto`, `Hecho.Pesaje`).
+- **Job diario** (`CambioCategoriaJob`, 3 AM hora de Argentina): revisa por edad los animales activos de
+  establecimientos activos. Si un animal está atrasado varias categorías, avanza todas (una fila por paso).
+- **Historial**: cada cambio, automático o manual (editar la categoría del animal), queda en `cambio_categoria`
+  con motivo `DESTETE`, `PARTO`, `EDAD`, `PESO` o `MANUAL`. `GET /api/establecimientos/{id}/animales/{animalId}/cambios-categoria`
+  lo devuelve, el más reciente primero (permiso `VER`).
+- Umbrales en `app.categorias` (por defecto 8 y 24 meses, 400 y 450 kg), con variables de entorno
+  `CATEGORIA_MESES_DESTETE`, `CATEGORIA_MESES_ADULTO`, `CATEGORIA_KILOS_NOVILLO`, `CATEGORIA_KILOS_TORO`.
+  Horario del job: `JOB_CAMBIO_CATEGORIA_CRON`.
+
 ## Errores
 
 Toda la API responde los errores con este formato:

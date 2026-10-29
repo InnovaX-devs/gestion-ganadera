@@ -17,6 +17,7 @@ import com.innovax.ganadera.agrupacion.Lote;
 import com.innovax.ganadera.agrupacion.LoteRepository;
 import com.innovax.ganadera.agrupacion.Rodeo;
 import com.innovax.ganadera.agrupacion.RodeoRepository;
+import com.innovax.ganadera.animal.categoria.CategoriaService;
 import com.innovax.ganadera.animal.dto.AnimalFiltro;
 import com.innovax.ganadera.animal.dto.AnimalRequest;
 import com.innovax.ganadera.animal.dto.AnimalResponse;
@@ -49,6 +50,7 @@ public class AnimalService {
     private final LoteRepository loteRepository;
     private final RodeoRepository rodeoRepository;
     private final AutorizacionService autorizacion;
+    private final CategoriaService categoriaService;
 
     /** Listado paginado con filtros (#14). Ordenado por caravana. */
     @Transactional(readOnly = true)
@@ -124,8 +126,11 @@ public class AnimalService {
     public AnimalResponse actualizar(UUID establecimientoId, UUID id, AnimalRequest request) {
         autorizacion.exigir(establecimientoId, Permiso.GESTIONAR_ANIMALES);
         Animal animal = buscar(establecimientoId, id);
+        Categoria categoriaAnterior = animal.getCategoria();
         aplicar(request, animal);
-        return AnimalResponse.from(repository.saveAndFlush(animal));
+        Animal guardado = repository.saveAndFlush(animal);
+        categoriaService.registrarCambioManual(guardado, categoriaAnterior);
+        return AnimalResponse.from(guardado);
     }
 
     /** Borrado definitivo, solo para corregir una carga equivocada. No se puede si tiene crías registradas. */
