@@ -29,8 +29,9 @@ public final class DbCleaner {
     }
 
     public static void limpiar(JdbcTemplate jdbc) {
-        // animal se referencia a sí misma (madre/padre): primero se cortan esas relaciones
-        jdbc.update("UPDATE animal SET madre_id = NULL, padre_id = NULL");
+        // animal se referencia a sí misma (madre/padre) y al evento que la creó (nacimiento):
+        // primero se cortan esas relaciones
+        jdbc.update("UPDATE animal SET madre_id = NULL, padre_id = NULL, evento_nacimiento_id = NULL");
         TABLAS_EN_ORDEN.forEach(tabla -> jdbc.update("DELETE FROM " + tabla));
     }
 }

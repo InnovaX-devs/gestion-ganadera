@@ -2,6 +2,7 @@ package com.innovax.ganadera.animal;
 
 import java.time.LocalDate;
 import java.util.Locale;
+import java.util.UUID;
 
 import com.innovax.ganadera.agrupacion.Lote;
 import com.innovax.ganadera.agrupacion.Rodeo;
@@ -86,6 +87,13 @@ public class Animal extends TenantEntity {
 
     @Column(length = 500)
     private String observaciones;
+
+    /**
+     * Evento Nacimiento que creó este animal (#18). Null si se cargó a mano. Si ese evento se anula,
+     * el animal se borra.
+     */
+    @Column(name = "evento_nacimiento_id", updatable = false)
+    private UUID eventoNacimientoId;
 
     public Animal(Establecimiento establecimiento, String caravana, Sexo sexo, Categoria categoria) {
         this.establecimiento = establecimiento;

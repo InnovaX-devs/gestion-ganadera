@@ -79,6 +79,24 @@ public class CategoriaService {
     }
 
     /**
+     * Deshace el cambio de categoría que hizo un parto (vaquillona → vaca) cuando se anula ese
+     * nacimiento: vuelve a la categoría anterior y borra esas filas del historial, como si el parto
+     * no se hubiera cargado.
+     *
+     * <p>Si después alguien le cambió la categoría a mano, no se toca: lo que se hizo después manda.
+     * Quien llama tiene que verificar antes que no queden otros partos vigentes de la hembra.
+     */
+    @Transactional
+    public void revertirParto(Animal hembra, LocalDate fecha) {
+        List<CambioCategoria> cambios = historial.findByAnimalIdAndMotivoAndFechaOrderByCreatedAtAsc(
+            hembra.getId(), MotivoCambio.PARTO, fecha);
+        if (cambios.isEmpty()) return;
+        if (hembra.getCategoria() != cambios.getLast().getCategoriaNueva()) return;
+        hembra.setCategoria(cambios.getFirst().getCategoriaAnterior());
+        historial.deleteAll(cambios);
+    }
+
+    /**
      * Revisa por edad todos los animales activos de la organización actual. Lo usa el job, que fija
      * la organización con {@link TenantContext#comoOrganizacion}.
      *

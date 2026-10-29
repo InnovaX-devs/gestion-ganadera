@@ -47,6 +47,9 @@ public interface AnimalRepository extends JpaRepository<Animal, UUID>, JpaSpecif
 
     boolean existsByMadreIdOrPadreId(UUID madreId, UUID padreId);
 
+    /** Crías creadas por un evento Nacimiento (#18). */
+    List<Animal> findByEventoNacimientoId(UUID eventoId);
+
     /** Crías de un animal (como madre o como padre), en cualquier estado. La más nueva primero. */
     @EntityGraph(attributePaths = {"lote", "rodeo", "madre", "padre"})
     @Query("""
