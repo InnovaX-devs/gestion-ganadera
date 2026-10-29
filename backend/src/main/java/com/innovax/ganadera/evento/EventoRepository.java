@@ -48,6 +48,13 @@ public interface EventoRepository extends JpaRepository<Evento, UUID>, JpaSpecif
 
     boolean existsByAnimalIdAndDeletedAtIsNull(UUID animalId);
 
+    /** Eventos vigentes de un tipo para un animal, entre dos fechas (inclusive). */
+    List<Evento> findByAnimalIdAndTipoAndDeletedAtIsNullAndFechaBetween(
+        UUID animalId, TipoEvento tipo, LocalDate desde, LocalDate hasta);
+
+    /** Si el animal tiene otro evento vigente de ese tipo, sin contar el indicado. */
+    boolean existsByAnimalIdAndTipoAndDeletedAtIsNullAndIdNot(UUID animalId, TipoEvento tipo, UUID id);
+
     /** Al borrar un animal cargado por error se borran también sus eventos ya anulados. */
     @Modifying
     @Query("delete from Evento e where e.animal.id = :animalId and e.deletedAt is not null")

@@ -10,6 +10,7 @@ import { AceptarInvitacionPage } from '@/pages/AceptarInvitacionPage'
 import { InicioPage } from '@/pages/InicioPage'
 import { InvitacionesPage } from '@/pages/InvitacionesPage'
 import { LoginPage } from '@/pages/LoginPage'
+import { NacimientosPage } from '@/pages/NacimientosPage'
 import { ObservacionesPage } from '@/pages/ObservacionesPage'
 import { NotFoundPage } from '@/pages/NotFoundPage'
 import { PesajesPage } from '@/pages/PesajesPage'
@@ -26,6 +27,7 @@ const IMPLEMENTADAS = new Set([
   '/animales',
   '/invitaciones',
   '/observaciones',
+  '/nacimientos',
   '/tratamientos',
   '/pesajes',
 ])
@@ -66,6 +68,7 @@ export const router = createBrowserRouter([
           { path: 'invitaciones', element: <InvitacionesPage /> },
           { path: 'animales/:animalId', element: <AnimalPage /> },
           { path: 'observaciones', element: <ObservacionesPage /> },
+          { path: 'nacimientos', element: <NacimientosPage /> },
           { path: 'tratamientos', element: <TratamientosPage /> },
           { path: 'pesajes', element: <PesajesPage /> },
           ...placeholderRoutes,

@@ -1,3 +1,5 @@
+import type { Sexo } from '@/features/animales/types'
+
 export type TipoEvento =
   | 'NACIMIENTO'
   | 'SERVICIO'
@@ -68,4 +70,21 @@ export interface PesajeDatos {
   grupal?: boolean
   pesoTotal?: number
   cantidad?: number
+}
+
+export type TipoParto = 'NORMAL' | 'ASISTIDO' | 'CESAREA'
+
+/** Una cría del parto. Las nacidas muertas no llevan caravana ni se crean como animales. */
+export interface CriaNacimiento {
+  sexo: Sexo
+  nacidoMuerto: boolean
+  caravana?: string | null
+  pesoKg?: number | null
+}
+
+/** Nacimiento (#18): va sobre la madre. Mellizos = dos crías en el mismo nacimiento. */
+export interface NacimientoDatos {
+  tipoParto: TipoParto
+  crias: CriaNacimiento[]
+  observaciones?: string | null
 }
