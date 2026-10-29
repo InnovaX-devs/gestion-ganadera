@@ -23,6 +23,7 @@ Cada usuario tiene un rol **por establecimiento** (tabla `membresia`). Puede ser
 | Crear, editar y eliminar lotes y rodeos | ✅ | ✅ | ❌ | ❌ |
 | Cargar y editar animales (`GESTIONAR_ANIMALES`) | ✅ | ✅ | ❌ | ❌ |
 | Agregar miembros, cambiar roles y quitar miembros | ✅ | ❌ | ❌ | ❌ |
+| Invitar por email, ver, reenviar y revocar invitaciones | ✅ | ❌ | ❌ | ❌ |
 | Registrar eventos sanitarios (tratamientos, tactos, vacunas) \* | ✅ | ✅ | ✅ | ❌ |
 
 \* Permiso `REGISTRAR_SANIDAD`: ya está definido para cada rol, pero se aplica cuando existan esos módulos.
@@ -43,9 +44,24 @@ El 404 para quien no es miembro es a propósito: así no se puede averiguar si u
 
 - Un establecimiento siempre tiene al menos un dueño: no se puede quitar ni degradar al último (422).
 - Un usuario tiene un solo rol por establecimiento (409 si se lo vuelve a agregar).
-- Solo se puede agregar a usuarios que ya pertenecen a la organización. Invitar gente nueva a la organización no está resuelto todavía.
+- Agregar un miembro directo (`POST /miembros`) solo sirve para usuarios que ya pertenecen a la organización. Para gente nueva se usa una invitación por email.
 - Cualquier usuario puede crear un establecimiento y queda como su dueño.
 - Los establecimientos que existían antes de #11 pasaron a tener como dueños a todos los usuarios de su organización (lo hace la migración `V5`).
+
+## Invitaciones por email
+
+El dueño invita a un email eligiendo el establecimiento y el rol (`POST /api/establecimientos/{id}/invitaciones`). Al invitado le llega un link `/invitacion/<token>`.
+
+- El token es aleatorio (256 bits), viaja solo por email y en la base se guarda únicamente su hash SHA-256. La API nunca lo devuelve.
+- Vence a los 7 días (`INVITACION_TTL`). Una invitación vencida no se puede usar: el dueño la **reenvía** y se genera un link nuevo (el anterior deja de funcionar).
+- Estados: `PENDIENTE`, `ACEPTADA`, `VENCIDA`, `REVOCADA`. El vencimiento no se guarda: se calcula con la fecha.
+- Si el invitado **no tiene cuenta**, se registra desde el link (nombre, apellido y contraseña). Queda en la organización del dueño con el rol de la invitación.
+- Si **ya tiene cuenta** en esa organización, inicia sesión y acepta. Solo puede aceptar la cuenta cuyo email coincide con el invitado.
+- Un email con cuenta en **otra** organización no se puede invitar (409): hoy un usuario pertenece a una sola organización.
+- No se puede invitar a un miembro actual ni duplicar una invitación pendiente (409). Las revocadas o vencidas no bloquean una invitación nueva.
+- Aceptada no se puede revocar ni reenviar (422). Revocar una ya revocada no hace nada.
+
+Endpoints públicos (el token es la credencial): `GET /api/invitaciones/{token}`, `POST /api/invitaciones/{token}/registro`. `POST /api/invitaciones/{token}/aceptar` requiere sesión.
 
 ## Cómo aplicar permisos en un endpoint nuevo
 

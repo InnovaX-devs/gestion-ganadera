@@ -6,11 +6,25 @@ spring:
     password: ${DB_PASSWORD}
     hikari:
       maximum-pool-size: ${DB_POOL_SIZE:10}
+  mail:
+    host: ${MAIL_HOST}
+    port: ${MAIL_PORT:587}
+    username: ${MAIL_USERNAME}
+    password: ${MAIL_PASSWORD}
+    properties:
+      "[mail.smtp.auth]": true
+      "[mail.smtp.starttls.enable]": true
 
 app:
   jwt:
     # Sin valor por defecto: si falta JWT_SECRET la app no arranca
     secret: ${JWT_SECRET}
+  mail:
+    # En producción los emails se mandan de verdad (si no, los links de invitación quedarían en el log)
+    enabled: true
+    from: ${MAIL_FROM}
+  invitaciones:
+    web-url: ${APP_WEB_URL}
 
 logging:
   level:

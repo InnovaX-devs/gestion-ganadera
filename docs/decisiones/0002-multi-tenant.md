@@ -26,3 +26,7 @@ Opción 3.
 - El código de negocio no menciona la organización: menos errores y menos código.
 - Las queries nativas no pasan por el filtro: se evitan o se testean aparte.
 - Procesos sin usuario (jobs programados, como el de cotizaciones) que necesiten datos de varias organizaciones tendrán que fijar la organización explícitamente; se resuelve cuando aparezca el primer caso.
+
+### Actualización (#12): rutas públicas con organización fijada
+
+El link de una invitación se abre sin sesión, así que no hay organización de dónde sacar el tenant. El token se busca con una query JDBC (que no pasa por el filtro; es seguro porque el token es la credencial) y, con la organización de la invitación ya conocida, la escritura se hace dentro de `TenantContext.comoOrganizacion(orgId, ...)`. Eso fija la organización para el hilo actual. Hay que llamarlo **antes** de entrar a un método `@Transactional`, porque Hibernate resuelve el tenant al abrir la sesión.

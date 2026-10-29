@@ -1,9 +1,19 @@
 # Desarrollo local: usa la base de docker compose (valores por defecto de .env.example)
 spring:
+  config:
+    import: optional:file:../.env[.properties]
   datasource:
     url: jdbc:postgresql://localhost:${POSTGRES_PORT:5450}/${POSTGRES_DB:ganadera}
     username: ${POSTGRES_USER:ganadera}
     password: ${POSTGRES_PASSWORD:ganadera}
+  mail:
+    host: smtp.resend.com
+    port: 587
+    username: resend
+    password: ${MAIL_PASSWORD:}
+    properties:
+      "[mail.smtp.auth]": true
+      "[mail.smtp.starttls.enable]": true
 
 logging:
   level:
