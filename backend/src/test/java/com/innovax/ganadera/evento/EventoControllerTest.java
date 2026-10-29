@@ -179,13 +179,13 @@ class EventoControllerTest {
         invalido.put("tipo", "INVENTADO");
         api.post(token, eventos(), invalido).andExpect(status().isBadRequest());
 
-        // PESAJE ya existe como tipo, pero su handler llega en el issue #21
+        // BAJA ya existe como tipo, pero su handler llega en el issue #23
         String vaca = crearAnimal("V-1", "HEMBRA", "VACA");
-        var pesaje = observacion(HOY, "X", List.of(vaca));
-        pesaje.put("tipo", "PESAJE");
-        api.post(token, eventos(), pesaje)
+        var baja = observacion(HOY, "X", List.of(vaca));
+        baja.put("tipo", "BAJA");
+        api.post(token, eventos(), baja)
             .andExpect(status().isUnprocessableEntity())
-            .andExpect(jsonPath("$.message").value("El evento Pesaje todavía no está disponible"));
+            .andExpect(jsonPath("$.message").value("El evento Baja todavía no está disponible"));
     }
 
     @Test

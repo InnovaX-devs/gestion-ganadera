@@ -45,6 +45,17 @@ public interface AnimalRepository extends JpaRepository<Animal, UUID>, JpaSpecif
     /** Animales activos de toda la organización. Es la medida de los planes (#35). */
     long countByEstado(EstadoAnimal estado);
 
+    /** Animales de un lote en un estado, por caravana. Es a quienes se aplica un evento "sobre el lote". */
+    List<Animal> findByEstablecimientoIdAndLoteIdAndEstadoOrderByCaravana(
+        UUID establecimientoId, UUID loteId, EstadoAnimal estado);
+
+    List<Animal> findByEstablecimientoIdAndRodeoIdAndEstadoOrderByCaravana(
+        UUID establecimientoId, UUID rodeoId, EstadoAnimal estado);
+
+    /** Animales de un estado con alguna de esas caravanas (ya normalizadas). Para cargas por caravana. */
+    List<Animal> findByEstablecimientoIdAndCaravanaInAndEstado(
+        UUID establecimientoId, Collection<String> caravanas, EstadoAnimal estado);
+
     boolean existsByMadreIdOrPadreId(UUID madreId, UUID padreId);
 
     /** Crías creadas por un evento Nacimiento (#18). */

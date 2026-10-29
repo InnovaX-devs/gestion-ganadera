@@ -11,6 +11,8 @@ import {
   Tag,
 } from 'lucide-react'
 import { type Permiso, type Rol, puede } from '@/features/establecimientos/permisos'
+import { VIAS, formatearDiasCarencia } from '@/features/sanidad/config'
+import type { TratamientoDatos } from '@/features/sanidad/types'
 import type { CriaNacimiento, TipoEvento, TipoParto } from './types'
 
 interface ConfigTipo {
@@ -37,12 +39,20 @@ export const TIPOS_EVENTO: Record<TipoEvento, ConfigTipo> = {
   },
   SERVICIO: { etiqueta: 'Servicio', icono: HeartHandshake, permisos: ['GESTIONAR_ANIMALES'] },
   TACTO: { etiqueta: 'Tacto', icono: ScanSearch, permisos: ['REGISTRAR_SANIDAD'] },
-  TRATAMIENTO: { etiqueta: 'Tratamiento', icono: Syringe, permisos: ['REGISTRAR_SANIDAD'] },
+  TRATAMIENTO: {
+    etiqueta: 'Tratamiento',
+    icono: Syringe,
+    permisos: ['REGISTRAR_SANIDAD'],
+    resumen: (d) => resumenTratamiento(d as unknown as TratamientoDatos),
+  },
   PESAJE: {
     etiqueta: 'Pesaje',
     icono: Scale,
     permisos: ['GESTIONAR_ANIMALES'],
-    resumen: (d) => (typeof d.kg === 'number' ? `${formatearKg(d.kg)} kg` : null),
+    resumen: (d) =>
+      typeof d.kg === 'number'
+        ? `${formatearKg(d.kg)} kg${d.grupal ? ` (promedio de ${d.cantidad ?? '?'})` : ''}`
+        : null,
   },
   MOVIMIENTO: { etiqueta: 'Movimiento', icono: ArrowLeftRight, permisos: ['GESTIONAR_ANIMALES'] },
   VENTA: { etiqueta: 'Venta', icono: Tag, permisos: ['GESTIONAR_ANIMALES'] },
@@ -95,6 +105,19 @@ function describirCria(c: CriaNacimiento): string {
   if (c.nacidoMuerto) return `${hembra ? 'Hembra nacida muerta' : 'Macho nacido muerto'}`
   const peso = typeof c.pesoKg === 'number' ? `, ${formatearKg(c.pesoKg)} kg` : ''
   return `${hembra ? 'Hembra' : 'Macho'} ${c.caravana ?? ''}`.trim() + peso
+}
+
+/** "Ivomec · 5 ml · Subcutánea · Carencia 28 días" */
+function resumenTratamiento(d: TratamientoDatos): string | null {
+  if (!d.producto) return null
+  return [
+    d.producto,
+    d.dosis,
+    VIAS[d.via],
+    d.diasCarencia ? `Carencia ${formatearDiasCarencia(d.diasCarencia)}` : null,
+  ]
+    .filter(Boolean)
+    .join(' · ')
 }
 
 const kg = new Intl.NumberFormat('es-AR', { maximumFractionDigits: 1 })

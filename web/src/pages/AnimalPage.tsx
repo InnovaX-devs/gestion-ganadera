@@ -29,7 +29,13 @@ import { ObservacionDialog } from '@/features/eventos/ObservacionDialog'
 import { TIPOS_EVENTO, formatearKg, puedeRegistrarTipo } from '@/features/eventos/config'
 import { formatearFecha } from '@/features/eventos/fechas'
 import { useAnularEvento, useEventos } from '@/features/eventos/queries'
-import type { Evento, PesajeDatos, TipoEvento } from '@/features/eventos/types'
+import type { Evento, TipoEvento } from '@/features/eventos/types'
+import { Ganancia } from '@/features/pesajes/Ganancia'
+import { PesajeDialog } from '@/features/pesajes/PesajeDialog'
+import { usePesajes } from '@/features/pesajes/queries'
+import { CarenciaBadge } from '@/features/sanidad/CarenciaBadge'
+import { TratamientoDialog } from '@/features/sanidad/TratamientoDialog'
+import { formatearDiasCarencia } from '@/features/sanidad/config'
 import { useDismiss } from '@/hooks/useDismiss'
 import { getErrorMessage } from '@/lib/api'
 
@@ -39,6 +45,8 @@ import { getErrorMessage } from '@/lib/api'
  */
 const REGISTRABLES: { tipo: TipoEvento; aplica: (animal: Animal) => boolean }[] = [
   { tipo: 'NACIMIENTO', aplica: (a) => a.sexo === 'HEMBRA' },
+  { tipo: 'PESAJE', aplica: () => true },
+  { tipo: 'TRATAMIENTO', aplica: () => true },
   { tipo: 'OBSERVACION', aplica: () => true },
 ]
 
@@ -101,11 +109,13 @@ function Ficha({
   // Sobre un animal vendido o muerto no se registra ni se anula nada desde la ficha
   const activoEnCampo = animal.estado === 'ACTIVO'
   const puedeEditar = activoEnCampo && puede(rol, 'GESTIONAR_ANIMALES')
+  const puedeCrearProductos = puede(rol, 'REGISTRAR_SANIDAD')
   const registrables = activoEnCampo
     ? REGISTRABLES.filter((r) => r.aplica(animal) && puedeRegistrarTipo(rol, r.tipo)).map(
         (r) => r.tipo,
       )
     : []
+  const puedeRegistrar = registrables.length > 0
   const puedeAnular = (tipo: TipoEvento) => activoEnCampo && puedeRegistrarTipo(rol, tipo)
   const [editando, setEditando] = useState(false)
   const [registrando, setRegistrando] = useState<TipoEvento | null>(null)
@@ -122,6 +132,7 @@ function Ficha({
               {animal.caravana}
             </h1>
             <CategoriaBadge animal={animal} />
+            <CarenciaBadge carencia={animal.carencia} />
             {animal.estado !== 'ACTIVO' && (
               <span className="rounded-full bg-stone-200 px-2 py-0.5 text-xs font-medium text-stone-700 dark:bg-stone-800 dark:text-stone-300">
                 {ESTADOS[animal.estado]}
@@ -139,9 +150,7 @@ function Ficha({
               Editar
             </Button>
           )}
-          {registrables.length > 0 && (
-            <MenuRegistrar tipos={registrables} onElegir={setRegistrando} />
-          )}
+          {puedeRegistrar && <MenuRegistrar tipos={registrables} onElegir={setRegistrando} />}
         </div>
       </div>
 
@@ -163,6 +172,8 @@ function Ficha({
               </p>
             )}
           </Tarjeta>
+
+          {animal.carencia && <Carencia carencia={animal.carencia} />}
 
           <Tarjeta titulo="Ubicación">
             <Dato etiqueta="Lote">{animal.lote?.nombre}</Dato>
@@ -198,6 +209,20 @@ function Ficha({
         establecimientoId={establecimientoId}
         open={registrando === 'NACIMIENTO'}
         madre={{ id: animal.id, caravana: animal.caravana }}
+        onClose={() => setRegistrando(null)}
+      />
+      <PesajeDialog
+        establecimientoId={establecimientoId}
+        open={registrando === 'PESAJE'}
+        animalId={animal.id}
+        caravana={animal.caravana}
+        onClose={() => setRegistrando(null)}
+      />
+      <TratamientoDialog
+        establecimientoId={establecimientoId}
+        open={registrando === 'TRATAMIENTO'}
+        animalIds={[animal.id]}
+        puedeCrearProductos={puedeCrearProductos}
         onClose={() => setRegistrando(null)}
       />
     </>
@@ -247,11 +272,36 @@ function MenuRegistrar({
             )
           })}
           <p className="px-3 pt-1 pb-2 text-xs text-stone-500">
-            Pesajes, tratamientos y el resto, a medida que se habiliten.
+            Pesajes y el resto, a medida que se habiliten.
           </p>
         </div>
       )}
     </div>
+  )
+}
+
+/** Qué tratamientos mantienen al animal en carencia y desde cuándo queda libre. */
+function Carencia({ carencia }: { carencia: NonNullable<Animal['carencia']> }) {
+  return (
+    <section className="rounded-xl border border-amber-300 bg-amber-50 dark:border-amber-900 dark:bg-amber-950/30">
+      <h2 className="px-5 pt-4 pb-1 text-sm font-semibold text-amber-900 dark:text-amber-200">
+        En período de carencia
+      </h2>
+      <p className="px-5 text-sm text-amber-900 dark:text-amber-200">
+        No faenar ni vender hasta el {formatearFecha(carencia.libreDesde)}.
+      </p>
+      <ul className="space-y-1 px-5 pt-3 pb-4 text-sm text-stone-700 dark:text-stone-300">
+        {carencia.tratamientos.map((t) => (
+          <li key={`${t.producto}-${t.fecha}`} className="flex justify-between gap-3">
+            <span>
+              {t.producto}
+              <span className="text-stone-500"> · {formatearFecha(t.fecha)}</span>
+            </span>
+            <span className="text-xs text-stone-500">{formatearDiasCarencia(t.diasCarencia)}</span>
+          </li>
+        ))}
+      </ul>
+    </section>
   )
 }
 
@@ -297,14 +347,9 @@ function Genealogia({ animal, establecimientoId }: { animal: Animal; establecimi
 }
 
 function Peso({ animalId, establecimientoId }: { animalId: string; establecimientoId: string }) {
-  const { data, isPending } = useEventos<PesajeDatos>(establecimientoId, {
-    animalId,
-    tipo: 'PESAJE',
-    tamanio: 200,
-  })
-  const puntos = (data?.contenido ?? [])
-    .filter((e) => typeof e.datos.kg === 'number')
-    .map((e) => ({ fecha: e.fecha, kg: e.datos.kg }))
+  const { data, isPending } = usePesajes(establecimientoId, { animalId, tamanio: 200 })
+  const pesajes = data?.contenido ?? []
+  const puntos = pesajes.map((p) => ({ fecha: p.fecha, kg: p.kg }))
   // El listado viene del más nuevo al más viejo
   const [ultimo, anterior] = puntos
 
@@ -328,6 +373,9 @@ function Peso({ animalId, establecimientoId }: { animalId: string; establecimien
               {anterior && <> · {variacion(anterior, ultimo)}</>}
             </span>
           </div>
+          <p className="mb-3">
+            <Ganancia pesaje={pesajes[0]!} />
+          </p>
           {puntos.length > 1 && <GraficoPeso puntos={puntos} />}
         </>
       )}

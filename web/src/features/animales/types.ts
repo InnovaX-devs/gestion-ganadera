@@ -1,3 +1,5 @@
+import type { Carencia } from '@/features/sanidad/types'
+
 export type Sexo = 'HEMBRA' | 'MACHO'
 
 export type Categoria =
@@ -30,6 +32,8 @@ export interface Animal {
   padre?: Referencia | null
   observaciones?: string | null
   createdAt: string
+  /** Solo si está en período de carencia por un tratamiento (#20). */
+  carencia?: Carencia | null
 }
 
 export interface AnimalInput {

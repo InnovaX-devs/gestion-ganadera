@@ -17,7 +17,8 @@ import com.innovax.ganadera.establecimiento.Establecimiento;
  *       y deshacerlo en {@link #revertir}.</li>
  * </ol>
  *
- * Ver {@code tipos.ObservacionHandler} como ejemplo.
+ * Ver {@code tipos.ObservacionHandler} como ejemplo (y {@code tipos.TratamientoHandler} para un tipo
+ * que completa sus datos desde otra tabla).
  *
  * @param <D> record con los datos del tipo. Se valida con Bean Validation y se guarda como JSON.
  */
@@ -32,6 +33,14 @@ public interface TipoEventoHandler<D> {
      * ni anterior al nacimiento). Lanzar {@code BusinessException} si algo no corresponde.
      */
     default void validar(D datos, Contexto contexto) {
+    }
+
+    /**
+     * Completa los datos con lo que resuelve el servidor (ej: el nombre del producto a partir de su
+     * id) antes de guardarlos. Se llama después de {@link #validar}. Puede lanzar {@code BusinessException}.
+     */
+    default D completar(D datos, Contexto contexto) {
+        return datos;
     }
 
     /** Efecto sobre el animal (si lo hay). Se llama una vez por cada evento creado. */
