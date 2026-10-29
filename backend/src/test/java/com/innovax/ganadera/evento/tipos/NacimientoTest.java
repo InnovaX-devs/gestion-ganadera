@@ -169,7 +169,7 @@ class NacimientoTest {
 
         api.get(token, url("animales") + "/" + madre).andExpect(jsonPath("$.categoria").value("VACA"));
         api.get(token, url("animales") + "/" + madre + "/crias").andExpect(jsonPath("$", hasSize(0)));
-        api.get(token, url("animales/resumen")).andExpect(jsonPath("$.total").value(1));
+        api.get(token, url("animales")).andExpect(jsonPath("$.total").value(1));
     }
 
     // ---------- Validaciones ----------
@@ -193,7 +193,7 @@ class NacimientoTest {
             .andExpect(jsonPath("$.message").value("Ya hay un animal con la caravana V-1 en este establecimiento"));
 
         api.get(token, eventos()).andExpect(jsonPath("$.total").value(0));
-        api.get(token, url("animales/resumen")).andExpect(jsonPath("$.total").value(1));
+        api.get(token, url("animales")).andExpect(jsonPath("$.total").value(1));
     }
 
     @Test
@@ -270,7 +270,7 @@ class NacimientoTest {
         api.get(token, url("animales") + "/" + madre).andExpect(jsonPath("$.categoria").value("VAQUILLONA"));
         api.get(token, url("animales") + "/" + madre + "/cambios-categoria").andExpect(jsonPath("$", hasSize(0)));
         api.get(token, url("animales") + "/" + madre + "/crias").andExpect(jsonPath("$", hasSize(0)));
-        api.get(token, url("animales/resumen")).andExpect(jsonPath("$.total").value(1));
+        api.get(token, url("animales")).andExpect(jsonPath("$.total").value(1));
 
         // La caravana queda libre para cargarlo bien
         api.post(token, eventos(), nacimiento(madre, HOY, "NORMAL", cria("MACHO", "C-1", null)))
