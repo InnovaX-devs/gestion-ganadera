@@ -1,5 +1,7 @@
 package com.innovax.ganadera.evento;
 
+import java.time.LocalDate;
+import java.util.Collection;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
@@ -26,6 +28,21 @@ public interface EventoRepository extends JpaRepository<Evento, UUID>, JpaSpecif
 
     @EntityGraph(attributePaths = {"animal", "lote", "usuario"})
     List<Evento> findByOperacionIdOrderByCreatedAtAsc(UUID operacionId);
+
+    /**
+     * Tratamientos no anulados de esos animales con fecha posterior a {@code desde}. De acá sale la
+     * carencia (ver CarenciaService): los días de carencia están en {@code datos}, así que el
+     * filtro fino se hace en Java.
+     */
+    @Query("""
+        select e from Evento e
+        where e.establecimiento.id = :establecimientoId and e.tipo = :tipo and e.deletedAt is null
+          and e.animal.id in :animalIds and e.fecha > :desde
+        """)
+    List<Evento> buscarDeAnimalesDesde(@Param("establecimientoId") UUID establecimientoId,
+                                       @Param("tipo") TipoEvento tipo,
+                                       @Param("animalIds") Collection<UUID> animalIds,
+                                       @Param("desde") LocalDate desde);
 
     boolean existsByOperacionId(UUID operacionId);
 

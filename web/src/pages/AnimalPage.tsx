@@ -22,18 +22,36 @@ import { GraficoPeso } from '@/features/animales/GraficoPeso'
 import { SEXOS, formatearEdad } from '@/features/animales/config'
 import { useAnimal, useCrias } from '@/features/animales/queries'
 import type { Animal, Referencia } from '@/features/animales/types'
-import { puede } from '@/features/establecimientos/permisos'
+import { type Permiso, type Rol, puede } from '@/features/establecimientos/permisos'
 import { useEstablecimientoActivo } from '@/features/establecimientos/useEstablecimientoActivo'
 import { ObservacionDialog } from '@/features/eventos/ObservacionDialog'
 import { TIPOS_EVENTO, formatearKg } from '@/features/eventos/config'
 import { formatearFecha } from '@/features/eventos/fechas'
 import { useAnularEvento, useEventos } from '@/features/eventos/queries'
-import type { Evento, PesajeDatos, TipoEvento } from '@/features/eventos/types'
+import type { Evento, TipoEvento } from '@/features/eventos/types'
+import { Ganancia } from '@/features/pesajes/Ganancia'
+import { PesajeDialog } from '@/features/pesajes/PesajeDialog'
+import { usePesajes } from '@/features/pesajes/queries'
+import { CarenciaBadge } from '@/features/sanidad/CarenciaBadge'
+import { TratamientoDialog } from '@/features/sanidad/TratamientoDialog'
+import { formatearDiasCarencia } from '@/features/sanidad/config'
 import { useDismiss } from '@/hooks/useDismiss'
 import { getErrorMessage } from '@/lib/api'
 
-/** Tipos que ya se pueden cargar desde la ficha. Sumar acá cada tipo nuevo (#18 a #23). */
-const REGISTRABLES: TipoEvento[] = ['OBSERVACION']
+/**
+ * Tipos que ya se pueden cargar desde la ficha, con los permisos que alcanzan para cargarlos (los
+ * mismos que pide el backend en TipoEvento). Sumar acá cada tipo nuevo (#18 a #23).
+ */
+const REGISTRABLES: Partial<Record<TipoEvento, Permiso[]>> = {
+  OBSERVACION: ['GESTIONAR_ANIMALES', 'REGISTRAR_SANIDAD'],
+  TRATAMIENTO: ['REGISTRAR_SANIDAD'],
+  PESAJE: ['GESTIONAR_ANIMALES'],
+}
+
+const registrablesPara = (rol: Rol) =>
+  (Object.keys(REGISTRABLES) as TipoEvento[]).filter((tipo) =>
+    REGISTRABLES[tipo]!.some((permiso) => puede(rol, permiso)),
+  )
 
 const ESTADOS = { VENDIDO: 'Vendido', MUERTO: 'Muerto' } as const
 
@@ -79,10 +97,8 @@ export function AnimalPage() {
       animal={animal}
       establecimientoId={activo.id}
       puedeEditar={activoEnCampo && puede(activo.rol, 'GESTIONAR_ANIMALES')}
-      puedeRegistrar={
-        activoEnCampo &&
-        (puede(activo.rol, 'GESTIONAR_ANIMALES') || puede(activo.rol, 'REGISTRAR_SANIDAD'))
-      }
+      registrables={activoEnCampo ? registrablesPara(activo.rol) : []}
+      puedeCrearProductos={puede(activo.rol, 'REGISTRAR_SANIDAD')}
     />
   )
 }
@@ -91,13 +107,17 @@ function Ficha({
   animal,
   establecimientoId,
   puedeEditar,
-  puedeRegistrar,
+  registrables,
+  puedeCrearProductos,
 }: {
   animal: Animal
   establecimientoId: string
   puedeEditar: boolean
-  puedeRegistrar: boolean
+  /** Tipos de evento que el usuario puede cargar a este animal; vacío si no puede ninguno. */
+  registrables: TipoEvento[]
+  puedeCrearProductos: boolean
 }) {
+  const puedeRegistrar = registrables.length > 0
   const [editando, setEditando] = useState(false)
   const [registrando, setRegistrando] = useState<TipoEvento | null>(null)
   const edad = formatearEdad(animal.fechaNacimiento, animal.fechaNacimientoEstimada)
@@ -113,6 +133,7 @@ function Ficha({
               {animal.caravana}
             </h1>
             <CategoriaBadge animal={animal} />
+            <CarenciaBadge carencia={animal.carencia} />
             {animal.estado !== 'ACTIVO' && (
               <span className="rounded-full bg-stone-200 px-2 py-0.5 text-xs font-medium text-stone-700 dark:bg-stone-800 dark:text-stone-300">
                 {ESTADOS[animal.estado]}
@@ -130,7 +151,7 @@ function Ficha({
               Editar
             </Button>
           )}
-          {puedeRegistrar && <MenuRegistrar onElegir={setRegistrando} />}
+          {puedeRegistrar && <MenuRegistrar tipos={registrables} onElegir={setRegistrando} />}
         </div>
       </div>
 
@@ -152,6 +173,8 @@ function Ficha({
               </p>
             )}
           </Tarjeta>
+
+          {animal.carencia && <Carencia carencia={animal.carencia} />}
 
           <Tarjeta titulo="Ubicación">
             <Dato etiqueta="Lote">{animal.lote?.nombre}</Dato>
@@ -183,11 +206,31 @@ function Ficha({
         animalIds={[animal.id]}
         onClose={() => setRegistrando(null)}
       />
+      <PesajeDialog
+        establecimientoId={establecimientoId}
+        open={registrando === 'PESAJE'}
+        animalId={animal.id}
+        caravana={animal.caravana}
+        onClose={() => setRegistrando(null)}
+      />
+      <TratamientoDialog
+        establecimientoId={establecimientoId}
+        open={registrando === 'TRATAMIENTO'}
+        animalIds={[animal.id]}
+        puedeCrearProductos={puedeCrearProductos}
+        onClose={() => setRegistrando(null)}
+      />
     </>
   )
 }
 
-function MenuRegistrar({ onElegir }: { onElegir: (tipo: TipoEvento) => void }) {
+function MenuRegistrar({
+  tipos,
+  onElegir,
+}: {
+  tipos: TipoEvento[]
+  onElegir: (tipo: TipoEvento) => void
+}) {
   const [abierto, setAbierto] = useState(false)
   const ref = useRef<HTMLDivElement>(null)
   const cerrar = useCallback(() => setAbierto(false), [])
@@ -205,7 +248,7 @@ function MenuRegistrar({ onElegir }: { onElegir: (tipo: TipoEvento) => void }) {
           role="menu"
           className="absolute right-0 z-20 mt-1 w-52 rounded-xl border border-stone-200 bg-white p-1 shadow-lg dark:border-stone-700 dark:bg-stone-900"
         >
-          {REGISTRABLES.map((tipo) => {
+          {tipos.map((tipo) => {
             const { etiqueta, icono: Icono } = TIPOS_EVENTO[tipo]
             return (
               <button
@@ -224,11 +267,36 @@ function MenuRegistrar({ onElegir }: { onElegir: (tipo: TipoEvento) => void }) {
             )
           })}
           <p className="px-3 pt-1 pb-2 text-xs text-stone-500">
-            Pesajes, tratamientos y el resto, a medida que se habiliten.
+            Pesajes y el resto, a medida que se habiliten.
           </p>
         </div>
       )}
     </div>
+  )
+}
+
+/** Qué tratamientos mantienen al animal en carencia y desde cuándo queda libre. */
+function Carencia({ carencia }: { carencia: NonNullable<Animal['carencia']> }) {
+  return (
+    <section className="rounded-xl border border-amber-300 bg-amber-50 dark:border-amber-900 dark:bg-amber-950/30">
+      <h2 className="px-5 pt-4 pb-1 text-sm font-semibold text-amber-900 dark:text-amber-200">
+        En período de carencia
+      </h2>
+      <p className="px-5 text-sm text-amber-900 dark:text-amber-200">
+        No faenar ni vender hasta el {formatearFecha(carencia.libreDesde)}.
+      </p>
+      <ul className="space-y-1 px-5 pt-3 pb-4 text-sm text-stone-700 dark:text-stone-300">
+        {carencia.tratamientos.map((t) => (
+          <li key={`${t.producto}-${t.fecha}`} className="flex justify-between gap-3">
+            <span>
+              {t.producto}
+              <span className="text-stone-500"> · {formatearFecha(t.fecha)}</span>
+            </span>
+            <span className="text-xs text-stone-500">{formatearDiasCarencia(t.diasCarencia)}</span>
+          </li>
+        ))}
+      </ul>
+    </section>
   )
 }
 
@@ -274,14 +342,9 @@ function Genealogia({ animal, establecimientoId }: { animal: Animal; establecimi
 }
 
 function Peso({ animalId, establecimientoId }: { animalId: string; establecimientoId: string }) {
-  const { data, isPending } = useEventos<PesajeDatos>(establecimientoId, {
-    animalId,
-    tipo: 'PESAJE',
-    tamanio: 200,
-  })
-  const puntos = (data?.contenido ?? [])
-    .filter((e) => typeof e.datos.kg === 'number')
-    .map((e) => ({ fecha: e.fecha, kg: e.datos.kg }))
+  const { data, isPending } = usePesajes(establecimientoId, { animalId, tamanio: 200 })
+  const pesajes = data?.contenido ?? []
+  const puntos = pesajes.map((p) => ({ fecha: p.fecha, kg: p.kg }))
   // El listado viene del más nuevo al más viejo
   const [ultimo, anterior] = puntos
 
@@ -305,6 +368,9 @@ function Peso({ animalId, establecimientoId }: { animalId: string; establecimien
               {anterior && <> · {variacion(anterior, ultimo)}</>}
             </span>
           </div>
+          <p className="mb-3">
+            <Ganancia pesaje={pesajes[0]!} />
+          </p>
           {puntos.length > 1 && <GraficoPeso puntos={puntos} />}
         </>
       )}

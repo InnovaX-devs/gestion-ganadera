@@ -34,6 +34,8 @@ export interface EventoInput<D = Record<string, unknown>> {
   fecha: string
   animalIds?: string[]
   loteId?: string | null
+  /** Para los tipos sobre animales (ej: tratamiento): aplica a todos los animales activos del rodeo. */
+  rodeoId?: string | null
   datos: D
 }
 
@@ -57,7 +59,13 @@ export interface ObservacionDatos {
   texto: string
 }
 
-/** Lo que va a guardar el pesaje (#20). La ficha ya lo lee para el gráfico de peso. */
+/**
+ * Datos de un pesaje. Individual: solo `kg`. Grupal: se envían `pesoTotal` y `cantidad`, y el
+ * backend guarda el promedio en `kg` (con `grupal: true`).
+ */
 export interface PesajeDatos {
   kg: number
+  grupal?: boolean
+  pesoTotal?: number
+  cantidad?: number
 }

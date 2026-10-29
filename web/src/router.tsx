@@ -12,8 +12,10 @@ import { InvitacionesPage } from '@/pages/InvitacionesPage'
 import { LoginPage } from '@/pages/LoginPage'
 import { ObservacionesPage } from '@/pages/ObservacionesPage'
 import { NotFoundPage } from '@/pages/NotFoundPage'
+import { PesajesPage } from '@/pages/PesajesPage'
 import { PlaceholderPage } from '@/pages/PlaceholderPage'
 import { RegisterPage } from '@/pages/RegisterPage'
+import { TratamientosPage } from '@/pages/TratamientosPage'
 
 // Páginas ya implementadas. Al terminar una sección, agregala acá y a `children` de abajo.
 const IMPLEMENTADAS = new Set([
@@ -24,6 +26,8 @@ const IMPLEMENTADAS = new Set([
   '/animales',
   '/invitaciones',
   '/observaciones',
+  '/tratamientos',
+  '/pesajes',
 ])
 
 // Secciones del menú que todavía no tienen página propia
@@ -62,6 +66,8 @@ export const router = createBrowserRouter([
           { path: 'invitaciones', element: <InvitacionesPage /> },
           { path: 'animales/:animalId', element: <AnimalPage /> },
           { path: 'observaciones', element: <ObservacionesPage /> },
+          { path: 'tratamientos', element: <TratamientosPage /> },
+          { path: 'pesajes', element: <PesajesPage /> },
           ...placeholderRoutes,
           { path: '*', element: <NotFoundPage /> },
         ],

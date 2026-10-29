@@ -9,6 +9,7 @@ import com.innovax.ganadera.animal.Animal;
 import com.innovax.ganadera.animal.Categoria;
 import com.innovax.ganadera.animal.EstadoAnimal;
 import com.innovax.ganadera.animal.Sexo;
+import com.innovax.ganadera.sanidad.dto.CarenciaResponse;
 
 public record AnimalResponse(
     UUID id,
@@ -27,7 +28,9 @@ public record AnimalResponse(
     Referencia madre,
     Referencia padre,
     String observaciones,
-    Instant createdAt
+    Instant createdAt,
+    /** Solo si está en período de carencia por algún tratamiento (#20); si no, null. */
+    CarenciaResponse carencia
 ) {
 
     /** Dato relacionado con lo justo para mostrarlo: id y nombre (o caravana, si es un animal). */
@@ -44,6 +47,10 @@ public record AnimalResponse(
 
     /** Requiere una transacción abierta: lee lote, rodeo, madre y padre (relaciones lazy). */
     public static AnimalResponse from(Animal a) {
+        return from(a, null);
+    }
+
+    public static AnimalResponse from(Animal a, CarenciaResponse carencia) {
         return new AnimalResponse(
             a.getId(),
             a.getEstablecimiento().getId(),
@@ -61,6 +68,7 @@ public record AnimalResponse(
             Referencia.de(a.getMadre()),
             Referencia.de(a.getPadre()),
             a.getObservaciones(),
-            a.getCreatedAt());
+            a.getCreatedAt(),
+            carencia);
     }
 }
