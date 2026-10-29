@@ -1,10 +1,9 @@
 import { useState } from 'react'
 import { Link } from 'react-router'
 import {
-  ChevronLeft,
-  ChevronRight,
   Layers,
   LoaderCircle,
+  MessageSquarePlus,
   MapPinned,
   PawPrint,
   Pencil,
@@ -20,13 +19,16 @@ import { ConfirmDialog } from '@/components/ConfirmDialog'
 import { EmptyState } from '@/components/EmptyState'
 import { FormError } from '@/components/FormError'
 import { PageHeader } from '@/components/PageHeader'
+import { Paginacion } from '@/components/Paginacion'
 import { SelectField } from '@/components/SelectField'
 import { useAgrupaciones } from '@/features/agrupaciones/queries'
+import { CategoriaBadge } from '@/features/animales/CategoriaBadge'
 import { AnimalFormDialog } from '@/features/animales/AnimalFormDialog'
 import { AsignarDialog, type CampoAsignacion } from '@/features/animales/AsignarDialog'
 import { CATEGORIAS, LISTA_CATEGORIAS, SEXOS, formatearEdad } from '@/features/animales/config'
 import { useAnimales, useEliminarAnimal, useResumenAnimales } from '@/features/animales/queries'
 import type { Animal, Categoria, FiltroAnimales, Sexo } from '@/features/animales/types'
+import { ObservacionDialog } from '@/features/eventos/ObservacionDialog'
 import { puede } from '@/features/establecimientos/permisos'
 import { useEstablecimientoActivo } from '@/features/establecimientos/useEstablecimientoActivo'
 import { useDebouncedValue } from '@/hooks/useDebouncedValue'
@@ -86,6 +88,7 @@ function Listado({
   const [busqueda, setBusqueda] = useState('')
   const [pagina, setPagina] = useState(0)
   const [seleccion, setSeleccion] = useState<Set<string>>(new Set())
+  const [observando, setObservando] = useState(false)
   const [formulario, setFormulario] = useState<{ animal: Animal | null } | null>(null)
   const [aBorrar, setABorrar] = useState<Animal | null>(null)
   const [asignando, setAsignando] = useState<CampoAsignacion | null>(null)
@@ -278,6 +281,14 @@ function Listado({
                 <Layers className="size-4" />
                 Asignar rodeo
               </Button>
+              <Button
+                variant="secondary"
+                className="px-3 py-1.5"
+                onClick={() => setObservando(true)}
+              >
+                <MessageSquarePlus className="size-4" />
+                Observación
+              </Button>
               <button
                 type="button"
                 onClick={() => setSeleccion(new Set())}
@@ -352,7 +363,12 @@ function Listado({
                         </td>
                       )}
                       <td className="px-4 py-3">
-                        <span className="font-semibold tabular-nums">{a.caravana}</span>
+                        <Link
+                          to={`/animales/${a.id}`}
+                          className="hover:text-brand-700 dark:hover:text-brand-300 font-semibold tabular-nums hover:underline"
+                        >
+                          {a.caravana}
+                        </Link>
                         {a.caravanaElectronica && (
                           <span className="block text-xs text-stone-500 tabular-nums">
                             {a.caravanaElectronica}
@@ -399,7 +415,12 @@ function Listado({
                     )}
                     <div className="min-w-0 flex-1">
                       <div className="flex items-center gap-2">
-                        <span className="font-semibold tabular-nums">{a.caravana}</span>
+                        <Link
+                          to={`/animales/${a.id}`}
+                          className="hover:text-brand-700 dark:hover:text-brand-300 font-semibold tabular-nums hover:underline"
+                        >
+                          {a.caravana}
+                        </Link>
                         <CategoriaBadge animal={a} />
                       </div>
                       <p className="mt-1 truncate text-xs text-stone-500">
@@ -454,6 +475,14 @@ function Listado({
           setAsignando(null)
           setSeleccion(new Set())
         }}
+      />
+
+      <ObservacionDialog
+        establecimientoId={establecimientoId}
+        open={observando}
+        animalIds={[...seleccion]}
+        onClose={() => setObservando(false)}
+        onHecho={() => setSeleccion(new Set())}
       />
 
       <ConfirmDialog
@@ -521,22 +550,6 @@ function Resumen({
   )
 }
 
-function CategoriaBadge({ animal }: { animal: Animal }) {
-  const hembra = animal.sexo === 'HEMBRA'
-  return (
-    <span
-      className={`inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium ${
-        hembra
-          ? 'bg-rose-50 text-rose-700 dark:bg-rose-950/50 dark:text-rose-300'
-          : 'bg-sky-50 text-sky-700 dark:bg-sky-950/50 dark:text-sky-300'
-      }`}
-    >
-      {CATEGORIAS[animal.categoria].etiqueta}
-      {animal.categoria === 'TERNERO' && animal.castrado && ' (castrado)'}
-    </span>
-  )
-}
-
 function Acciones({
   animal,
   onEditar,
@@ -566,50 +579,6 @@ function Acciones({
       >
         <Trash2 className="size-4" />
       </button>
-    </div>
-  )
-}
-
-function Paginacion({
-  pagina,
-  totalPaginas,
-  total,
-  tamanio,
-  onPagina,
-}: {
-  pagina: number
-  totalPaginas: number
-  total: number
-  tamanio: number
-  onPagina: (p: number) => void
-}) {
-  const desde = pagina * tamanio + 1
-  const hasta = Math.min(total, (pagina + 1) * tamanio)
-  return (
-    <div className="flex items-center justify-between gap-4 border-t border-stone-200 px-4 py-3 text-sm dark:border-stone-800">
-      <span className="text-stone-500 tabular-nums">
-        {desde}–{hasta} de {total}
-      </span>
-      <div className="flex gap-1">
-        <Button
-          variant="secondary"
-          className="px-2.5 py-1.5"
-          disabled={pagina === 0}
-          onClick={() => onPagina(pagina - 1)}
-          aria-label="Página anterior"
-        >
-          <ChevronLeft className="size-4" />
-        </Button>
-        <Button
-          variant="secondary"
-          className="px-2.5 py-1.5"
-          disabled={pagina >= totalPaginas - 1}
-          onClick={() => onPagina(pagina + 1)}
-          aria-label="Página siguiente"
-        >
-          <ChevronRight className="size-4" />
-        </Button>
-      </div>
     </div>
   )
 }

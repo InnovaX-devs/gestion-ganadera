@@ -96,6 +96,11 @@ public class AuthService {
             .orElseThrow(() -> new UnauthorizedException(SESION_VENCIDA));
     }
 
+    /** Tokens y datos de sesión para un usuario ya creado (ej: quien se registra desde una invitación). */
+    public AuthResponse sesionPara(Usuario usuario) {
+        return respuestaPara(usuario);
+    }
+
     private AuthResponse respuestaPara(Usuario usuario) {
         var autenticado = new AuthenticatedUser(usuario.getId(), usuario.getOrganizacion().getId(), usuario.getEmail());
         return AuthResponse.of(tokenService.generar(autenticado), UsuarioResponse.from(usuario));

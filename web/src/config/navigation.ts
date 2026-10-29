@@ -8,6 +8,7 @@ import {
   House,
   Layers,
   type LucideIcon,
+  MailPlus,
   MapPinned,
   PawPrint,
   Scale,
@@ -39,6 +40,7 @@ export const navigation: NavSection[] = [
       { label: 'Establecimientos', path: '/establecimientos', icon: MapPinned },
       { label: 'Lotes', path: '/lotes', icon: Fence },
       { label: 'Rodeos', path: '/rodeos', icon: Layers },
+      { label: 'Invitaciones', path: '/invitaciones', icon: MailPlus },
     ],
   },
   {

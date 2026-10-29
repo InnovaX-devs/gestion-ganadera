@@ -134,6 +134,10 @@ autorizacion.exigir(establecimientoId, Permiso.GESTIONAR_AGRUPACIONES);
 
 Equipo del establecimiento (`/api/establecimientos/{id}/miembros`): `GET` lista, `POST {email, rol}` agrega, `PUT /{membresiaId} {rol}` cambia el rol y `DELETE /{membresiaId}` quita. Solo el dueño puede modificar.
 
+Invitaciones (`/api/establecimientos/{id}/invitaciones`, solo dueño): `GET` lista, `POST {email, rol}` invita (201), `POST /{id}/reenviar` genera un link nuevo y extiende el plazo, `DELETE /{id}` revoca. El invitado usa los endpoints públicos `GET /api/invitaciones/{token}`, `POST /api/invitaciones/{token}/registro` y, si ya tiene cuenta, `POST /api/invitaciones/{token}/aceptar` (con sesión). Detalle de reglas en [`docs/permisos.md`](../docs/permisos.md).
+
+**Emails.** Con `MAIL_ENABLED=false` (por defecto, dev y tests) no se envía nada: el email se imprime en el log del backend, con el link de la invitación. En producción hay que definir `MAIL_ENABLED=true`, `MAIL_FROM`, `MAIL_HOST`, `MAIL_PORT`, `MAIL_USERNAME`, `MAIL_PASSWORD` y `APP_WEB_URL` (URL pública del frontend, para armar el link). `INVITACION_TTL` (por defecto `7d`) controla la validez. El email se manda después de confirmar la transacción y si falla no rompe la invitación: el dueño puede reenviarla.
+
 Para saber quién está logueado desde un servicio: `TenantContext.requerirUsuario()` (devuelve `userId`, `organizacionId` y `email`).
 
 Reglas:
@@ -142,17 +146,41 @@ Reglas:
 - Usar `TIMESTAMP WITH TIME ZONE` en las migraciones (funciona en PostgreSQL y en el H2 de los tests).
 - Las queries nativas (`nativeQuery = true`) **no** se filtran solas: evitarlas, o agregar el filtro y un test.
 
+## Eventos (nacimiento, pesaje, tratamiento...)
+
+Todos los eventos pasan por un mismo endpoint y una misma tabla (`evento`):
+
+```
+POST /api/establecimientos/{id}/eventos
+{ "tipo": "OBSERVACION", "fecha": "2026-10-29",
+  "animalIds": ["..."],          // o "loteId", o nada (evento del establecimiento)
+  "datos": { "texto": "..." } }  // lo propio de cada tipo
+GET  /api/establecimientos/{id}/eventos?tipo=&animalId=&loteId=&desde=&hasta=
+DELETE /api/establecimientos/{id}/eventos/{eventoId}   // anula, no borra
+```
+
+- Un evento sobre varios animales crea una fila por animal con el mismo `operacionId`.
+- Si el cliente manda `operacionId` y ya existe, devuelve lo registrado sin duplicar (para la app offline).
+- `GET ...?animalId=` es el historial del animal.
+
+**Para agregar un tipo** (#18 a #23), sin tocar `EventoService`:
+
+1. Un record con sus datos y validaciones en `evento/tipos` (ej: `PesajeDatos(@Positive BigDecimal kg)`).
+2. Un `@Component` que implemente `TipoEventoHandler<PesajeDatos>`: `validar` (reglas propias), `aplicar` (cambios en el animal) y `revertir` (deshacerlos al anular).
+3. Tests en un `XxxEventoTest` usando `ApiTestClient`.
+
+`ObservacionHandler` es el ejemplo más simple. El permiso que pide cada tipo está en `TipoEvento`.
+
 ## Jobs programados
 
 Corren sin usuario logueado, así que fijan la organización a mano (ver [ADR 0003](../docs/decisiones/0003-jobs-multi-tenant.md)):
 
 ```java
 for (UUID organizacionId : organizaciones) {
-    int procesados = TenantContext.ejecutarComo(organizacionId, () -> servicio.procesar(hoy)); // @Transactional
+    int procesados = TenantContext.comoOrganizacion(organizacionId, () -> servicio.procesar(hoy)); // @Transactional
 }
 ```
 
-Para tareas que no devuelven nada: `TenantContext.ejecutarSinResultadoComo(organizacionId, () -> ...)`.
 
 - Se apagan con `JOBS_HABILITADOS=false` (`app.jobs.habilitados`). En los tests están apagados y se llaman a mano.
 - Tienen que ser idempotentes: si corren dos veces, el resultado es el mismo.

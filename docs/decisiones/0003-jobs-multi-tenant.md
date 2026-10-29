@@ -19,13 +19,14 @@ alertas, recordatorios sanitarios).
 
 ## Decisión
 
-Opción 3: `TenantContext.ejecutarComo(organizacionId, tarea)`.
+Opción 3: `TenantContext.comoOrganizacion(organizacionId, tarea)`, el mismo mecanismo que se agregó
+para aceptar invitaciones sin sesión (#12, ver la actualización de 0002).
 
-- El job recorre las organizaciones y procesa cada una dentro de `ejecutarComo`, en su propia
+- El job recorre las organizaciones y procesa cada una dentro de `comoOrganizacion`, en su propia
   transacción. La transacción tiene que abrirse **dentro** de la tarea: Hibernate fija la
   organización al abrir la sesión.
-- Si hay un usuario logueado de otra organización, `ejecutarComo` falla: no sirve para saltarse el
-  aislamiento desde un request.
+- La organización siempre sale de un dato confiable de la base (acá, la tabla `organizacion`), nunca
+  de un parámetro del request.
 - Al terminar la tarea se restaura el valor anterior (no queda "pegado" en el hilo del pool).
 - No hay usuario, así que los servicios que llama el job no pasan por `AutorizacionService`.
 - Un error en una organización se loguea y no frena a las demás.

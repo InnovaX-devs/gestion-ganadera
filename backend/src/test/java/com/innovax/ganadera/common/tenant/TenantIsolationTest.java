@@ -1,7 +1,6 @@
 package com.innovax.ganadera.common.tenant;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import java.util.List;
 import java.util.UUID;
@@ -110,29 +109,20 @@ class TenantIsolationTest {
 
     @Test
     void unProcesoSinUsuarioPuedeFijarLaOrganizacion() {
-        UUID id = TenantContext.ejecutarComo(ORG_A, () -> repository.save(new RegistroPrueba("del job")).getId());
+        UUID id = TenantContext.comoOrganizacion(ORG_A, () -> repository.save(new RegistroPrueba("del job")).getId());
 
         assertThat(jdbc.queryForObject("SELECT organizacion_id FROM registro_prueba WHERE id = ?", UUID.class, id))
             .isEqualTo(ORG_A);
-        assertThat(TenantContext.ejecutarComo(ORG_A, () -> repository.findAll())).hasSize(1);
-        assertThat(TenantContext.ejecutarComo(ORG_B, () -> repository.findAll())).isEmpty();
+        assertThat(TenantContext.comoOrganizacion(ORG_A, () -> repository.findAll())).hasSize(1);
+        assertThat(TenantContext.comoOrganizacion(ORG_B, () -> repository.findAll())).isEmpty();
     }
 
     @Test
     void alTerminarLaTareaLaOrganizacionFijadaSeLimpia() {
-        TenantContext.ejecutarSinResultadoComo(ORG_A, () -> repository.save(new RegistroPrueba("de A")));
+        TenantContext.comoOrganizacion(ORG_A, () -> repository.save(new RegistroPrueba("de A")));
 
         assertThat(TenantContext.organizacionIdActual()).isEmpty();
         assertThat(repository.findAll()).isEmpty();
-    }
-
-    @Test
-    void conUnUsuarioLogueadoNoSePuedeFijarOtraOrganizacion() {
-        loguearComo(ORG_A);
-
-        assertThatThrownBy(() -> TenantContext.ejecutarComo(ORG_B, () -> repository.findAll()))
-            .isInstanceOf(IllegalStateException.class);
-        assertThat(TenantContext.ejecutarComo(ORG_A, () -> repository.count())).isZero();
     }
 
     private void loguearComo(UUID organizacionId) {

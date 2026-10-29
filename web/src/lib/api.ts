@@ -20,7 +20,10 @@ export const api = axios.create({
 
 // Endpoints que no llevan token (si se manda uno vencido, el backend respondería 401)
 const RUTAS_PUBLICAS = ['/auth/login', '/auth/register', '/auth/refresh']
-const esRutaPublica = (url?: string) => !!url && RUTAS_PUBLICAS.some((ruta) => url.endsWith(ruta))
+// Ver y registrarse desde el link de una invitación (aceptar, en cambio, sí lleva el token)
+const RUTA_INVITACION_PUBLICA = /^\/invitaciones\/[^/]+(\/registro)?$/
+const esRutaPublica = (url?: string) =>
+  !!url && (RUTAS_PUBLICAS.some((ruta) => url.endsWith(ruta)) || RUTA_INVITACION_PUBLICA.test(url))
 
 api.interceptors.request.use((config) => {
   const token = authStorage.getAccessToken()

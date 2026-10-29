@@ -44,7 +44,7 @@ public class CambioCategoriaJob {
         int conError = 0;
         for (UUID organizacionId : organizaciones) {
             try {
-                total += TenantContext.ejecutarComo(organizacionId, () -> categoriaService.recalcularPorEdad(hoy));
+                total += TenantContext.comoOrganizacion(organizacionId, () -> categoriaService.recalcularPorEdad(hoy));
             } catch (RuntimeException e) {
                 conError++;
                 log.error("Cambio de categoría por edad: falló la organización {}", organizacionId, e);

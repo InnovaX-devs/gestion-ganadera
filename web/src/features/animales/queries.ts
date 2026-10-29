@@ -41,6 +41,25 @@ export function useResumenAnimales(establecimientoId: string | undefined) {
   })
 }
 
+export function useAnimal(establecimientoId: string | undefined, id: string | undefined) {
+  return useQuery({
+    queryKey: ['animales', establecimientoId, 'ficha', id],
+    queryFn: () => api.get<Animal>(`${base(establecimientoId!)}/${id}`).then((r) => r.data),
+    enabled: !!establecimientoId && !!id,
+    // Un 404 no se arregla reintentando
+    retry: false,
+  })
+}
+
+/** Hijos del animal (como madre o padre), incluidos vendidos y muertos. */
+export function useCrias(establecimientoId: string | undefined, id: string | undefined) {
+  return useQuery({
+    queryKey: ['animales', establecimientoId, 'crias', id],
+    queryFn: () => api.get<Animal[]>(`${base(establecimientoId!)}/${id}/crias`).then((r) => r.data),
+    enabled: !!establecimientoId && !!id,
+  })
+}
+
 /**
  * Cualquier cambio en animales refresca listados y resumen, y también lotes y rodeos
  * (muestran cuántos animales tienen).

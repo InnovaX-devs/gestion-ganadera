@@ -80,7 +80,7 @@ public class CategoriaService {
 
     /**
      * Revisa por edad todos los animales activos de la organización actual. Lo usa el job, que fija
-     * la organización con {@link TenantContext#ejecutarComo}.
+     * la organización con {@link TenantContext#comoOrganizacion}.
      *
      * @return cuántos animales cambiaron de categoría
      */

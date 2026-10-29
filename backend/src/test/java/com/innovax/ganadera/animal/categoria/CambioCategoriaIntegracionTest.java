@@ -145,7 +145,7 @@ class CambioCategoriaIntegracionTest {
 
         // Así lo va a llamar el módulo de eventos, dentro de su transacción
         UUID organizacion = organizacionId(token);
-        TenantContext.ejecutarSinResultadoComo(organizacion, () -> transaccion.executeWithoutResult(estado ->
+        TenantContext.comoOrganizacion(organizacion, () -> transaccion.execute(estado ->
             categoriaService.aplicar(animalRepository.findById(UUID.fromString(ternero)).orElseThrow(),
                 new Hecho.Destete(HOY.minusDays(1)))));
 

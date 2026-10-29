@@ -26,6 +26,15 @@ server:
     include-stacktrace: never
 
 app:
+  mail:
+    # false: los emails no se mandan, el contenido (con el link) se escribe en el log. Solo para desarrollo.
+    enabled: ${MAIL_ENABLED:false}
+    from: ${MAIL_FROM:no-reply@gestion-ganadera.local}
+  invitaciones:
+    # URL de la web: los links de invitación son {web-url}/invitacion/{token}
+    web-url: ${APP_WEB_URL:http://localhost:5173}
+    # Cuánto dura un link antes de vencer
+    ttl: ${INVITACION_TTL:7d}
   cors:
     allowed-origins: ${CORS_ALLOWED_ORIGINS:http://localhost:5173}
   jwt:

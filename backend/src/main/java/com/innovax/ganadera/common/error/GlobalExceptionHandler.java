@@ -31,6 +31,13 @@ public class GlobalExceptionHandler {
         return ResponseEntity.badRequest().body(body);
     }
 
+    @ExceptionHandler(DatosInvalidosException.class)
+    ResponseEntity<ApiError> handleDatosInvalidos(DatosInvalidosException ex, HttpServletRequest req) {
+        ApiError body = new ApiError(Instant.now(), 400, "Bad Request",
+            ex.getMessage(), req.getRequestURI(), ex.getFieldErrors());
+        return ResponseEntity.badRequest().body(body);
+    }
+
     @ExceptionHandler({HttpMessageNotReadableException.class, MethodArgumentTypeMismatchException.class})
     ResponseEntity<ApiError> handleBadRequest(Exception ex, HttpServletRequest req) {
         return build(HttpStatus.BAD_REQUEST, "La solicitud tiene un formato inválido", req);

@@ -1,0 +1,63 @@
+export type TipoEvento =
+  | 'NACIMIENTO'
+  | 'SERVICIO'
+  | 'TACTO'
+  | 'TRATAMIENTO'
+  | 'PESAJE'
+  | 'MOVIMIENTO'
+  | 'VENTA'
+  | 'BAJA'
+  | 'OBSERVACION'
+
+export interface Referencia {
+  id: string
+  nombre: string
+}
+
+/** Un evento del historial. Sin animal ni lote, es del establecimiento. */
+export interface Evento<D = Record<string, unknown>> {
+  id: string
+  operacionId: string
+  tipo: TipoEvento
+  fecha: string
+  animal?: Referencia | null
+  lote?: Referencia | null
+  datos: D
+  registradoPor: Referencia
+  createdAt: string
+}
+
+export interface EventoInput<D = Record<string, unknown>> {
+  /** Opcional: si se reintenta con el mismo id, el backend no duplica. */
+  operacionId?: string
+  tipo: TipoEvento
+  fecha: string
+  animalIds?: string[]
+  loteId?: string | null
+  datos: D
+}
+
+export interface Operacion {
+  operacionId: string
+  cantidad: number
+  eventos: Evento[]
+}
+
+export interface FiltroEventos {
+  tipo?: TipoEvento
+  animalId?: string
+  loteId?: string
+  desde?: string
+  hasta?: string
+  pagina?: number
+  tamanio?: number
+}
+
+export interface ObservacionDatos {
+  texto: string
+}
+
+/** Lo que va a guardar el pesaje (#20). La ficha ya lo lee para el gráfico de peso. */
+export interface PesajeDatos {
+  kg: number
+}

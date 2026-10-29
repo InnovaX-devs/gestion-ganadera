@@ -1,0 +1,45 @@
+import {
+  ArrowLeftRight,
+  Baby,
+  CircleSlash,
+  ClipboardList,
+  HeartHandshake,
+  type LucideIcon,
+  Scale,
+  ScanSearch,
+  Syringe,
+  Tag,
+} from 'lucide-react'
+import type { TipoEvento } from './types'
+
+interface ConfigTipo {
+  etiqueta: string
+  icono: LucideIcon
+  /** Una línea con lo importante del evento para el historial. Si falta, solo se ve el tipo. */
+  resumen?: (datos: Record<string, unknown>) => string | null
+}
+
+const texto = (v: unknown) => (typeof v === 'string' && v.trim() ? v : null)
+
+/**
+ * Cómo se muestra cada tipo en historiales. Al implementar un tipo (#18 a #23), completar su
+ * `resumen` con los datos que guarda.
+ */
+export const TIPOS_EVENTO: Record<TipoEvento, ConfigTipo> = {
+  NACIMIENTO: { etiqueta: 'Nacimiento', icono: Baby },
+  SERVICIO: { etiqueta: 'Servicio', icono: HeartHandshake },
+  TACTO: { etiqueta: 'Tacto', icono: ScanSearch },
+  TRATAMIENTO: { etiqueta: 'Tratamiento', icono: Syringe },
+  PESAJE: {
+    etiqueta: 'Pesaje',
+    icono: Scale,
+    resumen: (d) => (typeof d.kg === 'number' ? `${formatearKg(d.kg)} kg` : null),
+  },
+  MOVIMIENTO: { etiqueta: 'Movimiento', icono: ArrowLeftRight },
+  VENTA: { etiqueta: 'Venta', icono: Tag },
+  BAJA: { etiqueta: 'Baja', icono: CircleSlash },
+  OBSERVACION: { etiqueta: 'Observación', icono: ClipboardList, resumen: (d) => texto(d.texto) },
+}
+
+const kg = new Intl.NumberFormat('es-AR', { maximumFractionDigits: 1 })
+export const formatearKg = (valor: number) => kg.format(valor)
