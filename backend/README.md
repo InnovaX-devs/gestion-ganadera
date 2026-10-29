@@ -142,6 +142,31 @@ Reglas:
 - Usar `TIMESTAMP WITH TIME ZONE` en las migraciones (funciona en PostgreSQL y en el H2 de los tests).
 - Las queries nativas (`nativeQuery = true`) **no** se filtran solas: evitarlas, o agregar el filtro y un test.
 
+## Eventos (nacimiento, pesaje, tratamiento...)
+
+Todos los eventos pasan por un mismo endpoint y una misma tabla (`evento`):
+
+```
+POST /api/establecimientos/{id}/eventos
+{ "tipo": "OBSERVACION", "fecha": "2026-10-29",
+  "animalIds": ["..."],          // o "loteId", o nada (evento del establecimiento)
+  "datos": { "texto": "..." } }  // lo propio de cada tipo
+GET  /api/establecimientos/{id}/eventos?tipo=&animalId=&loteId=&desde=&hasta=
+DELETE /api/establecimientos/{id}/eventos/{eventoId}   // anula, no borra
+```
+
+- Un evento sobre varios animales crea una fila por animal con el mismo `operacionId`.
+- Si el cliente manda `operacionId` y ya existe, devuelve lo registrado sin duplicar (para la app offline).
+- `GET ...?animalId=` es el historial del animal.
+
+**Para agregar un tipo** (#18 a #23), sin tocar `EventoService`:
+
+1. Un record con sus datos y validaciones en `evento/tipos` (ej: `PesajeDatos(@Positive BigDecimal kg)`).
+2. Un `@Component` que implemente `TipoEventoHandler<PesajeDatos>`: `validar` (reglas propias), `aplicar` (cambios en el animal) y `revertir` (deshacerlos al anular).
+3. Tests en un `XxxEventoTest` usando `ApiTestClient`.
+
+`ObservacionHandler` es el ejemplo más simple. El permiso que pide cada tipo está en `TipoEvento`.
+
 ## Errores
 
 Toda la API responde los errores con este formato:

@@ -45,6 +45,15 @@ public interface AnimalRepository extends JpaRepository<Animal, UUID>, JpaSpecif
 
     boolean existsByMadreIdOrPadreId(UUID madreId, UUID padreId);
 
+    /** Crías de un animal (como madre o como padre), en cualquier estado. La más nueva primero. */
+    @EntityGraph(attributePaths = {"lote", "rodeo", "madre", "padre"})
+    @Query("""
+        select a from Animal a
+        where a.madre.id = :id or a.padre.id = :id
+        order by a.fechaNacimiento desc nulls last, a.createdAt desc
+        """)
+    List<Animal> buscarCrias(@Param("id") UUID id);
+
     /** Cantidad por categoría de los animales en un estado. Cada fila: [Categoria, Long]. */
     @Query("""
         select a.categoria, count(a) from Animal a
