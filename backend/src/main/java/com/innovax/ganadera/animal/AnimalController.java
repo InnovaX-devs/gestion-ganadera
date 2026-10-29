@@ -1,5 +1,6 @@
 package com.innovax.ganadera.animal;
 
+import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 
@@ -47,6 +48,12 @@ public class AnimalController {
     @GetMapping("/{id}")
     public AnimalResponse obtener(@PathVariable UUID establecimientoId, @PathVariable UUID id) {
         return service.obtener(establecimientoId, id);
+    }
+
+    /** Hijos del animal, sea madre o padre. Incluye vendidos y muertos (para la genealogía). */
+    @GetMapping("/{id}/crias")
+    public List<AnimalResponse> crias(@PathVariable UUID establecimientoId, @PathVariable UUID id) {
+        return service.crias(establecimientoId, id);
     }
 
     @PostMapping

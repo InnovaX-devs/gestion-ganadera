@@ -22,10 +22,12 @@ Cada usuario tiene un rol **por establecimiento** (tabla `membresia`). Puede ser
 | Eliminar el establecimiento | ✅ | ❌ | ❌ | ❌ |
 | Crear, editar y eliminar lotes y rodeos | ✅ | ✅ | ❌ | ❌ |
 | Cargar y editar animales (`GESTIONAR_ANIMALES`) | ✅ | ✅ | ❌ | ❌ |
+| Registrar y anular eventos de manejo: nacimiento, servicio, pesaje, movimiento, venta, baja (`GESTIONAR_ANIMALES`) | ✅ | ✅ | ❌ | ❌ |
+| Registrar y anular eventos sanitarios: tacto, tratamiento (`REGISTRAR_SANIDAD`) | ✅ | ✅ | ✅ | ❌ |
+| Registrar y anular observaciones (cualquiera de los dos permisos) | ✅ | ✅ | ✅ | ❌ |
 | Agregar miembros, cambiar roles y quitar miembros | ✅ | ❌ | ❌ | ❌ |
-| Registrar eventos sanitarios (tratamientos, tactos, vacunas) \* | ✅ | ✅ | ✅ | ❌ |
 
-\* Permiso `REGISTRAR_SANIDAD`: ya está definido para cada rol, pero se aplica cuando existan esos módulos.
+El permiso que pide cada tipo de evento está en `TipoEvento.java`.
 
 Cada issue que agregue endpoints (animales, nacimientos, pesajes, ventas...) tiene que sumar su fila a esta tabla y su permiso a `Permiso`/`Rol`.
 
