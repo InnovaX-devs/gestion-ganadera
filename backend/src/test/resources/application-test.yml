@@ -7,3 +7,8 @@ spring:
   flyway:
     # db/testmigration tiene tablas que solo existen en tests (ej: para probar el aislamiento multi-tenant)
     locations: classpath:db/migration,classpath:db/testmigration
+
+app:
+  jobs:
+    # Los tests llaman a los jobs a mano
+    habilitados: false

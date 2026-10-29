@@ -25,4 +25,4 @@ Opción 3.
 
 - El código de negocio no menciona la organización: menos errores y menos código.
 - Las queries nativas no pasan por el filtro: se evitan o se testean aparte.
-- Procesos sin usuario (jobs programados, como el de cotizaciones) que necesiten datos de varias organizaciones tendrán que fijar la organización explícitamente; se resuelve cuando aparezca el primer caso.
+- Procesos sin usuario (jobs programados) fijan la organización explícitamente con `TenantContext.ejecutarComo`: ver [0003](0003-jobs-multi-tenant.md).
