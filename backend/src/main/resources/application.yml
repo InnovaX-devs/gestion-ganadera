@@ -43,3 +43,16 @@ app:
     secret: ${JWT_SECRET:dev-solo-local-no-usar-en-produccion-0123456789}
     access-token-ttl: ${JWT_ACCESS_TTL:15m}
     refresh-token-ttl: ${JWT_REFRESH_TTL:7d}
+  categorias:
+    # Reglas de cambio automático de categoría (issue #16). Valores iniciales, a validar con producción.
+    # Ternero/a que no tuvo destete registrado pasa de categoría a esta edad
+    meses-destete: ${CATEGORIA_MESES_DESTETE:8}
+    # Novillito -> novillo y torito -> toro a esta edad...
+    meses-adulto: ${CATEGORIA_MESES_ADULTO:24}
+    # ...o al registrar un pesaje de al menos estos kilos
+    kilos-novillo: ${CATEGORIA_KILOS_NOVILLO:400}
+    kilos-toro: ${CATEGORIA_KILOS_TORO:450}
+  jobs:
+    habilitados: ${JOBS_HABILITADOS:true}
+    # Cron de Spring (segundo minuto hora día mes día-semana), hora de Argentina
+    cambio-categoria-cron: ${JOB_CAMBIO_CATEGORIA_CRON:0 0 3 * * *}

@@ -105,6 +105,26 @@ class TenantIsolationTest {
         assertThat(repository.findAll()).isEmpty();
     }
 
+    // ---------- Procesos sin usuario (jobs) ----------
+
+    @Test
+    void unProcesoSinUsuarioPuedeFijarLaOrganizacion() {
+        UUID id = TenantContext.comoOrganizacion(ORG_A, () -> repository.save(new RegistroPrueba("del job")).getId());
+
+        assertThat(jdbc.queryForObject("SELECT organizacion_id FROM registro_prueba WHERE id = ?", UUID.class, id))
+            .isEqualTo(ORG_A);
+        assertThat(TenantContext.comoOrganizacion(ORG_A, () -> repository.findAll())).hasSize(1);
+        assertThat(TenantContext.comoOrganizacion(ORG_B, () -> repository.findAll())).isEmpty();
+    }
+
+    @Test
+    void alTerminarLaTareaLaOrganizacionFijadaSeLimpia() {
+        TenantContext.comoOrganizacion(ORG_A, () -> repository.save(new RegistroPrueba("de A")));
+
+        assertThat(TenantContext.organizacionIdActual()).isEmpty();
+        assertThat(repository.findAll()).isEmpty();
+    }
+
     private void loguearComo(UUID organizacionId) {
         var usuario = new AuthenticatedUser(UUID.randomUUID(), organizacionId, "test@local.dev");
         var auth = new UsernamePasswordAuthenticationToken(usuario, null, List.of());
