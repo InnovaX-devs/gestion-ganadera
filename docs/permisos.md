@@ -17,10 +17,11 @@ Cada usuario tiene un rol **por establecimiento** (tabla `membresia`). Puede ser
 
 | Acción | Dueño | Encargado | Veterinario | Socio |
 |--------|:-----:|:---------:|:-----------:|:-----:|
-| Ver el establecimiento, lotes, rodeos y equipo | ✅ | ✅ | ✅ | ✅ |
+| Ver el establecimiento, lotes, rodeos, animales y equipo | ✅ | ✅ | ✅ | ✅ |
 | Editar datos del establecimiento | ✅ | ✅ | ❌ | ❌ |
 | Eliminar el establecimiento | ✅ | ❌ | ❌ | ❌ |
 | Crear, editar y eliminar lotes y rodeos | ✅ | ✅ | ❌ | ❌ |
+| Cargar y editar animales (`GESTIONAR_ANIMALES`) | ✅ | ✅ | ❌ | ❌ |
 | Agregar miembros, cambiar roles y quitar miembros | ✅ | ❌ | ❌ | ❌ |
 | Registrar eventos sanitarios (tratamientos, tactos, vacunas) \* | ✅ | ✅ | ✅ | ❌ |
 

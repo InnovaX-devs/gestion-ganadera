@@ -3,6 +3,7 @@ import { allNavItems } from '@/config/navigation'
 import { PublicOnly, RequireAuth } from '@/features/auth/RouteGuards'
 import { AppLayout } from '@/layouts/AppLayout'
 import { AgrupacionesPage } from '@/pages/AgrupacionesPage'
+import { AnimalesPage } from '@/pages/AnimalesPage'
 import { EstablecimientosPage } from '@/pages/EstablecimientosPage'
 import { InicioPage } from '@/pages/InicioPage'
 import { LoginPage } from '@/pages/LoginPage'
@@ -11,7 +12,7 @@ import { PlaceholderPage } from '@/pages/PlaceholderPage'
 import { RegisterPage } from '@/pages/RegisterPage'
 
 // Páginas ya implementadas. Al terminar una sección, agregala acá y a `children` de abajo.
-const IMPLEMENTADAS = new Set(['/', '/establecimientos', '/lotes', '/rodeos'])
+const IMPLEMENTADAS = new Set(['/', '/establecimientos', '/lotes', '/rodeos', '/animales'])
 
 // Secciones del menú que todavía no tienen página propia
 const placeholderRoutes = allNavItems
@@ -43,6 +44,7 @@ export const router = createBrowserRouter([
           // key: al pasar de lotes a rodeos la página arranca de cero
           { path: 'lotes', element: <AgrupacionesPage key="lotes" tipo="lotes" /> },
           { path: 'rodeos', element: <AgrupacionesPage key="rodeos" tipo="rodeos" /> },
+          { path: 'animales', element: <AnimalesPage /> },
           ...placeholderRoutes,
           { path: '*', element: <NotFoundPage /> },
         ],
