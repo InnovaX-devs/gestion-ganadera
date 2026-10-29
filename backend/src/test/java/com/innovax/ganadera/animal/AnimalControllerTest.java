@@ -283,6 +283,42 @@ class AnimalControllerTest {
                 .value("No se puede eliminar: todavía tiene 2 animales. Eliminalos primero."));
     }
 
+    // ---------- Crías (#15) ----------
+
+    @Test
+    void listaLasCriasDeLaMadreYDelPadreLaMasNuevaPrimero() throws Exception {
+        String madre = crear(animal("V-1", "HEMBRA", "VACA"));
+        String padre = crear(animal("T-1", "MACHO", "TORO"));
+        var vieja = animal("H-1", "HEMBRA", "VAQUILLONA");
+        vieja.put("madreId", madre);
+        vieja.put("fechaNacimiento", "2024-09-01");
+        crear(vieja);
+        var nueva = animal("M-1", "MACHO", "TERNERO");
+        nueva.put("madreId", madre);
+        nueva.put("padreId", padre);
+        nueva.put("fechaNacimiento", "2026-08-15");
+        crear(nueva);
+        crear(animal("OTRA", "HEMBRA", "VACA"));
+
+        api.get(token, url() + "/" + madre + "/crias")
+            .andExpect(status().isOk())
+            .andExpect(jsonPath("$.length()").value(2))
+            .andExpect(jsonPath("$[0].caravana").value("M-1"))
+            .andExpect(jsonPath("$[1].caravana").value("H-1"));
+        api.get(token, url() + "/" + padre + "/crias")
+            .andExpect(jsonPath("$.length()").value(1))
+            .andExpect(jsonPath("$[0].caravana").value("M-1"));
+    }
+
+    @Test
+    void criasDeOtraOrganizacionDa404() throws Exception {
+        String madre = crear(animal("V-1", "HEMBRA", "VACA"));
+        String tokenB = api.registrarCuenta("Organización B");
+
+        api.get(tokenB, url() + "/" + madre + "/crias").andExpect(status().isNotFound());
+        api.get(token, url() + "/" + UUID.randomUUID() + "/crias").andExpect(status().isNotFound());
+    }
+
     // ---------- Eliminar (carga equivocada) ----------
 
     @Test

@@ -28,6 +28,7 @@ import com.innovax.ganadera.common.error.ConflictException;
 import com.innovax.ganadera.common.error.NotFoundException;
 import com.innovax.ganadera.establecimiento.Establecimiento;
 import com.innovax.ganadera.establecimiento.EstablecimientoRepository;
+import com.innovax.ganadera.evento.EventoRepository;
 import com.innovax.ganadera.membresia.AutorizacionService;
 import com.innovax.ganadera.membresia.Permiso;
 
@@ -49,6 +50,7 @@ public class AnimalService {
     private final LoteRepository loteRepository;
     private final RodeoRepository rodeoRepository;
     private final AutorizacionService autorizacion;
+    private final EventoRepository eventoRepository;
 
     /** Listado paginado con filtros (#14). Ordenado por caravana. */
     @Transactional(readOnly = true)
@@ -111,6 +113,13 @@ public class AnimalService {
         return AnimalResponse.from(buscar(establecimientoId, id));
     }
 
+    @Transactional(readOnly = true)
+    public List<AnimalResponse> crias(UUID establecimientoId, UUID id) {
+        autorizacion.exigir(establecimientoId, Permiso.VER);
+        buscar(establecimientoId, id);
+        return repository.buscarCrias(id).stream().map(AnimalResponse::from).toList();
+    }
+
     @Transactional
     public AnimalResponse crear(UUID establecimientoId, AnimalRequest request) {
         autorizacion.exigir(establecimientoId, Permiso.GESTIONAR_ANIMALES);
@@ -128,7 +137,7 @@ public class AnimalService {
         return AnimalResponse.from(repository.saveAndFlush(animal));
     }
 
-    /** Borrado definitivo, solo para corregir una carga equivocada. No se puede si tiene crías registradas. */
+    /** Borrado definitivo, solo para corregir una carga equivocada. No se puede si tiene crías o eventos. */
     @Transactional
     public void eliminar(UUID establecimientoId, UUID id) {
         autorizacion.exigir(establecimientoId, Permiso.GESTIONAR_ANIMALES);
@@ -136,6 +145,10 @@ public class AnimalService {
         if (repository.existsByMadreIdOrPadreId(id, id)) {
             throw new BusinessException("No se puede eliminar: figura como madre o padre de otros animales");
         }
+        if (eventoRepository.existsByAnimalIdAndDeletedAtIsNull(id)) {
+            throw new BusinessException("No se puede eliminar: tiene eventos registrados. Anulalos primero.");
+        }
+        eventoRepository.borrarAnuladosDelAnimal(id);
         repository.delete(animal);
     }
 
