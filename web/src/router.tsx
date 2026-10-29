@@ -6,7 +6,9 @@ import { AgrupacionesPage } from '@/pages/AgrupacionesPage'
 import { AnimalPage } from '@/pages/AnimalPage'
 import { AnimalesPage } from '@/pages/AnimalesPage'
 import { EstablecimientosPage } from '@/pages/EstablecimientosPage'
+import { AceptarInvitacionPage } from '@/pages/AceptarInvitacionPage'
 import { InicioPage } from '@/pages/InicioPage'
+import { InvitacionesPage } from '@/pages/InvitacionesPage'
 import { LoginPage } from '@/pages/LoginPage'
 import { ObservacionesPage } from '@/pages/ObservacionesPage'
 import { NotFoundPage } from '@/pages/NotFoundPage'
@@ -20,6 +22,7 @@ const IMPLEMENTADAS = new Set([
   '/lotes',
   '/rodeos',
   '/animales',
+  '/invitaciones',
   '/observaciones',
 ])
 
@@ -32,6 +35,8 @@ const placeholderRoutes = allNavItems
   }))
 
 export const router = createBrowserRouter([
+  // El link de una invitación se abre con o sin sesión (la página decide qué mostrar)
+  { path: '/invitacion/:token', element: <AceptarInvitacionPage /> },
   // Públicas: solo sin sesión
   {
     element: <PublicOnly />,
@@ -54,6 +59,7 @@ export const router = createBrowserRouter([
           { path: 'lotes', element: <AgrupacionesPage key="lotes" tipo="lotes" /> },
           { path: 'rodeos', element: <AgrupacionesPage key="rodeos" tipo="rodeos" /> },
           { path: 'animales', element: <AnimalesPage /> },
+          { path: 'invitaciones', element: <InvitacionesPage /> },
           { path: 'animales/:animalId', element: <AnimalPage /> },
           { path: 'observaciones', element: <ObservacionesPage /> },
           ...placeholderRoutes,

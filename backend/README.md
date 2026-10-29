@@ -134,6 +134,10 @@ autorizacion.exigir(establecimientoId, Permiso.GESTIONAR_AGRUPACIONES);
 
 Equipo del establecimiento (`/api/establecimientos/{id}/miembros`): `GET` lista, `POST {email, rol}` agrega, `PUT /{membresiaId} {rol}` cambia el rol y `DELETE /{membresiaId}` quita. Solo el dueño puede modificar.
 
+Invitaciones (`/api/establecimientos/{id}/invitaciones`, solo dueño): `GET` lista, `POST {email, rol}` invita (201), `POST /{id}/reenviar` genera un link nuevo y extiende el plazo, `DELETE /{id}` revoca. El invitado usa los endpoints públicos `GET /api/invitaciones/{token}`, `POST /api/invitaciones/{token}/registro` y, si ya tiene cuenta, `POST /api/invitaciones/{token}/aceptar` (con sesión). Detalle de reglas en [`docs/permisos.md`](../docs/permisos.md).
+
+**Emails.** Con `MAIL_ENABLED=false` (por defecto, dev y tests) no se envía nada: el email se imprime en el log del backend, con el link de la invitación. En producción hay que definir `MAIL_ENABLED=true`, `MAIL_FROM`, `MAIL_HOST`, `MAIL_PORT`, `MAIL_USERNAME`, `MAIL_PASSWORD` y `APP_WEB_URL` (URL pública del frontend, para armar el link). `INVITACION_TTL` (por defecto `7d`) controla la validez. El email se manda después de confirmar la transacción y si falla no rompe la invitación: el dueño puede reenviarla.
+
 Para saber quién está logueado desde un servicio: `TenantContext.requerirUsuario()` (devuelve `userId`, `organizacionId` y `email`).
 
 Reglas:

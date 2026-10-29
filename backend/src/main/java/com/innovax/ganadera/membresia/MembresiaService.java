@@ -23,8 +23,8 @@ import lombok.RequiredArgsConstructor;
 /**
  * Equipo de un establecimiento: quién tiene acceso y con qué rol. Solo el dueño lo puede cambiar.
  *
- * <p>Por ahora solo se puede agregar a usuarios que ya pertenecen a la organización. Invitar a una
- * persona nueva a la organización es otro issue.
+ * <p>Acá solo se puede agregar a usuarios que ya pertenecen a la organización. A las personas nuevas
+ * se las invita por email (paquete {@code invitacion}).
  */
 @Service
 @RequiredArgsConstructor
