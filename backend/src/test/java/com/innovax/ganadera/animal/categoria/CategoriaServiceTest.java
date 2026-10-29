@@ -140,6 +140,46 @@ class CategoriaServiceTest {
         assertThat(torito.getCategoria()).isEqualTo(Categoria.TORITO);
     }
 
+    // ---------- Revertir un parto (#18) ----------
+
+    @Test
+    void revertirUnPartoVuelveALaCategoriaAnteriorYBorraElHistorial() {
+        Animal vaca = animal(Sexo.HEMBRA, Categoria.VACA, null);
+        var cambio = new CambioCategoria(vaca, Categoria.VAQUILLONA, Categoria.VACA, MotivoCambio.PARTO, HOY, null);
+        when(historial.findByAnimalIdAndMotivoAndFechaOrderByCreatedAtAsc(vaca.getId(), MotivoCambio.PARTO, HOY))
+            .thenReturn(List.of(cambio));
+
+        service.revertirParto(vaca, HOY);
+
+        assertThat(vaca.getCategoria()).isEqualTo(Categoria.VAQUILLONA);
+        verify(historial).deleteAll(List.of(cambio));
+    }
+
+    @Test
+    void siDespuesLaCambiaronAManoRevertirElPartoNoLaToca() {
+        Animal hembra = animal(Sexo.HEMBRA, Categoria.VACA, null);
+        var cambio = new CambioCategoria(hembra, Categoria.VAQUILLONA, Categoria.VACA, MotivoCambio.PARTO, HOY, null);
+        when(historial.findByAnimalIdAndMotivoAndFechaOrderByCreatedAtAsc(hembra.getId(), MotivoCambio.PARTO, HOY))
+            .thenReturn(List.of(cambio));
+        hembra.setCategoria(Categoria.TERNERA); // edición manual posterior al parto
+
+        service.revertirParto(hembra, HOY);
+
+        assertThat(hembra.getCategoria()).isEqualTo(Categoria.TERNERA);
+        verify(historial, never()).deleteAll(any());
+    }
+
+    @Test
+    void siElPartoNoCambioLaCategoriaRevertirloNoHaceNada() {
+        Animal vaca = animal(Sexo.HEMBRA, Categoria.VACA, null);
+        when(historial.findByAnimalIdAndMotivoAndFechaOrderByCreatedAtAsc(any(), any(), any())).thenReturn(List.of());
+
+        service.revertirParto(vaca, HOY);
+
+        assertThat(vaca.getCategoria()).isEqualTo(Categoria.VACA);
+        verify(historial, never()).deleteAll(any());
+    }
+
     private static Animal animal(Sexo sexo, Categoria categoria, LocalDate nacimiento) {
         Animal animal = new Animal(new Establecimiento("La Esperanza"), "A-1", sexo, categoria);
         animal.setFechaNacimiento(nacimiento);
