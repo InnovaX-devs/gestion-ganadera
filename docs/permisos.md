@@ -17,7 +17,7 @@ Cada usuario tiene un rol **por establecimiento** (tabla `membresia`). Puede ser
 
 | Acción | Dueño | Encargado | Veterinario | Socio |
 |--------|:-----:|:---------:|:-----------:|:-----:|
-| Ver el establecimiento, lotes, rodeos, animales y equipo | ✅ | ✅ | ✅ | ✅ |
+| Ver el establecimiento, lotes, rodeos, animales, stock y equipo | ✅ | ✅ | ✅ | ✅ |
 | Editar datos del establecimiento | ✅ | ✅ | ❌ | ❌ |
 | Eliminar el establecimiento | ✅ | ❌ | ❌ | ❌ |
 | Crear, editar y eliminar lotes y rodeos | ✅ | ✅ | ❌ | ❌ |

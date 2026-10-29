@@ -20,7 +20,6 @@ import com.innovax.ganadera.animal.dto.AnimalFiltro;
 import com.innovax.ganadera.animal.dto.AnimalRequest;
 import com.innovax.ganadera.animal.dto.AnimalResponse;
 import com.innovax.ganadera.animal.dto.AsignacionRequest;
-import com.innovax.ganadera.animal.dto.ResumenAnimalesResponse;
 import com.innovax.ganadera.common.dto.PaginaResponse;
 
 import jakarta.validation.Valid;
@@ -38,11 +37,6 @@ public class AnimalController {
     public PaginaResponse<AnimalResponse> listar(@PathVariable UUID establecimientoId,
                                                  @ModelAttribute AnimalFiltro filtro) {
         return service.listar(establecimientoId, filtro);
-    }
-
-    @GetMapping("/resumen")
-    public ResumenAnimalesResponse resumen(@PathVariable UUID establecimientoId) {
-        return service.resumen(establecimientoId);
     }
 
     @GetMapping("/{id}")

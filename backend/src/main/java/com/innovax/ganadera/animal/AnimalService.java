@@ -1,9 +1,7 @@
 package com.innovax.ganadera.animal;
 
-import java.util.EnumMap;
 import java.util.HashSet;
 import java.util.List;
-import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
 
@@ -22,7 +20,6 @@ import com.innovax.ganadera.animal.dto.AnimalFiltro;
 import com.innovax.ganadera.animal.dto.AnimalRequest;
 import com.innovax.ganadera.animal.dto.AnimalResponse;
 import com.innovax.ganadera.animal.dto.AsignacionRequest;
-import com.innovax.ganadera.animal.dto.ResumenAnimalesResponse;
 import com.innovax.ganadera.common.dto.PaginaResponse;
 import com.innovax.ganadera.common.error.BusinessException;
 import com.innovax.ganadera.common.error.ConflictException;
@@ -62,21 +59,6 @@ public class AnimalService {
         var pageable = PageRequest.of(filtro.paginaValida(), filtro.tamanioValido(), Sort.by("caravana"));
         return PaginaResponse.de(repository.findAll(AnimalSpecs.de(establecimientoId, filtro), pageable),
             AnimalResponse::from);
-    }
-
-    /** Stock del establecimiento: activos en total, por sexo y por categoría. */
-    @Transactional(readOnly = true)
-    public ResumenAnimalesResponse resumen(UUID establecimientoId) {
-        autorizacion.exigir(establecimientoId, Permiso.VER);
-        establecimientoActivo(establecimientoId);
-        Map<Categoria, Long> porCategoria = new EnumMap<>(Categoria.class);
-        for (Categoria c : Categoria.values()) porCategoria.put(c, 0L);
-        for (Object[] fila : repository.contarPorCategoria(establecimientoId, EstadoAnimal.ACTIVO)) {
-            porCategoria.put((Categoria) fila[0], (Long) fila[1]);
-        }
-        long hembras = sumar(porCategoria, Sexo.HEMBRA);
-        long machos = sumar(porCategoria, Sexo.MACHO);
-        return new ResumenAnimalesResponse(hembras + machos, hembras, machos, porCategoria);
     }
 
     /**
@@ -247,13 +229,6 @@ public class AnimalService {
         establecimientoActivo(establecimientoId);
         return repository.findByIdAndEstablecimientoId(id, establecimientoId)
             .orElseThrow(() -> NotFoundException.of("Animal", id));
-    }
-
-    private static long sumar(Map<Categoria, Long> porCategoria, Sexo sexo) {
-        return porCategoria.entrySet().stream()
-            .filter(e -> e.getKey().sexo() == sexo)
-            .mapToLong(Map.Entry::getValue)
-            .sum();
     }
 
     private static String texto(Enum<?> valor) {

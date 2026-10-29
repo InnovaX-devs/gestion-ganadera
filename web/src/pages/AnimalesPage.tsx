@@ -1,5 +1,5 @@
-import { useState } from 'react'
-import { Link } from 'react-router'
+import { useEffect, useState } from 'react'
+import { Link, useLocation, useNavigate } from 'react-router'
 import {
   Layers,
   LoaderCircle,
@@ -26,11 +26,19 @@ import { CategoriaBadge } from '@/features/animales/CategoriaBadge'
 import { AnimalFormDialog } from '@/features/animales/AnimalFormDialog'
 import { AsignarDialog, type CampoAsignacion } from '@/features/animales/AsignarDialog'
 import { CATEGORIAS, LISTA_CATEGORIAS, SEXOS, formatearEdad } from '@/features/animales/config'
-import { useAnimales, useEliminarAnimal, useResumenAnimales } from '@/features/animales/queries'
-import type { Animal, Categoria, FiltroAnimales, Sexo } from '@/features/animales/types'
+import { useAnimales, useEliminarAnimal } from '@/features/animales/queries'
+import type {
+  Animal,
+  AnimalesLocationState,
+  Categoria,
+  FiltroAnimales,
+  Sexo,
+} from '@/features/animales/types'
 import { ObservacionDialog } from '@/features/eventos/ObservacionDialog'
 import { puede } from '@/features/establecimientos/permisos'
 import { useEstablecimientoActivo } from '@/features/establecimientos/useEstablecimientoActivo'
+import { useStock } from '@/features/stock/queries'
+import type { Stock } from '@/features/stock/types'
 import { useDebouncedValue } from '@/hooks/useDebouncedValue'
 import { getErrorMessage } from '@/lib/api'
 
@@ -84,7 +92,16 @@ function Listado({
   establecimientoNombre: string
   puedeGestionar: boolean
 }) {
-  const [filtros, setFiltros] = useState<Filtros>({})
+  const location = useLocation()
+  const navigate = useNavigate()
+  // Si se llega desde el inicio (click en una categoría, lote o rodeo), arranca con ese filtro
+  const [filtros, setFiltros] = useState<Filtros>(
+    () => (location.state as AnimalesLocationState | null)?.filtros ?? {},
+  )
+  // Se limpia el state para que al recargar la página no vuelva a aplicarse el filtro
+  useEffect(() => {
+    if (location.state) navigate(location.pathname, { replace: true, state: null })
+  }, [location.state, location.pathname, navigate])
   const [busqueda, setBusqueda] = useState('')
   const [pagina, setPagina] = useState(0)
   const [seleccion, setSeleccion] = useState<Set<string>>(new Set())
@@ -100,7 +117,7 @@ function Listado({
     pagina,
     tamanio: POR_PAGINA,
   })
-  const { data: resumen } = useResumenAnimales(establecimientoId)
+  const { data: stock } = useStock(establecimientoId)
   const { data: lotes } = useAgrupaciones('lotes', establecimientoId)
   const { data: rodeos } = useAgrupaciones('rodeos', establecimientoId)
   const eliminar = useEliminarAnimal(establecimientoId)
@@ -144,7 +161,7 @@ function Listado({
     eliminar.reset()
   }
 
-  const sinAnimales = !isPending && resumen?.total === 0 && !hayFiltros
+  const sinAnimales = !isPending && stock?.total === 0 && !hayFiltros
 
   return (
     <>
@@ -178,9 +195,9 @@ function Listado({
         />
       ) : (
         <>
-          {resumen && (
+          {stock && (
             <Resumen
-              resumen={resumen}
+              stock={stock}
               categoriaActiva={filtros.categoria}
               onCategoria={(categoria) =>
                 filtrar({ categoria: filtros.categoria === categoria ? undefined : categoria })
@@ -500,30 +517,27 @@ function Listado({
 }
 
 function Resumen({
-  resumen,
+  stock,
   categoriaActiva,
   onCategoria,
 }: {
-  resumen: {
-    total: number
-    hembras: number
-    machos: number
-    porCategoria: Record<Categoria, number>
-  }
+  stock: Stock
   categoriaActiva?: Categoria
   onCategoria: (c: Categoria) => void
 }) {
-  const conAnimales = LISTA_CATEGORIAS.filter((c) => resumen.porCategoria[c] > 0)
+  const hembras = stock.porSexo.HEMBRA
+  const machos = stock.porSexo.MACHO
+  const conAnimales = LISTA_CATEGORIAS.filter((c) => stock.porCategoria[c] > 0)
   return (
     <section className="mb-5 flex flex-wrap items-stretch gap-3">
       <div className="rounded-xl border border-stone-200 bg-white px-4 py-3 dark:border-stone-800 dark:bg-stone-900">
         <p className="text-xs font-medium tracking-wide text-stone-500 uppercase">Stock</p>
         <p className="mt-0.5 text-2xl font-semibold tabular-nums">
-          {resumen.total} <span className="text-sm font-normal text-stone-500">cabezas</span>
+          {stock.total} <span className="text-sm font-normal text-stone-500">cabezas</span>
         </p>
         <p className="text-xs text-stone-500 tabular-nums">
-          {resumen.hembras} {resumen.hembras === 1 ? 'hembra' : 'hembras'} · {resumen.machos}{' '}
-          {resumen.machos === 1 ? 'macho' : 'machos'}
+          {hembras} {hembras === 1 ? 'hembra' : 'hembras'} · {machos}{' '}
+          {machos === 1 ? 'macho' : 'machos'}
         </p>
       </div>
       {conAnimales.length > 0 && (
@@ -541,7 +555,7 @@ function Resumen({
               }`}
             >
               {CATEGORIAS[c].plural}{' '}
-              <span className="font-semibold tabular-nums">{resumen.porCategoria[c]}</span>
+              <span className="font-semibold tabular-nums">{stock.porCategoria[c]}</span>
             </button>
           ))}
         </div>

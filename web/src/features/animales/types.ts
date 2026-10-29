@@ -67,9 +67,7 @@ export interface Pagina<T> {
   totalPaginas: number
 }
 
-export interface ResumenAnimales {
-  total: number
-  hembras: number
-  machos: number
-  porCategoria: Record<Categoria, number>
+/** Para abrir el listado ya filtrado desde otra pantalla: `<Link to="/animales" state={{ filtros }}>`. */
+export interface AnimalesLocationState {
+  filtros?: Omit<FiltroAnimales, 'pagina' | 'tamanio'>
 }

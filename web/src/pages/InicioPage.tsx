@@ -4,6 +4,7 @@ import { ArrowRight, CircleCheck, CircleX, LoaderCircle, MapPinned } from 'lucid
 import { PageHeader } from '@/components/PageHeader'
 import { useAuth } from '@/features/auth/useAuth'
 import { useEstablecimientoActivo } from '@/features/establecimientos/useEstablecimientoActivo'
+import { StockPanel } from '@/features/stock/StockPanel'
 import { api, getErrorMessage } from '@/lib/api'
 
 type Estado = { tipo: 'cargando' } | { tipo: 'ok' } | { tipo: 'error'; mensaje: string }
@@ -28,9 +29,17 @@ export function InicioPage() {
         }
       />
       {!cargando && !activo && <PrimerosPasos />}
-      <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
+      {activo && (
+        <div className="mb-6">
+          <StockPanel
+            key={activo.id}
+            establecimientoId={activo.id}
+            establecimientoNombre={activo.nombre}
+          />
+        </div>
+      )}
+      <div className="grid gap-4 md:grid-cols-2">
         <EstadoBackend />
-        <Tarjeta titulo="Stock total" texto="Se completa en el milestone M4 - Dashboard." />
         <Tarjeta
           titulo="Referencias de mercado"
           texto="Se completa en el milestone M4 - Dashboard."

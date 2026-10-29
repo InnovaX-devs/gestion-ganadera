@@ -409,23 +409,6 @@ class AnimalControllerTest {
             .andExpect(jsonPath("$.contenido[0].caravana").value("A-3"));
     }
 
-    @Test
-    void resumenCuentaPorSexoYCategoria() throws Exception {
-        crear(animal("V-1", "HEMBRA", "VACA"));
-        crear(animal("V-2", "HEMBRA", "VACA"));
-        crear(animal("H-1", "HEMBRA", "TERNERA"));
-        crear(animal("T-1", "MACHO", "TORO"));
-
-        api.get(token, url() + "/resumen")
-            .andExpect(status().isOk())
-            .andExpect(jsonPath("$.total").value(4))
-            .andExpect(jsonPath("$.hembras").value(3))
-            .andExpect(jsonPath("$.machos").value(1))
-            .andExpect(jsonPath("$.porCategoria.VACA").value(2))
-            .andExpect(jsonPath("$.porCategoria.TERNERA").value(1))
-            .andExpect(jsonPath("$.porCategoria.NOVILLO").value(0));
-    }
-
     // ---------- Asignación masiva de lote y rodeo (#14) ----------
 
     @Test
