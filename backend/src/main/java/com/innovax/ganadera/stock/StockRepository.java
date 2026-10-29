@@ -17,7 +17,7 @@ import com.innovax.ganadera.animal.EstadoAnimal;
  * <p>Una sola consulta agrupada por las cuatro dimensiones; los totales por categoría, sexo, lote y
  * rodeo se suman en memoria a partir de estas filas (son pocas: categorías × lotes × rodeos en uso).
  * {@code a.lote.id} y {@code a.rodeo.id} se leen de la foreign key, sin join. Usa el índice
- * {@code idx_animal_stock} (V7).
+ * {@code idx_animal_stock} (V10).
  */
 public interface StockRepository extends Repository<Animal, UUID> {
 

@@ -174,7 +174,7 @@ DELETE /api/establecimientos/{id}/eventos/{eventoId}   // anula, no borra
 
 `GET /api/stock?establecimientoId=<uuid>`: animales **activos** del establecimiento, por sexo, categoría, lote y rodeo. Lo ve cualquier miembro (`VER`).
 
-- No hay tabla de stock: se calcula en cada request con una sola consulta JPQL agrupada (`StockRepository`), así que nunca se desincroniza ni se edita a mano. Es JPQL y no una vista de la base para que la filtre `@TenantId`. La acompaña el índice `idx_animal_stock` (`V7`).
+- No hay tabla de stock: se calcula en cada request con una sola consulta JPQL agrupada (`StockRepository`), así que nunca se desincroniza ni se edita a mano. Es JPQL y no una vista de la base para que la filtre `@TenantId`. La acompaña el índice `idx_animal_stock` (`V10`).
 - `porSexo` y `porCategoria` traen siempre todas las claves (en 0 si no hay).
 - `porLote` / `porRodeo`: todos los lotes y rodeos activos, también los vacíos, por nombre. Al final va el grupo **sin** `id` ni `nombre` = animales sin lote (o sin rodeo), solo si hay alguno. La suma de los `total` de cada lista es el `total` general.
 - Falta `establecimientoId` o no es un UUID: 400. Establecimiento ajeno, inexistente o dado de baja: 404.
