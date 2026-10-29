@@ -28,7 +28,10 @@ import { ObservacionDialog } from '@/features/eventos/ObservacionDialog'
 import { TIPOS_EVENTO, formatearKg } from '@/features/eventos/config'
 import { formatearFecha } from '@/features/eventos/fechas'
 import { useAnularEvento, useEventos } from '@/features/eventos/queries'
-import type { Evento, PesajeDatos, TipoEvento } from '@/features/eventos/types'
+import type { Evento, TipoEvento } from '@/features/eventos/types'
+import { Ganancia } from '@/features/pesajes/Ganancia'
+import { PesajeDialog } from '@/features/pesajes/PesajeDialog'
+import { usePesajes } from '@/features/pesajes/queries'
 import { CarenciaBadge } from '@/features/sanidad/CarenciaBadge'
 import { TratamientoDialog } from '@/features/sanidad/TratamientoDialog'
 import { formatearDiasCarencia } from '@/features/sanidad/config'
@@ -42,6 +45,7 @@ import { getErrorMessage } from '@/lib/api'
 const REGISTRABLES: Partial<Record<TipoEvento, Permiso[]>> = {
   OBSERVACION: ['GESTIONAR_ANIMALES', 'REGISTRAR_SANIDAD'],
   TRATAMIENTO: ['REGISTRAR_SANIDAD'],
+  PESAJE: ['GESTIONAR_ANIMALES'],
 }
 
 const registrablesPara = (rol: Rol) =>
@@ -202,6 +206,13 @@ function Ficha({
         animalIds={[animal.id]}
         onClose={() => setRegistrando(null)}
       />
+      <PesajeDialog
+        establecimientoId={establecimientoId}
+        open={registrando === 'PESAJE'}
+        animalId={animal.id}
+        caravana={animal.caravana}
+        onClose={() => setRegistrando(null)}
+      />
       <TratamientoDialog
         establecimientoId={establecimientoId}
         open={registrando === 'TRATAMIENTO'}
@@ -331,14 +342,9 @@ function Genealogia({ animal, establecimientoId }: { animal: Animal; establecimi
 }
 
 function Peso({ animalId, establecimientoId }: { animalId: string; establecimientoId: string }) {
-  const { data, isPending } = useEventos<PesajeDatos>(establecimientoId, {
-    animalId,
-    tipo: 'PESAJE',
-    tamanio: 200,
-  })
-  const puntos = (data?.contenido ?? [])
-    .filter((e) => typeof e.datos.kg === 'number')
-    .map((e) => ({ fecha: e.fecha, kg: e.datos.kg }))
+  const { data, isPending } = usePesajes(establecimientoId, { animalId, tamanio: 200 })
+  const pesajes = data?.contenido ?? []
+  const puntos = pesajes.map((p) => ({ fecha: p.fecha, kg: p.kg }))
   // El listado viene del más nuevo al más viejo
   const [ultimo, anterior] = puntos
 
@@ -362,6 +368,9 @@ function Peso({ animalId, establecimientoId }: { animalId: string; establecimien
               {anterior && <> · {variacion(anterior, ultimo)}</>}
             </span>
           </div>
+          <p className="mb-3">
+            <Ganancia pesaje={pesajes[0]!} />
+          </p>
           {puntos.length > 1 && <GraficoPeso puntos={puntos} />}
         </>
       )}

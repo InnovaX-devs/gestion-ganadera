@@ -1,5 +1,6 @@
 package com.innovax.ganadera.evento;
 
+import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.EnumMap;
 import java.util.HashSet;
@@ -7,6 +8,8 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
+import java.util.function.Function;
+import java.util.stream.Collectors;
 
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Sort;
@@ -185,6 +188,70 @@ public class EventoService {
 
         return new OperacionResponse(operacionId, eventos.size(),
             repository.findByOperacionIdOrderByCreatedAtAsc(operacionId).stream().map(this::aRespuesta).toList());
+    }
+
+    /** Un animal y los datos propios que se le registran (ej: su peso en una grilla de pesajes). */
+    public record ItemPorAnimal(UUID animalId, JsonNode datos) {
+    }
+
+    /**
+     * Registra el mismo tipo de evento en varios animales, cada uno con sus propios datos, todo o
+     * nada y como una sola operación. Es lo que usa una carga en grilla (ej: pesajes caravana por
+     * caravana). Las mismas validaciones y efectos que {@link #registrar}, animal por animal.
+     */
+    @Transactional
+    public OperacionResponse registrarPorAnimal(UUID establecimientoId, TipoEvento tipo, UUID operacionId,
+                                                LocalDate fecha, List<ItemPorAnimal> items) {
+        exigirPermisoDelTipo(establecimientoId, tipo);
+        Establecimiento establecimiento = establecimientoActivo(establecimientoId);
+
+        if (operacionId != null && repository.existsByOperacionId(operacionId)) {
+            return operacionExistente(establecimientoId, operacionId);
+        }
+        TipoEventoHandler<?> handler = handlers.get(tipo);
+        if (handler == null) {
+            throw new BusinessException("El evento " + tipo.etiqueta() + " todavía no está disponible");
+        }
+        if (items.isEmpty()) {
+            throw new BusinessException("No hay nada para registrar");
+        }
+        return registrarItemsCon(handler, establecimiento, tipo, operacionId, fecha, items);
+    }
+
+    private <D> OperacionResponse registrarItemsCon(TipoEventoHandler<D> handler, Establecimiento establecimiento,
+                                                    TipoEvento tipo, UUID operacionId, LocalDate fecha,
+                                                    List<ItemPorAnimal> items) {
+        List<UUID> ids = items.stream().map(ItemPorAnimal::animalId).toList();
+        if (new HashSet<>(ids).size() != ids.size()) {
+            throw new BusinessException("Hay animales repetidos");
+        }
+        Map<UUID, Animal> animales = animales(establecimiento.getId(), ids).stream()
+            .collect(Collectors.toMap(Animal::getId, Function.identity()));
+
+        UUID operacion = operacionId != null ? operacionId : UUID.randomUUID();
+        Usuario usuario = usuarioRepository.getReferenceById(TenantContext.requerirUsuario().userId());
+        List<Evento> eventos = new ArrayList<>();
+        List<D> datosGuardados = new ArrayList<>();
+        for (ItemPorAnimal item : items) {
+            Animal animal = animales.get(item.animalId());
+            if (animal.getFechaNacimiento() != null && fecha.isBefore(animal.getFechaNacimiento())) {
+                throw new BusinessException("La fecha es anterior al nacimiento de " + animal.getCaravana());
+            }
+            D enviados = leerDatos(handler, item.datos());
+            var contexto = new TipoEventoHandler.Contexto(establecimiento, fecha, List.of(animal), null);
+            handler.validar(enviados, contexto);
+            D datos = handler.completar(enviados, contexto);
+            datosGuardados.add(datos);
+            eventos.add(new Evento(establecimiento, operacion, tipo, fecha, animal, null, escribir(datos), usuario));
+        }
+        repository.saveAll(eventos);
+        for (int i = 0; i < eventos.size(); i++) {
+            handler.aplicar(eventos.get(i), datosGuardados.get(i));
+        }
+        repository.flush();
+
+        return new OperacionResponse(operacion, eventos.size(),
+            repository.findByOperacionIdOrderByCreatedAtAsc(operacion).stream().map(this::aRespuesta).toList());
     }
 
     // ---------- Anulación ----------

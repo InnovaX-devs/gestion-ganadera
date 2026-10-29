@@ -52,6 +52,10 @@ public interface AnimalRepository extends JpaRepository<Animal, UUID>, JpaSpecif
     List<Animal> findByEstablecimientoIdAndRodeoIdAndEstadoOrderByCaravana(
         UUID establecimientoId, UUID rodeoId, EstadoAnimal estado);
 
+    /** Animales de un estado con alguna de esas caravanas (ya normalizadas). Para cargas por caravana. */
+    List<Animal> findByEstablecimientoIdAndCaravanaInAndEstado(
+        UUID establecimientoId, Collection<String> caravanas, EstadoAnimal estado);
+
     boolean existsByMadreIdOrPadreId(UUID madreId, UUID padreId);
 
     /** Crías de un animal (como madre o como padre), en cualquier estado. La más nueva primero. */

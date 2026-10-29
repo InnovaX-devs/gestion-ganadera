@@ -39,7 +39,10 @@ export const TIPOS_EVENTO: Record<TipoEvento, ConfigTipo> = {
   PESAJE: {
     etiqueta: 'Pesaje',
     icono: Scale,
-    resumen: (d) => (typeof d.kg === 'number' ? `${formatearKg(d.kg)} kg` : null),
+    resumen: (d) =>
+      typeof d.kg === 'number'
+        ? `${formatearKg(d.kg)} kg${d.grupal ? ` (promedio de ${d.cantidad ?? '?'})` : ''}`
+        : null,
   },
   MOVIMIENTO: { etiqueta: 'Movimiento', icono: ArrowLeftRight },
   VENTA: { etiqueta: 'Venta', icono: Tag },

@@ -11,6 +11,7 @@ import {
   Search,
   SearchX,
   Fence,
+  Scale,
   Syringe,
   Trash2,
   X,
@@ -39,6 +40,7 @@ import { ObservacionDialog } from '@/features/eventos/ObservacionDialog'
 import { puede } from '@/features/establecimientos/permisos'
 import { useEstablecimientoActivo } from '@/features/establecimientos/useEstablecimientoActivo'
 import { CarenciaBadge } from '@/features/sanidad/CarenciaBadge'
+import { PesajeGrupalDialog } from '@/features/pesajes/PesajeGrupalDialog'
 import { TratamientoDialog } from '@/features/sanidad/TratamientoDialog'
 import { useStock } from '@/features/stock/queries'
 import type { Stock } from '@/features/stock/types'
@@ -115,6 +117,7 @@ function Listado({
   const [seleccion, setSeleccion] = useState<Set<string>>(new Set())
   const [observando, setObservando] = useState(false)
   const [tratando, setTratando] = useState(false)
+  const [pesando, setPesando] = useState(false)
   const [formulario, setFormulario] = useState<{ animal: Animal | null } | null>(null)
   const [aBorrar, setABorrar] = useState<Animal | null>(null)
   const [asignando, setAsignando] = useState<CampoAsignacion | null>(null)
@@ -308,6 +311,14 @@ function Listado({
                   >
                     <Layers className="size-4" />
                     Asignar rodeo
+                  </Button>
+                  <Button
+                    variant="secondary"
+                    className="px-3 py-1.5"
+                    onClick={() => setPesando(true)}
+                  >
+                    <Scale className="size-4" />
+                    Pesaje grupal
                   </Button>
                 </>
               )}
@@ -538,6 +549,14 @@ function Listado({
         open={tratando}
         animalIds={[...seleccion]}
         onClose={() => setTratando(false)}
+        onHecho={() => setSeleccion(new Set())}
+      />
+
+      <PesajeGrupalDialog
+        establecimientoId={establecimientoId}
+        open={pesando}
+        animalIds={[...seleccion]}
+        onClose={() => setPesando(false)}
         onHecho={() => setSeleccion(new Set())}
       />
 
