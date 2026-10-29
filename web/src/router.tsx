@@ -3,12 +3,14 @@ import { allNavItems } from '@/config/navigation'
 import { PublicOnly, RequireAuth } from '@/features/auth/RouteGuards'
 import { AppLayout } from '@/layouts/AppLayout'
 import { AgrupacionesPage } from '@/pages/AgrupacionesPage'
+import { AnimalPage } from '@/pages/AnimalPage'
 import { AnimalesPage } from '@/pages/AnimalesPage'
 import { EstablecimientosPage } from '@/pages/EstablecimientosPage'
 import { AceptarInvitacionPage } from '@/pages/AceptarInvitacionPage'
 import { InicioPage } from '@/pages/InicioPage'
 import { InvitacionesPage } from '@/pages/InvitacionesPage'
 import { LoginPage } from '@/pages/LoginPage'
+import { ObservacionesPage } from '@/pages/ObservacionesPage'
 import { NotFoundPage } from '@/pages/NotFoundPage'
 import { PlaceholderPage } from '@/pages/PlaceholderPage'
 import { RegisterPage } from '@/pages/RegisterPage'
@@ -21,6 +23,7 @@ const IMPLEMENTADAS = new Set([
   '/rodeos',
   '/animales',
   '/invitaciones',
+  '/observaciones',
 ])
 
 // Secciones del menú que todavía no tienen página propia
@@ -57,6 +60,8 @@ export const router = createBrowserRouter([
           { path: 'rodeos', element: <AgrupacionesPage key="rodeos" tipo="rodeos" /> },
           { path: 'animales', element: <AnimalesPage /> },
           { path: 'invitaciones', element: <InvitacionesPage /> },
+          { path: 'animales/:animalId', element: <AnimalPage /> },
+          { path: 'observaciones', element: <ObservacionesPage /> },
           ...placeholderRoutes,
           { path: '*', element: <NotFoundPage /> },
         ],
