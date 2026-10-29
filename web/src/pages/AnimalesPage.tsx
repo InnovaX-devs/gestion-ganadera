@@ -11,6 +11,7 @@ import {
   Search,
   SearchX,
   Fence,
+  Syringe,
   Trash2,
   X,
 } from 'lucide-react'
@@ -37,6 +38,8 @@ import type {
 import { ObservacionDialog } from '@/features/eventos/ObservacionDialog'
 import { puede } from '@/features/establecimientos/permisos'
 import { useEstablecimientoActivo } from '@/features/establecimientos/useEstablecimientoActivo'
+import { CarenciaBadge } from '@/features/sanidad/CarenciaBadge'
+import { TratamientoDialog } from '@/features/sanidad/TratamientoDialog'
 import { useStock } from '@/features/stock/queries'
 import type { Stock } from '@/features/stock/types'
 import { useDebouncedValue } from '@/hooks/useDebouncedValue'
@@ -77,6 +80,7 @@ export function AnimalesPage() {
       establecimientoId={activo.id}
       establecimientoNombre={activo.nombre}
       puedeGestionar={puede(activo.rol, 'GESTIONAR_ANIMALES')}
+      puedeSanidad={puede(activo.rol, 'REGISTRAR_SANIDAD')}
     />
   )
 }
@@ -87,11 +91,15 @@ function Listado({
   establecimientoId,
   establecimientoNombre,
   puedeGestionar,
+  puedeSanidad,
 }: {
   establecimientoId: string
   establecimientoNombre: string
   puedeGestionar: boolean
+  puedeSanidad: boolean
 }) {
+  // Seleccionar animales sirve para asignarlos (gestión) o para cargarles eventos (gestión o sanidad)
+  const puedeSeleccionar = puedeGestionar || puedeSanidad
   const location = useLocation()
   const navigate = useNavigate()
   // Si se llega desde el inicio (click en una categoría, lote o rodeo), arranca con ese filtro
@@ -106,6 +114,7 @@ function Listado({
   const [pagina, setPagina] = useState(0)
   const [seleccion, setSeleccion] = useState<Set<string>>(new Set())
   const [observando, setObservando] = useState(false)
+  const [tratando, setTratando] = useState(false)
   const [formulario, setFormulario] = useState<{ animal: Animal | null } | null>(null)
   const [aBorrar, setABorrar] = useState<Animal | null>(null)
   const [asignando, setAsignando] = useState<CampoAsignacion | null>(null)
@@ -277,27 +286,41 @@ function Listado({
           </div>
 
           {/* Acciones sobre la selección */}
-          {puedeGestionar && seleccion.size > 0 && (
+          {puedeSeleccionar && seleccion.size > 0 && (
             <div className="border-brand-200 bg-brand-50 dark:border-brand-900 dark:bg-brand-900/30 sticky top-16 z-10 mb-3 flex flex-wrap items-center gap-2 rounded-xl border px-4 py-2.5">
               <span className="mr-auto text-sm font-medium">
                 {seleccion.size} {seleccion.size === 1 ? 'seleccionado' : 'seleccionados'}
               </span>
-              <Button
-                variant="secondary"
-                className="px-3 py-1.5"
-                onClick={() => setAsignando('LOTE')}
-              >
-                <Fence className="size-4" />
-                Asignar lote
-              </Button>
-              <Button
-                variant="secondary"
-                className="px-3 py-1.5"
-                onClick={() => setAsignando('RODEO')}
-              >
-                <Layers className="size-4" />
-                Asignar rodeo
-              </Button>
+              {puedeGestionar && (
+                <>
+                  <Button
+                    variant="secondary"
+                    className="px-3 py-1.5"
+                    onClick={() => setAsignando('LOTE')}
+                  >
+                    <Fence className="size-4" />
+                    Asignar lote
+                  </Button>
+                  <Button
+                    variant="secondary"
+                    className="px-3 py-1.5"
+                    onClick={() => setAsignando('RODEO')}
+                  >
+                    <Layers className="size-4" />
+                    Asignar rodeo
+                  </Button>
+                </>
+              )}
+              {puedeSanidad && (
+                <Button
+                  variant="secondary"
+                  className="px-3 py-1.5"
+                  onClick={() => setTratando(true)}
+                >
+                  <Syringe className="size-4" />
+                  Tratamiento
+                </Button>
+              )}
               <Button
                 variant="secondary"
                 className="px-3 py-1.5"
@@ -342,7 +365,7 @@ function Listado({
               <table className="hidden w-full text-sm md:table">
                 <thead className="border-b border-stone-200 bg-stone-50 text-left text-xs font-medium tracking-wide text-stone-500 uppercase dark:border-stone-800 dark:bg-stone-900">
                   <tr>
-                    {puedeGestionar && (
+                    {puedeSeleccionar && (
                       <th className="w-10 px-4 py-3">
                         <input
                           type="checkbox"
@@ -368,7 +391,7 @@ function Listado({
                       key={a.id}
                       className={seleccion.has(a.id) ? 'bg-brand-50/60 dark:bg-brand-900/20' : ''}
                     >
-                      {puedeGestionar && (
+                      {puedeSeleccionar && (
                         <td className="px-4 py-3">
                           <input
                             type="checkbox"
@@ -393,7 +416,10 @@ function Listado({
                         )}
                       </td>
                       <td className="px-4 py-3">
-                        <CategoriaBadge animal={a} />
+                        <div className="flex flex-wrap items-center gap-1.5">
+                          <CategoriaBadge animal={a} />
+                          <CarenciaBadge carencia={a.carencia} />
+                        </div>
                       </td>
                       <td className="px-4 py-3 text-stone-600 dark:text-stone-400">
                         {formatearEdad(a.fechaNacimiento, a.fechaNacimientoEstimada) ?? <Vacio />}
@@ -421,7 +447,7 @@ function Listado({
               <ul className="divide-y divide-stone-100 md:hidden dark:divide-stone-800">
                 {animales.map((a) => (
                   <li key={a.id} className="flex items-start gap-3 px-4 py-3">
-                    {puedeGestionar && (
+                    {puedeSeleccionar && (
                       <input
                         type="checkbox"
                         aria-label={`Seleccionar ${a.caravana}`}
@@ -440,6 +466,11 @@ function Listado({
                         </Link>
                         <CategoriaBadge animal={a} />
                       </div>
+                      {a.carencia && (
+                        <div className="mt-1">
+                          <CarenciaBadge carencia={a.carencia} />
+                        </div>
+                      )}
                       <p className="mt-1 truncate text-xs text-stone-500">
                         {[
                           formatearEdad(a.fechaNacimiento, a.fechaNacimientoEstimada),
@@ -499,6 +530,14 @@ function Listado({
         open={observando}
         animalIds={[...seleccion]}
         onClose={() => setObservando(false)}
+        onHecho={() => setSeleccion(new Set())}
+      />
+
+      <TratamientoDialog
+        establecimientoId={establecimientoId}
+        open={tratando}
+        animalIds={[...seleccion]}
+        onClose={() => setTratando(false)}
         onHecho={() => setSeleccion(new Set())}
       />
 

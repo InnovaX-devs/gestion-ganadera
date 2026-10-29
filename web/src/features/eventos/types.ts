@@ -34,6 +34,8 @@ export interface EventoInput<D = Record<string, unknown>> {
   fecha: string
   animalIds?: string[]
   loteId?: string | null
+  /** Para los tipos sobre animales (ej: tratamiento): aplica a todos los animales activos del rodeo. */
+  rodeoId?: string | null
   datos: D
 }
 

@@ -24,6 +24,8 @@ Cada usuario tiene un rol **por establecimiento** (tabla `membresia`). Puede ser
 | Cargar y editar animales (`GESTIONAR_ANIMALES`) | ✅ | ✅ | ❌ | ❌ |
 | Registrar y anular eventos de manejo: nacimiento, servicio, pesaje, movimiento, venta, baja (`GESTIONAR_ANIMALES`) | ✅ | ✅ | ❌ | ❌ |
 | Registrar y anular eventos sanitarios: tacto, tratamiento (`REGISTRAR_SANIDAD`) | ✅ | ✅ | ✅ | ❌ |
+| Ver el catálogo de productos sanitarios y la carencia de cada animal | ✅ | ✅ | ✅ | ✅ |
+| Agregar, editar y dar de baja productos del catálogo sanitario (`REGISTRAR_SANIDAD`) | ✅ | ✅ | ✅ | ❌ |
 | Registrar y anular observaciones (cualquiera de los dos permisos) | ✅ | ✅ | ✅ | ❌ |
 | Agregar miembros, cambiar roles y quitar miembros | ✅ | ❌ | ❌ | ❌ |
 | Invitar por email, ver, reenviar y revocar invitaciones | ✅ | ❌ | ❌ | ❌ |

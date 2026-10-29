@@ -2,6 +2,7 @@ package com.innovax.ganadera.animal;
 
 import java.util.HashSet;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
 
@@ -29,6 +30,8 @@ import com.innovax.ganadera.establecimiento.EstablecimientoRepository;
 import com.innovax.ganadera.evento.EventoRepository;
 import com.innovax.ganadera.membresia.AutorizacionService;
 import com.innovax.ganadera.membresia.Permiso;
+import com.innovax.ganadera.sanidad.CarenciaService;
+import com.innovax.ganadera.sanidad.dto.CarenciaResponse;
 
 import lombok.RequiredArgsConstructor;
 
@@ -50,6 +53,7 @@ public class AnimalService {
     private final AutorizacionService autorizacion;
     private final CategoriaService categoriaService;
     private final EventoRepository eventoRepository;
+    private final CarenciaService carenciaService;
 
     /** Listado paginado con filtros (#14). Ordenado por caravana. */
     @Transactional(readOnly = true)
@@ -57,8 +61,9 @@ public class AnimalService {
         autorizacion.exigir(establecimientoId, Permiso.VER);
         establecimientoActivo(establecimientoId);
         var pageable = PageRequest.of(filtro.paginaValida(), filtro.tamanioValido(), Sort.by("caravana"));
-        return PaginaResponse.de(repository.findAll(AnimalSpecs.de(establecimientoId, filtro), pageable),
-            AnimalResponse::from);
+        var pagina = repository.findAll(AnimalSpecs.de(establecimientoId, filtro), pageable);
+        var carencias = carenciaService.deAnimales(establecimientoId, pagina.map(Animal::getId).getContent());
+        return PaginaResponse.de(pagina, a -> AnimalResponse.from(a, carencias.get(a.getId())));
     }
 
     /**
@@ -94,14 +99,17 @@ public class AnimalService {
     @Transactional(readOnly = true)
     public AnimalResponse obtener(UUID establecimientoId, UUID id) {
         autorizacion.exigir(establecimientoId, Permiso.VER);
-        return AnimalResponse.from(buscar(establecimientoId, id));
+        return conCarencia(establecimientoId, buscar(establecimientoId, id));
     }
 
     @Transactional(readOnly = true)
     public List<AnimalResponse> crias(UUID establecimientoId, UUID id) {
         autorizacion.exigir(establecimientoId, Permiso.VER);
         buscar(establecimientoId, id);
-        return repository.buscarCrias(id).stream().map(AnimalResponse::from).toList();
+        List<Animal> crias = repository.buscarCrias(id);
+        Map<UUID, CarenciaResponse> carencias =
+            carenciaService.deAnimales(establecimientoId, crias.stream().map(Animal::getId).toList());
+        return crias.stream().map(a -> AnimalResponse.from(a, carencias.get(a.getId()))).toList();
     }
 
     @Transactional
@@ -121,7 +129,7 @@ public class AnimalService {
         aplicar(request, animal);
         Animal guardado = repository.saveAndFlush(animal);
         categoriaService.registrarCambioManual(guardado, categoriaAnterior);
-        return AnimalResponse.from(guardado);
+        return conCarencia(establecimientoId, guardado);
     }
 
     /** Borrado definitivo, solo para corregir una carga equivocada. No se puede si tiene crías o eventos. */
@@ -137,6 +145,11 @@ public class AnimalService {
         }
         eventoRepository.borrarAnuladosDelAnimal(id);
         repository.delete(animal);
+    }
+
+    private AnimalResponse conCarencia(UUID establecimientoId, Animal animal) {
+        return AnimalResponse.from(animal, carenciaService.deAnimales(establecimientoId, List.of(animal.getId()))
+            .get(animal.getId()));
     }
 
     // ---------- Reglas ----------

@@ -20,6 +20,7 @@ public final class DbCleaner {
         "membresia",
         "lote",
         "rodeo",
+        "producto_sanitario",
         "establecimiento",
         "usuario",
         "organizacion"

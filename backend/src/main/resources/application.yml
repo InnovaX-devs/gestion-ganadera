@@ -52,6 +52,12 @@ app:
     # ...o al registrar un pesaje de al menos estos kilos
     kilos-novillo: ${CATEGORIA_KILOS_NOVILLO:400}
     kilos-toro: ${CATEGORIA_KILOS_TORO:450}
+  sanidad:
+    # Días que se suman a la carencia del producto antes de dar al animal por libre (issue #20).
+    # 0: con 28 días de carencia, el animal queda libre el día 28 después de la aplicación.
+    # 1: queda libre recién el día 29 (más conservador). Si lo cambiás, cambiá también
+    # VITE_CARENCIA_DIAS_EXTRA en la web, que lo usa para las vistas previas.
+    carencia-dias-extra: ${SANIDAD_CARENCIA_DIAS_EXTRA:0}
   jobs:
     habilitados: ${JOBS_HABILITADOS:true}
     # Cron de Spring (segundo minuto hora día mes día-semana), hora de Argentina

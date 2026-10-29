@@ -19,8 +19,11 @@ import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.innovax.ganadera.agrupacion.Lote;
 import com.innovax.ganadera.agrupacion.LoteRepository;
+import com.innovax.ganadera.agrupacion.Rodeo;
+import com.innovax.ganadera.agrupacion.RodeoRepository;
 import com.innovax.ganadera.animal.Animal;
 import com.innovax.ganadera.animal.AnimalRepository;
+import com.innovax.ganadera.animal.EstadoAnimal;
 import com.innovax.ganadera.common.dto.PaginaResponse;
 import com.innovax.ganadera.common.error.ApiError;
 import com.innovax.ganadera.common.error.BusinessException;
@@ -53,6 +56,7 @@ public class EventoService {
     private final EstablecimientoRepository establecimientoRepository;
     private final AnimalRepository animalRepository;
     private final LoteRepository loteRepository;
+    private final RodeoRepository rodeoRepository;
     private final UsuarioRepository usuarioRepository;
     private final AutorizacionService autorizacion;
     private final ObjectMapper objectMapper;
@@ -61,12 +65,13 @@ public class EventoService {
 
     public EventoService(EventoRepository repository, EstablecimientoRepository establecimientoRepository,
                          AnimalRepository animalRepository, LoteRepository loteRepository,
-                         UsuarioRepository usuarioRepository, AutorizacionService autorizacion,
+                         RodeoRepository rodeoRepository, UsuarioRepository usuarioRepository, AutorizacionService autorizacion,
                          ObjectMapper objectMapper, Validator validator, List<TipoEventoHandler<?>> handlers) {
         this.repository = repository;
         this.establecimientoRepository = establecimientoRepository;
         this.animalRepository = animalRepository;
         this.loteRepository = loteRepository;
+        this.rodeoRepository = rodeoRepository;
         this.usuarioRepository = usuarioRepository;
         this.autorizacion = autorizacion;
         this.objectMapper = objectMapper;
@@ -119,12 +124,36 @@ public class EventoService {
     /** Separado para que el tipo D quede fijo y no haya que castear los datos. */
     private <D> OperacionResponse registrarCon(TipoEventoHandler<D> handler, Establecimiento establecimiento,
                                                EventoRequest request) {
-        D datos = leerDatos(handler, request.datos());
+        D datosEnviados = leerDatos(handler, request.datos());
         List<Animal> animales = animales(establecimiento.getId(), request.animalIdsONada());
         Lote lote = lote(establecimiento.getId(), request.loteId());
+        Rodeo rodeo = rodeo(establecimiento.getId(), request.rodeoId());
 
         if (!animales.isEmpty() && lote != null) {
             throw new BusinessException("Indicá animales o un lote, no las dos cosas");
+        }
+        if (!animales.isEmpty() && rodeo != null) {
+            throw new BusinessException("Indicá animales o un rodeo, no las dos cosas");
+        }
+        if (lote != null && rodeo != null) {
+            throw new BusinessException("Indicá un lote o un rodeo, no los dos");
+        }
+        if (rodeo != null && !request.tipo().requiereAnimales()) {
+            throw new BusinessException("El evento " + request.tipo().etiqueta() + " no se puede registrar sobre un rodeo");
+        }
+        if (request.tipo().requiereAnimales() && animales.isEmpty() && (lote != null || rodeo != null)) {
+            // Carga por lote o rodeo: un evento por cada animal activo del grupo
+            animales = lote != null
+                ? animalRepository.findByEstablecimientoIdAndLoteIdAndEstadoOrderByCaravana(
+                    establecimiento.getId(), lote.getId(), EstadoAnimal.ACTIVO)
+                : animalRepository.findByEstablecimientoIdAndRodeoIdAndEstadoOrderByCaravana(
+                    establecimiento.getId(), rodeo.getId(), EstadoAnimal.ACTIVO);
+            if (animales.isEmpty()) {
+                throw new BusinessException(lote != null
+                    ? "El lote " + lote.getNombre() + " no tiene animales"
+                    : "El rodeo " + rodeo.getNombre() + " no tiene animales");
+            }
+            lote = null;
         }
         if (request.tipo().requiereAnimales() && animales.isEmpty()) {
             throw new BusinessException("Elegí al menos un animal");
@@ -134,7 +163,9 @@ public class EventoService {
                 throw new BusinessException("La fecha es anterior al nacimiento de " + animal.getCaravana());
             }
         }
-        handler.validar(datos, new TipoEventoHandler.Contexto(establecimiento, request.fecha(), animales, lote));
+        var contexto = new TipoEventoHandler.Contexto(establecimiento, request.fecha(), animales, lote);
+        handler.validar(datosEnviados, contexto);
+        D datos = handler.completar(datosEnviados, contexto);
 
         UUID operacionId = request.operacionId() != null ? request.operacionId() : UUID.randomUUID();
         String json = escribir(datos);
@@ -231,6 +262,12 @@ public class EventoService {
         if (loteId == null) return null;
         return loteRepository.findByIdAndEstablecimientoIdAndActivoTrue(loteId, establecimientoId)
             .orElseThrow(() -> new BusinessException("El lote elegido no existe en este establecimiento"));
+    }
+
+    private Rodeo rodeo(UUID establecimientoId, UUID rodeoId) {
+        if (rodeoId == null) return null;
+        return rodeoRepository.findByIdAndEstablecimientoIdAndActivoTrue(rodeoId, establecimientoId)
+            .orElseThrow(() -> new BusinessException("El rodeo elegido no existe en este establecimiento"));
     }
 
     private Establecimiento establecimientoActivo(UUID id) {

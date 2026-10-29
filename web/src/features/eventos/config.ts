@@ -10,6 +10,8 @@ import {
   Syringe,
   Tag,
 } from 'lucide-react'
+import { VIAS, formatearDiasCarencia } from '@/features/sanidad/config'
+import type { TratamientoDatos } from '@/features/sanidad/types'
 import type { TipoEvento } from './types'
 
 interface ConfigTipo {
@@ -29,7 +31,11 @@ export const TIPOS_EVENTO: Record<TipoEvento, ConfigTipo> = {
   NACIMIENTO: { etiqueta: 'Nacimiento', icono: Baby },
   SERVICIO: { etiqueta: 'Servicio', icono: HeartHandshake },
   TACTO: { etiqueta: 'Tacto', icono: ScanSearch },
-  TRATAMIENTO: { etiqueta: 'Tratamiento', icono: Syringe },
+  TRATAMIENTO: {
+    etiqueta: 'Tratamiento',
+    icono: Syringe,
+    resumen: (d) => resumenTratamiento(d as unknown as TratamientoDatos),
+  },
   PESAJE: {
     etiqueta: 'Pesaje',
     icono: Scale,
@@ -39,6 +45,19 @@ export const TIPOS_EVENTO: Record<TipoEvento, ConfigTipo> = {
   VENTA: { etiqueta: 'Venta', icono: Tag },
   BAJA: { etiqueta: 'Baja', icono: CircleSlash },
   OBSERVACION: { etiqueta: 'Observación', icono: ClipboardList, resumen: (d) => texto(d.texto) },
+}
+
+/** "Ivomec · 5 ml · Subcutánea · Carencia 28 días" */
+function resumenTratamiento(d: TratamientoDatos): string | null {
+  if (!d.producto) return null
+  return [
+    d.producto,
+    d.dosis,
+    VIAS[d.via],
+    d.diasCarencia ? `Carencia ${formatearDiasCarencia(d.diasCarencia)}` : null,
+  ]
+    .filter(Boolean)
+    .join(' · ')
 }
 
 const kg = new Intl.NumberFormat('es-AR', { maximumFractionDigits: 1 })
