@@ -14,6 +14,7 @@ public final class DbCleaner {
 
     private static final List<String> TABLAS_EN_ORDEN = List.of(
         "evento",
+        "cambio_categoria",
         "animal",
         "invitacion",
         "membresia",

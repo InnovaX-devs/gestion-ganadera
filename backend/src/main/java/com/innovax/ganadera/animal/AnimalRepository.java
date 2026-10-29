@@ -1,11 +1,10 @@
 package com.innovax.ganadera.animal;
 
+import java.time.LocalDate;
+import java.util.Collection;
+import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
-
-import java.util.List;
-import org.springframework.data.jpa.repository.Query;
-import org.springframework.data.repository.query.Param;
 
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
@@ -13,6 +12,8 @@ import org.springframework.data.jpa.domain.Specification;
 import org.springframework.data.jpa.repository.EntityGraph;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.JpaSpecificationExecutor;
+import org.springframework.data.jpa.repository.Query;
+import org.springframework.data.repository.query.Param;
 
 /** Filtra solo por organización (@TenantId), también en las consultas con Specification. */
 public interface AnimalRepository extends JpaRepository<Animal, UUID>, JpaSpecificationExecutor<Animal> {
@@ -63,4 +64,18 @@ public interface AnimalRepository extends JpaRepository<Animal, UUID>, JpaSpecif
         """)
     List<Object[]> contarPorCategoria(@Param("establecimientoId") UUID establecimientoId,
                                       @Param("estado") EstadoAnimal estado);
+
+    /**
+     * Candidatos del job de cambio de categoría por edad: activos, de establecimientos activos, en
+     * alguna de esas categorías y nacidos hasta esa fecha.
+     */
+    @Query("""
+        select a from Animal a
+        where a.estado = :estado and a.establecimiento.activo = true
+          and a.categoria in :categorias
+          and a.fechaNacimiento is not null and a.fechaNacimiento <= :nacidosHasta
+        """)
+    List<Animal> candidatosACambioPorEdad(@Param("estado") EstadoAnimal estado,
+                                          @Param("categorias") Collection<Categoria> categorias,
+                                          @Param("nacidosHasta") LocalDate nacidosHasta);
 }
