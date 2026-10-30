@@ -62,3 +62,21 @@ app:
     habilitados: ${JOBS_HABILITADOS:true}
     # Cron de Spring (segundo minuto hora día mes día-semana), hora de Argentina
     cambio-categoria-cron: ${JOB_CAMBIO_CATEGORIA_CRON:0 0 3 * * *}
+    # Cotizaciones de mercado (issue #27). A las 19 ya cerró el dólar y está la pizarra del día hábil anterior.
+    cotizaciones-cron: ${JOB_COTIZACIONES_CRON:0 0 19 * * *}
+  mercado:
+    # false: no se consulta ninguna fuente externa (los tests usan fuentes falsas)
+    fuentes-externas: ${MERCADO_FUENTES_EXTERNAS:true}
+    dolar-api-url: ${MERCADO_DOLAR_API_URL:https://dolarapi.com/v1}
+    pizarra-rosario-url: ${MERCADO_PIZARRA_ROSARIO_URL:https://www.cac.bcr.com.ar/es/precios-de-pizarra}
+    timeout: ${MERCADO_TIMEOUT:15s}
+  clima:
+    # Open-Meteo (issue #29). La API gratuita es para uso no comercial: ver docs/clima.md.
+    # Plan comercial: CLIMA_URL=https://customer-api.open-meteo.com/v1 y OPEN_METEO_API_KEY.
+    url: ${CLIMA_URL:https://api.open-meteo.com/v1}
+    geocoding-url: ${CLIMA_GEOCODING_URL:https://geocoding-api.open-meteo.com/v1}
+    api-key: ${OPEN_METEO_API_KEY:}
+    dias: ${CLIMA_DIAS:5}
+    # Cuánto se reutiliza un pronóstico antes de volver a pedirlo
+    cache: ${CLIMA_CACHE:30m}
+    timeout: ${CLIMA_TIMEOUT:8s}

@@ -1,5 +1,6 @@
 import { keepPreviousData, useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import type { Pagina } from '@/features/animales/types'
+import { stockKey } from '@/features/stock/queries'
 import { api } from '@/lib/api'
 import type { Evento, EventoInput, FiltroEventos, Operacion } from './types'
 
@@ -31,6 +32,7 @@ function useInvalidar() {
       queryClient.invalidateQueries({ queryKey: ['animales'] }),
       queryClient.invalidateQueries({ queryKey: ['stock'] }),
       queryClient.invalidateQueries({ queryKey: ['agrupaciones'] }),
+      queryClient.invalidateQueries({ queryKey: stockKey(establecimientoId) }),
     ])
 }
 
