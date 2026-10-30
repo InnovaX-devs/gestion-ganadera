@@ -245,6 +245,10 @@ GET /api/mercado/historico?producto=NOVILLO&producto=TERNERO&desde=2026-10-01&ha
 - Fuentes, términos de uso y cómo agregar una: [`docs/mercado.md`](../docs/mercado.md).
 - Los tests no salen a internet (`app.mercado.fuentes-externas: false`) y usan fuentes falsas.
 
+## Clima (#29)
+
+`GET /api/establecimientos/{id}/clima`: clima actual y pronóstico de 5 días de Open-Meteo, con las coordenadas del establecimiento (o buscando su localidad). El backend hace de intermediario y guarda los pronósticos 30 minutos, para respetar el límite de la API gratuita y no exponer nunca una clave. Condiciones de uso y configuración: [`docs/clima.md`](../docs/clima.md).
+
 ## Errores
 
 Toda la API responde los errores con este formato:

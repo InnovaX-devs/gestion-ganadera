@@ -70,3 +70,13 @@ app:
     dolar-api-url: ${MERCADO_DOLAR_API_URL:https://dolarapi.com/v1}
     pizarra-rosario-url: ${MERCADO_PIZARRA_ROSARIO_URL:https://www.cac.bcr.com.ar/es/precios-de-pizarra}
     timeout: ${MERCADO_TIMEOUT:15s}
+  clima:
+    # Open-Meteo (issue #29). La API gratuita es para uso no comercial: ver docs/clima.md.
+    # Plan comercial: CLIMA_URL=https://customer-api.open-meteo.com/v1 y OPEN_METEO_API_KEY.
+    url: ${CLIMA_URL:https://api.open-meteo.com/v1}
+    geocoding-url: ${CLIMA_GEOCODING_URL:https://geocoding-api.open-meteo.com/v1}
+    api-key: ${OPEN_METEO_API_KEY:}
+    dias: ${CLIMA_DIAS:5}
+    # Cuánto se reutiliza un pronóstico antes de volver a pedirlo
+    cache: ${CLIMA_CACHE:30m}
+    timeout: ${CLIMA_TIMEOUT:8s}

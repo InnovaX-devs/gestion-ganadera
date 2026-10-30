@@ -8,6 +8,7 @@ import java.time.LocalDate;
  * novillo hay que vender para comprar un kilo de ternero; cuanto más alta, más cara la reposición.
  *
  * @param actualizada false si alguno de los dos precios es un valor anterior (la fuente falló)
+ * @param valorAnterior la relación con los precios de la foto anterior (falta si no se puede calcular)
  */
 public record RelacionReposicionResponse(
     BigDecimal valor,
@@ -15,6 +16,7 @@ public record RelacionReposicionResponse(
     BigDecimal novillo,
     LocalDate fechaTernero,
     LocalDate fechaNovillo,
-    boolean actualizada
+    boolean actualizada,
+    BigDecimal valorAnterior
 ) {
 }

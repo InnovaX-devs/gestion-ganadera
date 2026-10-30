@@ -140,6 +140,7 @@ class MercadoControllerTest {
         hoy()
             .andExpect(status().isOk())
             .andExpect(jsonPath("$.fecha").doesNotExist())
+            .andExpect(jsonPath("$.actualizadoEn").doesNotExist())
             .andExpect(jsonPath("$.cotizaciones.length()").value(Producto.values().length))
             .andExpect(jsonPath("$.cotizaciones[0].producto").value("TERNERO"))
             .andExpect(jsonPath("$.cotizaciones[0].grupo").value("INVERNADA"))
@@ -155,8 +156,11 @@ class MercadoControllerTest {
 
         hoy()
             .andExpect(jsonPath("$.fecha").value(DIA_1.toString()))
+            .andExpect(jsonPath("$.actualizadoEn").exists())
             .andExpect(cotizacion("TERNERO", "valor").value(6000.0))
             .andExpect(cotizacion("TERNERO", "estado").value("ACTUAL"))
+            // Primer día: no hay foto anterior para comparar
+            .andExpect(cotizacion("TERNERO", "valorAnterior").doesNotExist())
             .andExpect(cotizacion("TERNERO", "fuente").value("Hacienda de prueba"))
             .andExpect(cotizacion("TERNERO", "fechaDato").value(DIA_1.toString()))
             .andExpect(cotizacion("DOLAR_OFICIAL", "valor").value(1455.5))
@@ -176,6 +180,25 @@ class MercadoControllerTest {
 
         // 5758,85 / 4095,65 = 1,4061...
         hoy().andExpect(jsonPath("$.relacionReposicion.valor").value(1.41));
+    }
+
+    @Test
+    void traeElValorDelDiaAnteriorParaLaVariacion() throws Exception {
+        job.ejecutar(DIA_1);
+        hacienda.responder(ternero("6300", DIA_2), novillo("4200", DIA_2));
+        dolar.fallar("caída");
+        job.ejecutar(DIA_2);
+
+        hoy()
+            .andExpect(cotizacion("TERNERO", "valor").value(6300.0))
+            .andExpect(cotizacion("TERNERO", "valorAnterior").value(6000.0))
+            .andExpect(cotizacion("TERNERO", "fechaAnterior").value(DIA_1.toString()))
+            // El dólar no se pudo leer: mismo valor que el día anterior
+            .andExpect(cotizacion("DOLAR_BLUE", "valor").value(1480.0))
+            .andExpect(cotizacion("DOLAR_BLUE", "valorAnterior").value(1480.0))
+            // 6000 / 4000 el día anterior
+            .andExpect(jsonPath("$.relacionReposicion.valor").value(1.5))
+            .andExpect(jsonPath("$.relacionReposicion.valorAnterior").value(1.5));
     }
 
     // ---------- Fallas ----------

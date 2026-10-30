@@ -1,6 +1,7 @@
 package com.innovax.ganadera.mercado;
 
 import java.time.Clock;
+import java.time.Instant;
 import java.time.LocalDate;
 import java.time.temporal.ChronoUnit;
 import java.util.ArrayList;
@@ -96,14 +97,24 @@ public class CotizacionService {
     public MercadoHoyResponse hoy() {
         Map<Producto, Cotizacion> ultimas = new EnumMap<>(Producto.class);
         repository.buscarUltimas().forEach(c -> ultimas.put(c.getProducto(), c));
+        // La foto anterior de cada producto, para la variación (una consulta por producto: son 9)
+        Map<Producto, Cotizacion> anteriores = new EnumMap<>(Producto.class);
+        ultimas.forEach((producto, ultima) -> repository
+            .findFirstByProductoAndFechaBeforeAndValorIsNotNullOrderByFechaDesc(producto, ultima.getFecha())
+            .ifPresent(anterior -> anteriores.put(producto, anterior)));
 
         List<CotizacionResponse> cotizaciones = Arrays.stream(Producto.values())
-            .map(p -> ultimas.containsKey(p) ? CotizacionResponse.from(ultimas.get(p)) : CotizacionResponse.sinDato(p))
+            .map(p -> ultimas.containsKey(p)
+                ? CotizacionResponse.from(ultimas.get(p), anteriores.get(p))
+                : CotizacionResponse.sinDato(p))
             .toList();
         LocalDate fecha = ultimas.values().stream().map(Cotizacion::getFecha).max(LocalDate::compareTo).orElse(null);
+        Instant actualizadoEn = ultimas.values().stream()
+            .map(Cotizacion::getUpdatedAt).filter(Objects::nonNull).max(Instant::compareTo).orElse(null);
 
-        return new MercadoHoyResponse(fecha, cotizaciones,
-            relacion(ultimas.get(Producto.TERNERO), ultimas.get(Producto.NOVILLO)));
+        return new MercadoHoyResponse(fecha, actualizadoEn, cotizaciones,
+            relacion(ultimas.get(Producto.TERNERO), ultimas.get(Producto.NOVILLO),
+                anteriores.get(Producto.TERNERO), anteriores.get(Producto.NOVILLO)));
     }
 
     /**
@@ -151,14 +162,17 @@ public class CotizacionService {
         return new HistoricoResponse(inicio, fin, series, relacion);
     }
 
-    private static RelacionReposicionResponse relacion(Cotizacion ternero, Cotizacion novillo) {
+    private static RelacionReposicionResponse relacion(Cotizacion ternero, Cotizacion novillo,
+                                                       Cotizacion terneroAnterior, Cotizacion novilloAnterior) {
         if (ternero == null || novillo == null) return null;
         var valor = RelacionReposicion.calcular(ternero.getValor(), novillo.getValor());
         if (valor == null) return null;
         boolean actualizada = ternero.getEstado() == EstadoCotizacion.ACTUAL
             && novillo.getEstado() == EstadoCotizacion.ACTUAL;
+        var anterior = terneroAnterior == null || novilloAnterior == null ? null
+            : RelacionReposicion.calcular(terneroAnterior.getValor(), novilloAnterior.getValor());
         return new RelacionReposicionResponse(valor, ternero.getValor(), novillo.getValor(),
-            ternero.getFechaDato(), novillo.getFechaDato(), actualizada);
+            ternero.getFechaDato(), novillo.getFechaDato(), actualizada, anterior);
     }
 
     private static void validarRango(LocalDate desde, LocalDate hasta) {
