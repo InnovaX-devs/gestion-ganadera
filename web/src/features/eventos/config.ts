@@ -15,6 +15,8 @@ import { VIAS, formatearDiasCarencia } from '@/features/sanidad/config'
 import { resumenMovimiento } from '@/features/movimientos/config'
 import type { MovimientoDatos } from '@/features/movimientos/types'
 import type { TratamientoDatos } from '@/features/sanidad/types'
+import { resumenBaja, resumenVenta } from '@/features/ventas/config'
+import type { BajaDatos, VentaDatos } from '@/features/ventas/types'
 import type { CriaNacimiento, TipoEvento, TipoParto } from './types'
 
 interface ConfigTipo {
@@ -62,8 +64,18 @@ export const TIPOS_EVENTO: Record<TipoEvento, ConfigTipo> = {
     permisos: ['GESTIONAR_ANIMALES'],
     resumen: (d) => resumenMovimiento(d as unknown as MovimientoDatos),
   },
-  VENTA: { etiqueta: 'Venta', icono: Tag, permisos: ['GESTIONAR_ANIMALES'] },
-  BAJA: { etiqueta: 'Baja', icono: CircleSlash, permisos: ['GESTIONAR_ANIMALES'] },
+  VENTA: {
+    etiqueta: 'Venta',
+    icono: Tag,
+    permisos: ['GESTIONAR_ANIMALES'],
+    resumen: (d) => resumenVenta(d as unknown as VentaDatos),
+  },
+  BAJA: {
+    etiqueta: 'Baja',
+    icono: CircleSlash,
+    permisos: ['GESTIONAR_ANIMALES'],
+    resumen: (d) => resumenBaja(d as unknown as BajaDatos),
+  },
   OBSERVACION: {
     etiqueta: 'Observación',
     icono: ClipboardList,

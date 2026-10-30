@@ -37,6 +37,8 @@ import { usePesajes } from '@/features/pesajes/queries'
 import { CarenciaBadge } from '@/features/sanidad/CarenciaBadge'
 import { TratamientoDialog } from '@/features/sanidad/TratamientoDialog'
 import { formatearDiasCarencia } from '@/features/sanidad/config'
+import { BajaDialog } from '@/features/ventas/BajaDialog'
+import { VentaDialog } from '@/features/ventas/VentaDialog'
 import { useDismiss } from '@/hooks/useDismiss'
 import { getErrorMessage } from '@/lib/api'
 
@@ -50,9 +52,11 @@ const REGISTRABLES: { tipo: TipoEvento; aplica: (animal: Animal) => boolean }[] 
   { tipo: 'MOVIMIENTO', aplica: () => true },
   { tipo: 'TRATAMIENTO', aplica: () => true },
   { tipo: 'OBSERVACION', aplica: () => true },
+  { tipo: 'VENTA', aplica: () => true },
+  { tipo: 'BAJA', aplica: () => true },
 ]
 
-const ESTADOS = { VENDIDO: 'Vendido', MUERTO: 'Muerto' } as const
+const ESTADOS = { VENDIDO: 'Vendido', MUERTO: 'Muerto', PERDIDO: 'Perdido' } as const
 
 export function AnimalPage() {
   const { animalId } = useParams()
@@ -118,7 +122,9 @@ function Ficha({
       )
     : []
   const puedeRegistrar = registrables.length > 0
-  const puedeAnular = (tipo: TipoEvento) => activoEnCampo && puedeRegistrarTipo(rol, tipo)
+  // Una venta o baja cargada por error se anula aunque el animal ya no esté activo: lo devuelve al stock
+  const puedeAnular = (tipo: TipoEvento) =>
+    (activoEnCampo || tipo === 'VENTA' || tipo === 'BAJA') && puedeRegistrarTipo(rol, tipo)
   const [editando, setEditando] = useState(false)
   const [registrando, setRegistrando] = useState<TipoEvento | null>(null)
   const edad = formatearEdad(animal.fechaNacimiento, animal.fechaNacimientoEstimada)
@@ -223,6 +229,18 @@ function Ficha({
       <MovimientoDialog
         establecimientoId={establecimientoId}
         open={registrando === 'MOVIMIENTO'}
+        animalIds={[animal.id]}
+        onClose={() => setRegistrando(null)}
+      />
+      <VentaDialog
+        establecimientoId={establecimientoId}
+        open={registrando === 'VENTA'}
+        animalIds={[animal.id]}
+        onClose={() => setRegistrando(null)}
+      />
+      <BajaDialog
+        establecimientoId={establecimientoId}
+        open={registrando === 'BAJA'}
         animalIds={[animal.id]}
         onClose={() => setRegistrando(null)}
       />
