@@ -232,6 +232,23 @@ Paquete `animal.categoria`. Las reglas están en `ReglasCategoria` (sin Spring n
   `CATEGORIA_MESES_DESTETE`, `CATEGORIA_MESES_ADULTO`, `CATEGORIA_KILOS_NOVILLO`, `CATEGORIA_KILOS_TORO`.
   Horario del job: `JOB_CAMBIO_CATEGORIA_CRON`.
 
+## Mercado (#27)
+
+Cotizaciones de invernada, consumo, granos y dólar. Son las mismas para todas las organizaciones (la tabla `cotizacion` no tiene `organizacion_id`); alcanza con estar logueado.
+
+```
+GET /api/mercado/hoy                       // última foto de cada producto + relación de reposición
+GET /api/mercado/historico?producto=NOVILLO&producto=TERNERO&desde=2026-10-01&hasta=2026-10-30
+```
+
+- `ActualizacionCotizacionesJob` guarda una foto por día a las 19 hs. Si una fuente falla, se mantiene el último valor (`estado: ANTERIOR`) y el error se guarda.
+- Fuentes, términos de uso y cómo agregar una: [`docs/mercado.md`](../docs/mercado.md).
+- Los tests no salen a internet (`app.mercado.fuentes-externas: false`) y usan fuentes falsas.
+
+## Clima (#29)
+
+`GET /api/establecimientos/{id}/clima`: clima actual y pronóstico de 5 días de Open-Meteo, con las coordenadas del establecimiento (o buscando su localidad). El backend hace de intermediario y guarda los pronósticos 30 minutos, para respetar el límite de la API gratuita y no exponer nunca una clave. Condiciones de uso y configuración: [`docs/clima.md`](../docs/clima.md).
+
 ## Errores
 
 Toda la API responde los errores con este formato:

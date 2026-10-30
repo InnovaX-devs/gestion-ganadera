@@ -12,3 +12,6 @@ app:
   jobs:
     # Los tests llaman a los jobs a mano
     habilitados: false
+  mercado:
+    # Los tests no salen a internet: usan fuentes falsas (ver MercadoControllerTest)
+    fuentes-externas: false

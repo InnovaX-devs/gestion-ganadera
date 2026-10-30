@@ -3,7 +3,12 @@ import { Link } from 'react-router'
 import { ArrowRight, CircleCheck, CircleX, LoaderCircle, MapPinned } from 'lucide-react'
 import { PageHeader } from '@/components/PageHeader'
 import { useAuth } from '@/features/auth/useAuth'
+import { puede } from '@/features/establecimientos/permisos'
+import { ClimaPanel } from '@/features/clima/ClimaPanel'
 import { useEstablecimientoActivo } from '@/features/establecimientos/useEstablecimientoActivo'
+import { AccesosRapidos } from '@/features/inicio/AccesosRapidos'
+import { UltimosEventos } from '@/features/inicio/UltimosEventos'
+import { MercadoPanel } from '@/features/mercado/MercadoPanel'
 import { StockPanel } from '@/features/stock/StockPanel'
 import { api, getErrorMessage } from '@/lib/api'
 
@@ -16,6 +21,19 @@ function saludo() {
   return 'Buenas noches'
 }
 
+const formatoFecha = new Intl.DateTimeFormat('es-AR', {
+  weekday: 'long',
+  day: 'numeric',
+  month: 'long',
+})
+
+/** "Jueves 29 de octubre" */
+function fechaDeHoy() {
+  const texto = formatoFecha.format(new Date()).replace(',', '')
+  return texto.charAt(0).toUpperCase() + texto.slice(1)
+}
+
+/** Dashboard de inicio (#26): saludo, accesos para registrar, stock, últimos eventos, clima (#29) y mercado (#28). */
 export function InicioPage() {
   const { usuario } = useAuth()
   const { activo, cargando } = useEstablecimientoActivo()
@@ -24,26 +42,37 @@ export function InicioPage() {
     <>
       <PageHeader
         title={`${saludo()}, ${usuario?.nombre ?? ''}`}
-        description={
-          activo ? `${usuario?.organizacionNombre} · ${activo.nombre}` : usuario?.organizacionNombre
-        }
+        description={[fechaDeHoy(), usuario?.organizacionNombre, activo?.nombre]
+          .filter(Boolean)
+          .join(' · ')}
       />
       {!cargando && !activo && <PrimerosPasos />}
+      {/* key: al cambiar de establecimiento todo arranca de cero (diálogos abiertos incluidos) */}
       {activo && (
-        <div className="mb-6">
+        <div key={activo.id} className="mb-6 grid grid-cols-1 gap-6">
+          <AccesosRapidos establecimientoId={activo.id} rol={activo.rol} />
           <StockPanel
-            key={activo.id}
             establecimientoId={activo.id}
             establecimientoNombre={activo.nombre}
+            puedeCargarAnimales={puede(activo.rol, 'GESTIONAR_ANIMALES')}
           />
+          <div className="grid grid-cols-1 items-start gap-6 lg:grid-cols-3">
+            <div className="lg:col-span-2">
+              <UltimosEventos establecimientoId={activo.id} />
+            </div>
+            <ClimaPanel
+              establecimientoId={activo.id}
+              puedeEditarUbicacion={puede(activo.rol, 'EDITAR_ESTABLECIMIENTO')}
+            />
+          </div>
         </div>
       )}
-      <div className="grid gap-4 md:grid-cols-2">
+      {/* El mercado es el mismo para todos: se muestra aunque no haya establecimiento */}
+      <div className="mb-6">
+        <MercadoPanel />
+      </div>
+      <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
         <EstadoBackend />
-        <Tarjeta
-          titulo="Referencias de mercado"
-          texto="Se completa en el milestone M4 - Dashboard."
-        />
       </div>
     </>
   )
@@ -70,15 +99,6 @@ function PrimerosPasos() {
         Crear establecimiento
         <ArrowRight className="size-4" />
       </Link>
-    </section>
-  )
-}
-
-function Tarjeta({ titulo, texto }: { titulo: string; texto: string }) {
-  return (
-    <section className="rounded-xl border border-stone-200 bg-white p-5 dark:border-stone-800 dark:bg-stone-900">
-      <h2 className="text-sm font-medium text-stone-500">{titulo}</h2>
-      <p className="mt-2 text-sm text-stone-600 dark:text-stone-400">{texto}</p>
     </section>
   )
 }

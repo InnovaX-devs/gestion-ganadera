@@ -1,5 +1,6 @@
 import { keepPreviousData, useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import type { Pagina } from '@/features/animales/types'
+import { stockKey } from '@/features/stock/queries'
 import { api } from '@/lib/api'
 import type { Evento, EventoInput, FiltroEventos, Operacion } from './types'
 
@@ -19,8 +20,8 @@ export function useEventos<D = Record<string, unknown>>(
 }
 
 /**
- * Un evento puede cambiar animales (estado, lote, categoría), así que al registrar o anular se
- * refrescan también los listados de animales y de lotes/rodeos.
+ * Un evento puede cambiar animales (estado, lote, categoría, crías nuevas), así que al registrar o
+ * anular se refrescan también los listados de animales, de lotes/rodeos y el stock.
  */
 function useInvalidar(establecimientoId: string) {
   const queryClient = useQueryClient()
@@ -29,6 +30,7 @@ function useInvalidar(establecimientoId: string) {
       queryClient.invalidateQueries({ queryKey: ['eventos', establecimientoId] }),
       queryClient.invalidateQueries({ queryKey: ['animales', establecimientoId] }),
       queryClient.invalidateQueries({ queryKey: ['agrupaciones'] }),
+      queryClient.invalidateQueries({ queryKey: stockKey(establecimientoId) }),
     ])
 }
 
