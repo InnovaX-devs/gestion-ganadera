@@ -32,9 +32,10 @@ import lombok.Setter;
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
 public class Animal extends TenantEntity {
 
+    /** Solo cambia con un Movimiento entre establecimientos (#22): ver {@link #trasladarA}. */
     @Setter(AccessLevel.NONE)
     @ManyToOne(fetch = FetchType.LAZY, optional = false)
-    @JoinColumn(name = "establecimiento_id", nullable = false, updatable = false)
+    @JoinColumn(name = "establecimiento_id", nullable = false)
     private Establecimiento establecimiento;
 
     @ManyToOne(fetch = FetchType.LAZY)
@@ -113,6 +114,17 @@ public class Animal extends TenantEntity {
 
     public boolean isActivo() {
         return estado == EstadoAnimal.ACTIVO;
+    }
+
+    /**
+     * Pasa el animal a otro establecimiento (el que registra el evento Movimiento controla que sea
+     * de la misma organización). El lote y el rodeo eran del establecimiento anterior, así que
+     * quedan sin asignar: quien llama les pone los nuevos si corresponde.
+     */
+    public void trasladarA(Establecimiento destino) {
+        this.establecimiento = destino;
+        this.lote = null;
+        this.rodeo = null;
     }
 
     public static String normalizarCaravana(String valor) {

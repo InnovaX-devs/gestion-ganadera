@@ -20,6 +20,8 @@ export interface Referencia {
 export interface Evento<D = Record<string, unknown>> {
   id: string
   operacionId: string
+  /** Donde se registró. En el historial de un animal que cambió de campo puede ser otro que el actual. */
+  establecimiento?: Referencia | null
   tipo: TipoEvento
   fecha: string
   animal?: Referencia | null

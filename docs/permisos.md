@@ -23,6 +23,7 @@ Cada usuario tiene un rol **por establecimiento** (tabla `membresia`). Puede ser
 | Crear, editar y eliminar lotes y rodeos | ✅ | ✅ | ❌ | ❌ |
 | Cargar y editar animales (`GESTIONAR_ANIMALES`) | ✅ | ✅ | ❌ | ❌ |
 | Registrar y anular eventos de manejo: nacimiento, servicio, pesaje, movimiento, venta, baja (`GESTIONAR_ANIMALES`) | ✅ | ✅ | ❌ | ❌ |
+| Mover animales de lote, rodeo o establecimiento (movimiento, `GESTIONAR_ANIMALES`). Para mover a otro establecimiento hace falta el permiso **en los dos** | ✅ | ✅ | ❌ | ❌ |
 | Ver los pesajes y su ganancia diaria de peso | ✅ | ✅ | ✅ | ✅ |
 | Registrar y anular eventos sanitarios: tacto, tratamiento (`REGISTRAR_SANIDAD`) | ✅ | ✅ | ✅ | ❌ |
 | Ver el catálogo de productos sanitarios y la carencia de cada animal | ✅ | ✅ | ✅ | ✅ |
@@ -52,6 +53,8 @@ El 404 para quien no es miembro es a propósito: así no se puede averiguar si u
 - Un usuario tiene un solo rol por establecimiento (409 si se lo vuelve a agregar).
 - Agregar un miembro directo (`POST /miembros`) solo sirve para usuarios que ya pertenecen a la organización. Para gente nueva se usa una invitación por email.
 - Cualquier usuario puede crear un establecimiento y queda como su dueño.
+- Un movimiento solo puede llevar animales a establecimientos de la misma organización. Quien lo registra tiene que poder gestionar animales en el de origen y en el de destino (404 si no es miembro del destino, 403 si no tiene el permiso); anularlo, que devuelve los animales al origen, pide lo mismo.
+- Vender o dar de baja animales pide `GESTIONAR_ANIMALES` (igual que anular la venta o la baja, que los devuelve al stock). Vender animales en carencia sanitaria exige confirmarlo en el pedido (`confirmarCarencia`); la baja por muerte o pérdida no.
 - Los establecimientos que existían antes de #11 pasaron a tener como dueños a todos los usuarios de su organización (lo hace la migración `V5`).
 
 ## Invitaciones por email

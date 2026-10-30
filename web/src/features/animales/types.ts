@@ -5,7 +5,7 @@ export type Sexo = 'HEMBRA' | 'MACHO'
 export type Categoria =
   'VACA' | 'VAQUILLONA' | 'TERNERA' | 'TERNERO' | 'NOVILLITO' | 'NOVILLO' | 'TORITO' | 'TORO'
 
-export type EstadoAnimal = 'ACTIVO' | 'VENDIDO' | 'MUERTO'
+export type EstadoAnimal = 'ACTIVO' | 'VENDIDO' | 'MUERTO' | 'PERDIDO'
 
 /** Dato relacionado: lote, rodeo, madre o padre (para animales, `nombre` es la caravana). */
 export interface Referencia {

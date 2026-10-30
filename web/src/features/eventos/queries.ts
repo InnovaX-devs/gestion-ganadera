@@ -20,15 +20,18 @@ export function useEventos<D = Record<string, unknown>>(
 }
 
 /**
- * Un evento puede cambiar animales (estado, lote, categoría, crías nuevas), así que al registrar o
- * anular se refrescan también los listados de animales, de lotes/rodeos y el stock.
+ * Un evento puede cambiar animales (estado, lote, categoría, crías nuevas o, en un movimiento,
+ * de establecimiento), así que al registrar o anular se refrescan los listados de animales, el
+ * stock y los lotes/rodeos. No se limita al establecimiento activo: un movimiento también cambia
+ * los del destino.
  */
 function useInvalidar(establecimientoId: string) {
   const queryClient = useQueryClient()
   return () =>
     Promise.all([
-      queryClient.invalidateQueries({ queryKey: ['eventos', establecimientoId] }),
-      queryClient.invalidateQueries({ queryKey: ['animales', establecimientoId] }),
+      queryClient.invalidateQueries({ queryKey: ['eventos'] }),
+      queryClient.invalidateQueries({ queryKey: ['animales'] }),
+      queryClient.invalidateQueries({ queryKey: ['stock'] }),
       queryClient.invalidateQueries({ queryKey: ['agrupaciones'] }),
       queryClient.invalidateQueries({ queryKey: stockKey(establecimientoId) }),
     ])

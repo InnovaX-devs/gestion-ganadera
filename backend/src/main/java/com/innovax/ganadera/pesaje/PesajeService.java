@@ -120,19 +120,21 @@ public class PesajeService {
 
         List<UUID> animalIds = pagina.contenido().stream()
             .filter(e -> e.animal() != null).map(e -> e.animal().id()).distinct().toList();
-        Map<UUID, List<Medicion>> historial = historialDe(establecimientoId, animalIds);
+        Map<UUID, List<Medicion>> historial = historialDe(animalIds);
 
         return new PaginaResponse<>(
             pagina.contenido().stream().map(e -> aRespuesta(e, historial)).toList(),
             pagina.total(), pagina.pagina(), pagina.tamanio(), pagina.totalPaginas());
     }
 
-    /** Todos los pesajes vigentes de esos animales, del más viejo al más nuevo. */
-    private Map<UUID, List<Medicion>> historialDe(UUID establecimientoId, List<UUID> animalIds) {
+    /**
+     * Todos los pesajes vigentes de esos animales, del más viejo al más nuevo, de cualquier
+     * establecimiento: la ganancia de peso no se corta si el animal cambió de campo (#22).
+     */
+    private Map<UUID, List<Medicion>> historialDe(List<UUID> animalIds) {
         Map<UUID, List<Medicion>> porAnimal = new HashMap<>();
         if (animalIds.isEmpty()) return porAnimal;
-        for (Evento e : eventoRepository.buscarDeAnimalesDesde(
-                establecimientoId, TipoEvento.PESAJE, animalIds, DESDE_SIEMPRE)) {
+        for (Evento e : eventoRepository.buscarDeAnimalesDesde(TipoEvento.PESAJE, animalIds, DESDE_SIEMPRE)) {
             porAnimal.computeIfAbsent(e.getAnimal().getId(), k -> new ArrayList<>())
                 .add(new Medicion(e.getId(), e.getFecha(), kgDe(leer(e.getDatos())), e.getCreatedAt()));
         }

@@ -1,6 +1,9 @@
 import { useEffect, useState } from 'react'
 import { Link, useLocation, useNavigate } from 'react-router'
 import {
+  ArrowLeftRight,
+  CircleSlash,
+  Tag,
   Layers,
   LoaderCircle,
   MessageSquarePlus,
@@ -39,6 +42,9 @@ import type {
 import { ObservacionDialog } from '@/features/eventos/ObservacionDialog'
 import { puede } from '@/features/establecimientos/permisos'
 import { useEstablecimientoActivo } from '@/features/establecimientos/useEstablecimientoActivo'
+import { MovimientoDialog } from '@/features/movimientos/MovimientoDialog'
+import { BajaDialog } from '@/features/ventas/BajaDialog'
+import { VentaDialog } from '@/features/ventas/VentaDialog'
 import { CarenciaBadge } from '@/features/sanidad/CarenciaBadge'
 import { PesajeGrupalDialog } from '@/features/pesajes/PesajeGrupalDialog'
 import { TratamientoDialog } from '@/features/sanidad/TratamientoDialog'
@@ -118,6 +124,9 @@ function Listado({
   const [observando, setObservando] = useState(false)
   const [tratando, setTratando] = useState(false)
   const [pesando, setPesando] = useState(false)
+  const [moviendo, setMoviendo] = useState(false)
+  const [vendiendo, setVendiendo] = useState(false)
+  const [dandoDeBaja, setDandoDeBaja] = useState(false)
   const [formulario, setFormulario] = useState<{ animal: Animal | null } | null>(null)
   const [aBorrar, setABorrar] = useState<Animal | null>(null)
   const [asignando, setAsignando] = useState<CampoAsignacion | null>(null)
@@ -299,6 +308,14 @@ function Listado({
                   <Button
                     variant="secondary"
                     className="px-3 py-1.5"
+                    onClick={() => setMoviendo(true)}
+                  >
+                    <ArrowLeftRight className="size-4" />
+                    Mover
+                  </Button>
+                  <Button
+                    variant="secondary"
+                    className="px-3 py-1.5"
                     onClick={() => setAsignando('LOTE')}
                   >
                     <Fence className="size-4" />
@@ -319,6 +336,22 @@ function Listado({
                   >
                     <Scale className="size-4" />
                     Pesaje grupal
+                  </Button>
+                  <Button
+                    variant="secondary"
+                    className="px-3 py-1.5"
+                    onClick={() => setVendiendo(true)}
+                  >
+                    <Tag className="size-4" />
+                    Vender
+                  </Button>
+                  <Button
+                    variant="secondary"
+                    className="px-3 py-1.5"
+                    onClick={() => setDandoDeBaja(true)}
+                  >
+                    <CircleSlash className="size-4" />
+                    Dar de baja
                   </Button>
                 </>
               )}
@@ -534,6 +567,30 @@ function Listado({
           setAsignando(null)
           setSeleccion(new Set())
         }}
+      />
+
+      <MovimientoDialog
+        establecimientoId={establecimientoId}
+        open={moviendo}
+        animalIds={[...seleccion]}
+        onClose={() => setMoviendo(false)}
+        onHecho={() => setSeleccion(new Set())}
+      />
+
+      <VentaDialog
+        establecimientoId={establecimientoId}
+        open={vendiendo}
+        animalIds={[...seleccion]}
+        onClose={() => setVendiendo(false)}
+        onHecho={() => setSeleccion(new Set())}
+      />
+
+      <BajaDialog
+        establecimientoId={establecimientoId}
+        open={dandoDeBaja}
+        animalIds={[...seleccion]}
+        onClose={() => setDandoDeBaja(false)}
+        onHecho={() => setSeleccion(new Set())}
       />
 
       <ObservacionDialog

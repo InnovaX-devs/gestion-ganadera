@@ -95,7 +95,11 @@ public class EventoService {
         establecimientoActivo(establecimientoId);
         var orden = Sort.by(Sort.Order.desc("fecha"), Sort.Order.desc("createdAt"));
         var pageable = PageRequest.of(filtro.paginaValida(), filtro.tamanioValido(), orden);
-        return PaginaResponse.de(repository.findAll(EventoSpecs.de(establecimientoId, filtro), pageable),
+        // Un animal que cambió de campo conserva su historia: se ve también lo cargado en los anteriores
+        boolean historialDelAnimal = filtro.animalId() != null
+            && animalRepository.existsByIdAndEstablecimientoId(filtro.animalId(), establecimientoId);
+        return PaginaResponse.de(
+            repository.findAll(EventoSpecs.de(establecimientoId, filtro, historialDelAnimal), pageable),
             this::aRespuesta);
     }
 
@@ -171,19 +175,27 @@ public class EventoService {
         D datos = handler.completar(datosEnviados, contexto);
 
         UUID operacionId = request.operacionId() != null ? request.operacionId() : UUID.randomUUID();
-        String json = escribir(datos);
         Usuario usuario = usuarioRepository.getReferenceById(TenantContext.requerirUsuario().userId());
 
         List<Evento> eventos = new ArrayList<>();
+        List<D> datosGuardados = new ArrayList<>();
         if (animales.isEmpty()) {
-            eventos.add(new Evento(establecimiento, operacionId, request.tipo(), request.fecha(), null, lote, json, usuario));
+            eventos.add(new Evento(establecimiento, operacionId, request.tipo(), request.fecha(), null, lote,
+                escribir(datos), usuario));
+            datosGuardados.add(datos);
         } else {
             for (Animal animal : animales) {
-                eventos.add(new Evento(establecimiento, operacionId, request.tipo(), request.fecha(), animal, null, json, usuario));
+                // Cada animal puede tener datos propios (ej: de qué lote sale en un movimiento)
+                D datosDelAnimal = handler.completarPorAnimal(datos, animal, contexto);
+                datosGuardados.add(datosDelAnimal);
+                eventos.add(new Evento(establecimiento, operacionId, request.tipo(), request.fecha(), animal, null,
+                    escribir(datosDelAnimal), usuario));
             }
         }
         repository.saveAll(eventos);
-        eventos.forEach(e -> handler.aplicar(e, datos));
+        for (int i = 0; i < eventos.size(); i++) {
+            handler.aplicar(eventos.get(i), datosGuardados.get(i));
+        }
         repository.flush();
 
         return new OperacionResponse(operacionId, eventos.size(),
@@ -240,7 +252,7 @@ public class EventoService {
             D enviados = leerDatos(handler, item.datos());
             var contexto = new TipoEventoHandler.Contexto(establecimiento, fecha, List.of(animal), null);
             handler.validar(enviados, contexto);
-            D datos = handler.completar(enviados, contexto);
+            D datos = handler.completarPorAnimal(handler.completar(enviados, contexto), animal, contexto);
             datosGuardados.add(datos);
             eventos.add(new Evento(establecimiento, operacion, tipo, fecha, animal, null, escribir(datos), usuario));
         }
@@ -365,6 +377,7 @@ public class EventoService {
         return new EventoResponse(
             e.getId(),
             e.getOperacionId(),
+            new EventoResponse.Referencia(e.getEstablecimiento().getId(), e.getEstablecimiento().getNombre()),
             e.getTipo(),
             e.getFecha(),
             e.getAnimal() == null ? null : new EventoResponse.Referencia(e.getAnimal().getId(), e.getAnimal().getCaravana()),

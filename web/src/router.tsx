@@ -10,6 +10,7 @@ import { AceptarInvitacionPage } from '@/pages/AceptarInvitacionPage'
 import { InicioPage } from '@/pages/InicioPage'
 import { InvitacionesPage } from '@/pages/InvitacionesPage'
 import { LoginPage } from '@/pages/LoginPage'
+import { MovimientosPage } from '@/pages/MovimientosPage'
 import { NacimientosPage } from '@/pages/NacimientosPage'
 import { ObservacionesPage } from '@/pages/ObservacionesPage'
 import { NotFoundPage } from '@/pages/NotFoundPage'
@@ -17,6 +18,7 @@ import { PesajesPage } from '@/pages/PesajesPage'
 import { PlaceholderPage } from '@/pages/PlaceholderPage'
 import { RegisterPage } from '@/pages/RegisterPage'
 import { TratamientosPage } from '@/pages/TratamientosPage'
+import { VentasPage } from '@/pages/VentasPage'
 
 // Páginas ya implementadas. Al terminar una sección, agregala acá y a `children` de abajo.
 const IMPLEMENTADAS = new Set([
@@ -30,6 +32,8 @@ const IMPLEMENTADAS = new Set([
   '/nacimientos',
   '/tratamientos',
   '/pesajes',
+  '/movimientos',
+  '/ventas',
 ])
 
 // Secciones del menú que todavía no tienen página propia
@@ -71,6 +75,8 @@ export const router = createBrowserRouter([
           { path: 'nacimientos', element: <NacimientosPage /> },
           { path: 'tratamientos', element: <TratamientosPage /> },
           { path: 'pesajes', element: <PesajesPage /> },
+          { path: 'movimientos', element: <MovimientosPage /> },
+          { path: 'ventas', element: <VentasPage /> },
           ...placeholderRoutes,
           { path: '*', element: <NotFoundPage /> },
         ],

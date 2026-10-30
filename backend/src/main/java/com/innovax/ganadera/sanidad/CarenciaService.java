@@ -51,7 +51,11 @@ public class CarenciaService {
         this.diasExtra = Math.max(0, diasExtra);
     }
 
-    /** Carencia vigente de cada animal que la tenga. Los que no, no aparecen en el mapa. Una sola consulta. */
+    /**
+     * Carencia vigente de cada animal que la tenga. Los que no, no aparecen en el mapa. Una sola
+     * consulta. Cuenta los tratamientos de cualquier establecimiento: si el animal se movió de campo
+     * (#22), la carencia lo sigue.
+     */
     @Transactional(readOnly = true)
     public Map<UUID, CarenciaResponse> deAnimales(UUID establecimientoId, Collection<UUID> animalIds) {
         if (animalIds.isEmpty()) return Map.of();
@@ -60,7 +64,7 @@ public class CarenciaService {
         LocalDate desde = hoy.minusDays(TratamientoDatos.MAX_DIAS_CARENCIA);
 
         Map<UUID, List<CarenciaResponse.Tratamiento>> porAnimal = new HashMap<>();
-        for (Evento e : eventoRepository.buscarDeAnimalesDesde(establecimientoId, TipoEvento.TRATAMIENTO, animalIds, desde)) {
+        for (Evento e : eventoRepository.buscarDeAnimalesDesde(TipoEvento.TRATAMIENTO, animalIds, desde)) {
             TratamientoDatos datos = leer(e);
             int dias = datos.diasCarencia() == null ? 0 : datos.diasCarencia();
             LocalDate libreDesde = e.getFecha().plusDays(dias + diasExtra);
