@@ -170,6 +170,18 @@ DELETE /api/establecimientos/{id}/eventos/{eventoId}   // anula, no borra
 3. Tests en un `XxxEventoTest` usando `ApiTestClient`.
 
 `ObservacionHandler` es el ejemplo más simple. El permiso que pide cada tipo está en `TipoEvento`.
+## Importar animales (#31)
+
+```
+POST /api/establecimientos/{id}/animales/importar?confirmar=false
+{ "filas": [ { "fila": 2, "caravana": "A-1", "categoria": "Vaca", "lote": "Recría", "madre": "V-10" } ] }
+```
+
+- La web lee el Excel y manda cada fila como texto; el backend la interpreta (sexo "H"/"Hembra", fechas `15/09/2024` o `2024-09-15`, Sí/No) y responde los errores por fila sin cortar en el primero.
+- `confirmar=false` es la vista previa: no guarda nada. `confirmar=true` guarda todo en una transacción, o nada si hay algún error (422).
+- Lotes y rodeos van por nombre (sin importar mayúsculas ni acentos) y se crean si no existen. Madre y padre van por caravana: pueden estar en la misma planilla o ya cargados en el establecimiento.
+- Hasta 2000 filas por pedido. Mismas reglas que el alta manual (`AnimalService`): si cambia una, revisar `ImportacionAnimalesService`.
+
 ## Stock (#25)
 
 `GET /api/stock?establecimientoId=<uuid>`: animales **activos** del establecimiento, por sexo, categoría, lote y rodeo. Lo ve cualquier miembro (`VER`).

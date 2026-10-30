@@ -13,10 +13,14 @@ import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.ResponseStatus;
 import org.springframework.web.bind.annotation.RestController;
 
 import com.innovax.ganadera.animal.dto.AnimalFiltro;
+import com.innovax.ganadera.animal.importacion.ImportacionAnimalesService;
+import com.innovax.ganadera.animal.importacion.dto.ImportacionRequest;
+import com.innovax.ganadera.animal.importacion.dto.ImportacionResponse;
 import com.innovax.ganadera.animal.dto.AnimalRequest;
 import com.innovax.ganadera.animal.dto.AnimalResponse;
 import com.innovax.ganadera.animal.dto.AsignacionRequest;
@@ -31,6 +35,7 @@ import lombok.RequiredArgsConstructor;
 public class AnimalController {
 
     private final AnimalService service;
+    private final ImportacionAnimalesService importacion;
 
     /** Filtros por query param: q, categoria, sexo, loteId, rodeoId, sinLote, sinRodeo, estado, pagina, tamanio. */
     @GetMapping
@@ -61,6 +66,17 @@ public class AnimalController {
     public Map<String, Integer> asignar(@PathVariable UUID establecimientoId,
                                         @Valid @RequestBody AsignacionRequest request) {
         return Map.of("actualizados", service.asignar(establecimientoId, request));
+    }
+
+    /**
+     * Importación desde planilla (#31). Con {@code confirmar=false} (vista previa) solo revisa y
+     * devuelve los errores por fila; con {@code confirmar=true} guarda todo o nada.
+     */
+    @PostMapping("/importar")
+    public ImportacionResponse importar(@PathVariable UUID establecimientoId,
+                                        @RequestParam(defaultValue = "false") boolean confirmar,
+                                        @Valid @RequestBody ImportacionRequest request) {
+        return importacion.importar(establecimientoId, request, confirmar);
     }
 
     @PutMapping("/{id}")
