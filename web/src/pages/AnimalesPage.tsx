@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 import { Link, useLocation, useNavigate } from 'react-router'
 import {
+  ArrowLeftRight,
   Layers,
   LoaderCircle,
   MessageSquarePlus,
@@ -39,6 +40,7 @@ import type {
 import { ObservacionDialog } from '@/features/eventos/ObservacionDialog'
 import { puede } from '@/features/establecimientos/permisos'
 import { useEstablecimientoActivo } from '@/features/establecimientos/useEstablecimientoActivo'
+import { MovimientoDialog } from '@/features/movimientos/MovimientoDialog'
 import { CarenciaBadge } from '@/features/sanidad/CarenciaBadge'
 import { PesajeGrupalDialog } from '@/features/pesajes/PesajeGrupalDialog'
 import { TratamientoDialog } from '@/features/sanidad/TratamientoDialog'
@@ -118,6 +120,7 @@ function Listado({
   const [observando, setObservando] = useState(false)
   const [tratando, setTratando] = useState(false)
   const [pesando, setPesando] = useState(false)
+  const [moviendo, setMoviendo] = useState(false)
   const [formulario, setFormulario] = useState<{ animal: Animal | null } | null>(null)
   const [aBorrar, setABorrar] = useState<Animal | null>(null)
   const [asignando, setAsignando] = useState<CampoAsignacion | null>(null)
@@ -296,6 +299,14 @@ function Listado({
               </span>
               {puedeGestionar && (
                 <>
+                  <Button
+                    variant="secondary"
+                    className="px-3 py-1.5"
+                    onClick={() => setMoviendo(true)}
+                  >
+                    <ArrowLeftRight className="size-4" />
+                    Mover
+                  </Button>
                   <Button
                     variant="secondary"
                     className="px-3 py-1.5"
@@ -534,6 +545,14 @@ function Listado({
           setAsignando(null)
           setSeleccion(new Set())
         }}
+      />
+
+      <MovimientoDialog
+        establecimientoId={establecimientoId}
+        open={moviendo}
+        animalIds={[...seleccion]}
+        onClose={() => setMoviendo(false)}
+        onHecho={() => setSeleccion(new Set())}
       />
 
       <ObservacionDialog

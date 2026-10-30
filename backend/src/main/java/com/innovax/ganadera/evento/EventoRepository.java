@@ -30,17 +30,20 @@ public interface EventoRepository extends JpaRepository<Evento, UUID>, JpaSpecif
     List<Evento> findByOperacionIdOrderByCreatedAtAsc(UUID operacionId);
 
     /**
-     * Tratamientos no anulados de esos animales con fecha posterior a {@code desde}. De acá sale la
-     * carencia (ver CarenciaService): los días de carencia están en {@code datos}, así que el
-     * filtro fino se hace en Java.
+     * Eventos no anulados de un tipo de esos animales con fecha posterior a {@code desde}. De acá
+     * sale la carencia (ver CarenciaService): los días de carencia están en {@code datos}, así que
+     * el filtro fino se hace en Java.
+     *
+     * <p>No filtra por establecimiento: el historial sigue al animal cuando se mueve a otro campo
+     * (#22), así que la carencia y la curva de peso no se pierden. Quien llama ya limita los
+     * animales a los de su establecimiento.
      */
     @Query("""
         select e from Evento e
-        where e.establecimiento.id = :establecimientoId and e.tipo = :tipo and e.deletedAt is null
+        where e.tipo = :tipo and e.deletedAt is null
           and e.animal.id in :animalIds and e.fecha > :desde
         """)
-    List<Evento> buscarDeAnimalesDesde(@Param("establecimientoId") UUID establecimientoId,
-                                       @Param("tipo") TipoEvento tipo,
+    List<Evento> buscarDeAnimalesDesde(@Param("tipo") TipoEvento tipo,
                                        @Param("animalIds") Collection<UUID> animalIds,
                                        @Param("desde") LocalDate desde);
 

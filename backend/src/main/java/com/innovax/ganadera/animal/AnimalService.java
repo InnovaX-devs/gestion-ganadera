@@ -1,8 +1,11 @@
 package com.innovax.ganadera.animal;
 
+import java.time.Clock;
+import java.time.LocalDate;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Set;
 import java.util.UUID;
 
@@ -12,6 +15,7 @@ import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.innovax.ganadera.agrupacion.Lote;
 import com.innovax.ganadera.agrupacion.LoteRepository;
 import com.innovax.ganadera.agrupacion.Rodeo;
@@ -28,6 +32,10 @@ import com.innovax.ganadera.common.error.NotFoundException;
 import com.innovax.ganadera.establecimiento.Establecimiento;
 import com.innovax.ganadera.establecimiento.EstablecimientoRepository;
 import com.innovax.ganadera.evento.EventoRepository;
+import com.innovax.ganadera.evento.EventoService;
+import com.innovax.ganadera.evento.TipoEvento;
+import com.innovax.ganadera.evento.dto.EventoRequest;
+import com.innovax.ganadera.evento.tipos.MovimientoDatos;
 import com.innovax.ganadera.membresia.AutorizacionService;
 import com.innovax.ganadera.membresia.Permiso;
 import com.innovax.ganadera.sanidad.CarenciaService;
@@ -54,6 +62,9 @@ public class AnimalService {
     private final CategoriaService categoriaService;
     private final EventoRepository eventoRepository;
     private final CarenciaService carenciaService;
+    private final EventoService eventoService;
+    private final ObjectMapper objectMapper;
+    private final Clock reloj;
 
     /** Listado paginado con filtros (#14). Ordenado por caravana. */
     @Transactional(readOnly = true)
@@ -70,7 +81,8 @@ public class AnimalService {
      * Asigna (o quita, si destinoId es null) el mismo lote o rodeo a varios animales. Todos tienen
      * que ser activos y del establecimiento; si alguno no lo es, no se cambia ninguno.
      *
-     * <p>Cuando exista el evento Movimiento (#22), esto va a dejar registro en el historial.
+     * <p>Es un movimiento (#22) con fecha de hoy: queda en el historial de cada animal. Los que ya
+     * están en el destino no cambian y no generan evento.
      */
     @Transactional
     public int asignar(UUID establecimientoId, AsignacionRequest request) {
@@ -83,16 +95,27 @@ public class AnimalService {
         if (animales.size() != ids.size()) {
             throw new BusinessException("Alguno de los animales elegidos no está en este establecimiento");
         }
-        switch (request.campo()) {
-            case LOTE -> {
-                Lote lote = lote(request.destinoId(), establecimientoId);
-                animales.forEach(a -> a.setLote(lote));
-            }
-            case RODEO -> {
-                Rodeo rodeo = rodeo(request.destinoId(), establecimientoId);
-                animales.forEach(a -> a.setRodeo(rodeo));
-            }
+
+        boolean esLote = request.campo() == AsignacionRequest.Campo.LOTE;
+        UUID destinoId = request.destinoId();
+        List<UUID> aMover = animales.stream()
+            .filter(a -> {
+                var actual = esLote ? a.getLote() : a.getRodeo();
+                return !Objects.equals(actual == null ? null : actual.getId(), destinoId);
+            })
+            .map(Animal::getId)
+            .toList();
+        if (aMover.isEmpty()) {
+            // Nada para mover, pero un destino que no existe sigue siendo un error
+            if (esLote) lote(destinoId, establecimientoId); else rodeo(destinoId, establecimientoId);
+            return animales.size();
         }
+
+        var datos = new MovimientoDatos(null,
+            esLote ? destinoId : null, esLote ? null : destinoId,
+            esLote && destinoId == null, !esLote && destinoId == null, null, null);
+        eventoService.registrar(establecimientoId, new EventoRequest(null, TipoEvento.MOVIMIENTO,
+            LocalDate.now(reloj), aMover, null, null, objectMapper.valueToTree(datos)));
         return animales.size();
     }
 

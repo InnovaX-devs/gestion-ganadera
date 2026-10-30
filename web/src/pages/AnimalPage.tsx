@@ -30,6 +30,7 @@ import { TIPOS_EVENTO, formatearKg, puedeRegistrarTipo } from '@/features/evento
 import { formatearFecha } from '@/features/eventos/fechas'
 import { useAnularEvento, useEventos } from '@/features/eventos/queries'
 import type { Evento, TipoEvento } from '@/features/eventos/types'
+import { MovimientoDialog } from '@/features/movimientos/MovimientoDialog'
 import { Ganancia } from '@/features/pesajes/Ganancia'
 import { PesajeDialog } from '@/features/pesajes/PesajeDialog'
 import { usePesajes } from '@/features/pesajes/queries'
@@ -46,6 +47,7 @@ import { getErrorMessage } from '@/lib/api'
 const REGISTRABLES: { tipo: TipoEvento; aplica: (animal: Animal) => boolean }[] = [
   { tipo: 'NACIMIENTO', aplica: (a) => a.sexo === 'HEMBRA' },
   { tipo: 'PESAJE', aplica: () => true },
+  { tipo: 'MOVIMIENTO', aplica: () => true },
   { tipo: 'TRATAMIENTO', aplica: () => true },
   { tipo: 'OBSERVACION', aplica: () => true },
 ]
@@ -216,6 +218,12 @@ function Ficha({
         open={registrando === 'PESAJE'}
         animalId={animal.id}
         caravana={animal.caravana}
+        onClose={() => setRegistrando(null)}
+      />
+      <MovimientoDialog
+        establecimientoId={establecimientoId}
+        open={registrando === 'MOVIMIENTO'}
+        animalIds={[animal.id]}
         onClose={() => setRegistrando(null)}
       />
       <TratamientoDialog
@@ -414,6 +422,10 @@ function Historial({
     anular.reset()
   }
   const eventos = data?.contenido ?? []
+  // Si el animal cambió de campo, su historial trae lo registrado en los anteriores. Eso se ve,
+  // pero se anula desde el campo donde se cargó.
+  const deOtroCampo = (e: Evento) =>
+    !!e.establecimiento && e.establecimiento.id !== establecimientoId
 
   return (
     <Tarjeta titulo="Historial" sinPadding>
@@ -462,9 +474,12 @@ function Historial({
                       {detalle}
                     </p>
                   )}
-                  <p className="mt-0.5 text-xs text-stone-500">{e.registradoPor.nombre}</p>
+                  <p className="mt-0.5 text-xs text-stone-500">
+                    {e.registradoPor.nombre}
+                    {deOtroCampo(e) && ` · en ${e.establecimiento?.nombre}`}
+                  </p>
                 </div>
-                {puedeAnular(e.tipo) && (
+                {puedeAnular(e.tipo) && !deOtroCampo(e) && (
                   <button
                     type="button"
                     onClick={() => setAAnular(e)}

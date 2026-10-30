@@ -43,6 +43,15 @@ public interface TipoEventoHandler<D> {
         return datos;
     }
 
+    /**
+     * Completa los datos con lo que es propio de cada animal (ej: de dónde sale en un movimiento).
+     * Se llama una vez por animal, después de {@link #completar}, y el resultado es lo que se guarda
+     * en el evento de ese animal y lo que recibe {@link #aplicar}. Puede lanzar {@code BusinessException}.
+     */
+    default D completarPorAnimal(D datos, Animal animal, Contexto contexto) {
+        return datos;
+    }
+
     /** Efecto sobre el animal (si lo hay). Se llama una vez por cada evento creado. */
     default void aplicar(Evento evento, D datos) {
     }

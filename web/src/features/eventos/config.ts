@@ -12,6 +12,8 @@ import {
 } from 'lucide-react'
 import { type Permiso, type Rol, puede } from '@/features/establecimientos/permisos'
 import { VIAS, formatearDiasCarencia } from '@/features/sanidad/config'
+import { resumenMovimiento } from '@/features/movimientos/config'
+import type { MovimientoDatos } from '@/features/movimientos/types'
 import type { TratamientoDatos } from '@/features/sanidad/types'
 import type { CriaNacimiento, TipoEvento, TipoParto } from './types'
 
@@ -54,7 +56,12 @@ export const TIPOS_EVENTO: Record<TipoEvento, ConfigTipo> = {
         ? `${formatearKg(d.kg)} kg${d.grupal ? ` (promedio de ${d.cantidad ?? '?'})` : ''}`
         : null,
   },
-  MOVIMIENTO: { etiqueta: 'Movimiento', icono: ArrowLeftRight, permisos: ['GESTIONAR_ANIMALES'] },
+  MOVIMIENTO: {
+    etiqueta: 'Movimiento',
+    icono: ArrowLeftRight,
+    permisos: ['GESTIONAR_ANIMALES'],
+    resumen: (d) => resumenMovimiento(d as unknown as MovimientoDatos),
+  },
   VENTA: { etiqueta: 'Venta', icono: Tag, permisos: ['GESTIONAR_ANIMALES'] },
   BAJA: { etiqueta: 'Baja', icono: CircleSlash, permisos: ['GESTIONAR_ANIMALES'] },
   OBSERVACION: {

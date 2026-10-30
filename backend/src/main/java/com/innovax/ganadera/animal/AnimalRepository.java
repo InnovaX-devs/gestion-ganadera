@@ -26,6 +26,9 @@ public interface AnimalRepository extends JpaRepository<Animal, UUID>, JpaSpecif
     @EntityGraph(attributePaths = {"lote", "rodeo", "madre", "padre"})
     Optional<Animal> findByIdAndEstablecimientoId(UUID id, UUID establecimientoId);
 
+    /** Si el animal está hoy en ese establecimiento. */
+    boolean existsByIdAndEstablecimientoId(UUID id, UUID establecimientoId);
+
     boolean existsByEstablecimientoIdAndCaravanaAndEstado(UUID establecimientoId, String caravana, EstadoAnimal estado);
 
     boolean existsByEstablecimientoIdAndCaravanaAndEstadoAndIdNot(
