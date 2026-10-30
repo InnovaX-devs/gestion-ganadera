@@ -1,8 +1,9 @@
-import { createBrowserRouter } from 'react-router'
+import { createBrowserRouter, Navigate } from 'react-router'
 import { allNavItems } from '@/config/navigation'
 import { PublicOnly, RequireAuth } from '@/features/auth/RouteGuards'
 import { AppLayout } from '@/layouts/AppLayout'
 import { AgrupacionesPage } from '@/pages/AgrupacionesPage'
+import { ImportarAnimalesPage } from '@/pages/ImportarAnimalesPage'
 import { AnimalPage } from '@/pages/AnimalPage'
 import { AnimalesPage } from '@/pages/AnimalesPage'
 import { EstablecimientosPage } from '@/pages/EstablecimientosPage'
@@ -34,6 +35,7 @@ const IMPLEMENTADAS = new Set([
   '/pesajes',
   '/movimientos',
   '/ventas',
+  '/importar',
 ])
 
 // Secciones del menú que todavía no tienen página propia
@@ -70,6 +72,9 @@ export const router = createBrowserRouter([
           { path: 'rodeos', element: <AgrupacionesPage key="rodeos" tipo="rodeos" /> },
           { path: 'animales', element: <AnimalesPage /> },
           { path: 'invitaciones', element: <InvitacionesPage /> },
+          { path: 'animales/importar', element: <ImportarAnimalesPage /> },
+          // El menú tiene "Importar" aparte: por ahora solo se importan animales
+          { path: 'importar', element: <Navigate to="/animales/importar" replace /> },
           { path: 'animales/:animalId', element: <AnimalPage /> },
           { path: 'observaciones', element: <ObservacionesPage /> },
           { path: 'nacimientos', element: <NacimientosPage /> },

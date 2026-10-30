@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 import { Link, useLocation, useNavigate } from 'react-router'
 import {
+  FileSpreadsheet,
   ArrowLeftRight,
   CircleSlash,
   Tag,
@@ -192,10 +193,19 @@ function Listado({
         actions={
           puedeGestionar &&
           !sinAnimales && (
-            <Button onClick={() => setFormulario({ animal: null })}>
-              <Plus className="size-4" />
-              Nuevo animal
-            </Button>
+            <div className="flex flex-wrap gap-2">
+              <Link
+                to="/animales/importar"
+                className="inline-flex items-center justify-center gap-2 rounded-lg border border-stone-300 bg-white px-4 py-2 text-sm font-medium hover:bg-stone-50 dark:border-stone-700 dark:bg-stone-900 dark:hover:bg-stone-800"
+              >
+                <FileSpreadsheet className="size-4" />
+                Importar desde Excel
+              </Link>
+              <Button onClick={() => setFormulario({ animal: null })}>
+                <Plus className="size-4" />
+                Nuevo animal
+              </Button>
+            </div>
           )
         }
       />
@@ -204,13 +214,22 @@ function Listado({
         <EmptyState
           icono={PawPrint}
           titulo={`Todavía no hay animales en ${establecimientoNombre}`}
-          texto="Cargá el primero para empezar a llevar el stock y el historial de cada animal."
+          texto="Cargá el primero, o subí una planilla de Excel con toda la hacienda de una vez."
           accion={
             puedeGestionar && (
-              <Button onClick={() => setFormulario({ animal: null })}>
-                <Plus className="size-4" />
-                Cargar animal
-              </Button>
+              <div className="flex flex-wrap justify-center gap-2">
+                <Button onClick={() => setFormulario({ animal: null })}>
+                  <Plus className="size-4" />
+                  Cargar animal
+                </Button>
+                <Link
+                  to="/animales/importar"
+                  className="inline-flex items-center justify-center gap-2 rounded-lg border border-stone-300 bg-white px-4 py-2 text-sm font-medium hover:bg-stone-50 dark:border-stone-700 dark:bg-stone-900 dark:hover:bg-stone-800"
+                >
+                  <FileSpreadsheet className="size-4" />
+                  Importar desde Excel
+                </Link>
+              </div>
             )
           }
         />
