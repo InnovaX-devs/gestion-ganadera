@@ -62,3 +62,11 @@ app:
     habilitados: ${JOBS_HABILITADOS:true}
     # Cron de Spring (segundo minuto hora día mes día-semana), hora de Argentina
     cambio-categoria-cron: ${JOB_CAMBIO_CATEGORIA_CRON:0 0 3 * * *}
+    # Cotizaciones de mercado (issue #27). A las 19 ya cerró el dólar y está la pizarra del día hábil anterior.
+    cotizaciones-cron: ${JOB_COTIZACIONES_CRON:0 0 19 * * *}
+  mercado:
+    # false: no se consulta ninguna fuente externa (los tests usan fuentes falsas)
+    fuentes-externas: ${MERCADO_FUENTES_EXTERNAS:true}
+    dolar-api-url: ${MERCADO_DOLAR_API_URL:https://dolarapi.com/v1}
+    pizarra-rosario-url: ${MERCADO_PIZARRA_ROSARIO_URL:https://www.cac.bcr.com.ar/es/precios-de-pizarra}
+    timeout: ${MERCADO_TIMEOUT:15s}
