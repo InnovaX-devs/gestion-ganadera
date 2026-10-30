@@ -20,11 +20,12 @@ export function useEventos<D = Record<string, unknown>>(
 }
 
 /**
- * Un evento puede cambiar animales (estado, lote, categoría o, en un movimiento, de establecimiento),
- * así que al registrar o anular se refrescan los listados de animales, el stock y los lotes/rodeos.
- * No se limita al establecimiento activo: un movimiento también cambia los del destino.
+ * Un evento puede cambiar animales (estado, lote, categoría, crías nuevas o, en un movimiento,
+ * de establecimiento), así que al registrar o anular se refrescan los listados de animales, el
+ * stock y los lotes/rodeos. No se limita al establecimiento activo: un movimiento también cambia
+ * los del destino.
  */
-function useInvalidar() {
+function useInvalidar(establecimientoId: string) {
   const queryClient = useQueryClient()
   return () =>
     Promise.all([
@@ -37,7 +38,7 @@ function useInvalidar() {
 }
 
 export function useRegistrarEvento<D>(establecimientoId: string) {
-  const invalidar = useInvalidar()
+  const invalidar = useInvalidar(establecimientoId)
   return useMutation({
     mutationFn: (data: EventoInput<D>) =>
       api.post<Operacion>(base(establecimientoId), data).then((r) => r.data),
@@ -46,7 +47,7 @@ export function useRegistrarEvento<D>(establecimientoId: string) {
 }
 
 export function useAnularEvento(establecimientoId: string) {
-  const invalidar = useInvalidar()
+  const invalidar = useInvalidar(establecimientoId)
   return useMutation({
     mutationFn: (id: string) => api.delete(`${base(establecimientoId)}/${id}`),
     onSuccess: invalidar,
