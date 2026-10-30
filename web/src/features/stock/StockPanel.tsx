@@ -22,9 +22,12 @@ const COLOR_SEXO: Record<Sexo, string> = {
 export function StockPanel({
   establecimientoId,
   establecimientoNombre,
+  puedeCargarAnimales = true,
 }: {
   establecimientoId: string
   establecimientoNombre: string
+  /** Sin permiso para cargar animales, el estado vacío no ofrece el botón. */
+  puedeCargarAnimales?: boolean
 }) {
   const { data: stock, isPending, error } = useStock(establecimientoId)
 
@@ -36,7 +39,14 @@ export function StockPanel({
       </section>
     )
   }
-  if (stock.total === 0) return <SinAnimales establecimientoNombre={establecimientoNombre} />
+  if (stock.total === 0)
+    return (
+      <SinAnimales
+        stock={stock}
+        establecimientoNombre={establecimientoNombre}
+        puedeCargar={puedeCargarAnimales}
+      />
+    )
 
   return (
     <div className="grid grid-cols-1 gap-4">
@@ -51,7 +61,7 @@ export function StockPanel({
       </section>
       <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
         <Grupos
-          titulo="Por lote"
+          titulo="Lotes"
           grupos={stock.porLote}
           total={stock.total}
           sinAsignar="Sin lote"
@@ -60,7 +70,7 @@ export function StockPanel({
           filtro={(id) => ({ lote: id ?? 'SIN' })}
         />
         <Grupos
-          titulo="Por rodeo"
+          titulo="Rodeos"
           grupos={stock.porRodeo}
           total={stock.total}
           sinAsignar="Sin rodeo"
@@ -235,11 +245,28 @@ function Grupos({
   crearEn: string
   filtro: (id: string | undefined) => NonNullable<AnimalesLocationState['filtros']>
 }) {
-  const hayAgrupaciones = grupos.some((g) => g.id)
+  const cantidad = contarAgrupaciones(grupos)
   return (
     <section className={tarjeta}>
-      <h2 className="text-sm font-medium text-stone-500">{titulo}</h2>
-      <ul className="-mx-2 mt-2 grid gap-0.5">
+      <div className="flex items-baseline justify-between gap-3">
+        <h2 className="text-sm font-medium text-stone-500">
+          {titulo}
+          {cantidad > 0 && (
+            <span className="ml-2 rounded-full bg-stone-100 px-2 py-0.5 text-xs font-semibold text-stone-700 tabular-nums dark:bg-stone-800 dark:text-stone-300">
+              {cantidad}
+            </span>
+          )}
+        </h2>
+        {cantidad > 0 && (
+          <Link
+            to={crearEn}
+            className="text-brand-700 hover:text-brand-800 dark:text-brand-200 text-sm font-medium"
+          >
+            Gestionar
+          </Link>
+        )}
+      </div>
+      <ul className="-mx-2 mt-2 grid grid-cols-1 gap-0.5">
         {grupos.map((g) => (
           <li key={g.id ?? 'sin-asignar'} className="min-w-0">
             <Link
@@ -276,7 +303,7 @@ function Grupos({
           </li>
         ))}
       </ul>
-      {!hayAgrupaciones && (
+      {cantidad === 0 && (
         <p className="mt-3 text-sm text-stone-500">
           {vacio}{' '}
           <Link
@@ -303,7 +330,24 @@ function composicion(grupo: StockGrupo) {
     .join(', ')
 }
 
-function SinAnimales({ establecimientoNombre }: { establecimientoNombre: string }) {
+/** Lotes o rodeos activos (sin contar el grupo de los que no tienen asignado). */
+const contarAgrupaciones = (grupos: StockGrupo[]) => grupos.filter((g) => g.id).length
+
+function plural(n: number, singular: string, varios: string) {
+  return `${n} ${n === 1 ? singular : varios}`
+}
+
+function SinAnimales({
+  stock,
+  establecimientoNombre,
+  puedeCargar,
+}: {
+  stock: Stock
+  establecimientoNombre: string
+  puedeCargar: boolean
+}) {
+  const lotes = contarAgrupaciones(stock.porLote)
+  const rodeos = contarAgrupaciones(stock.porRodeo)
   return (
     <section className={`${tarjeta} flex flex-col gap-4 sm:flex-row sm:items-center`}>
       <span className="bg-brand-50 text-brand-600 dark:bg-brand-900/40 dark:text-brand-200 grid size-10 shrink-0 place-items-center rounded-full">
@@ -312,16 +356,21 @@ function SinAnimales({ establecimientoNombre }: { establecimientoNombre: string 
       <div className="flex-1">
         <h2 className="font-semibold">Todavía no hay animales en {establecimientoNombre}</h2>
         <p className="mt-0.5 text-sm text-stone-600 dark:text-stone-400">
-          El stock se arma solo a partir de los animales que cargues.
+          El stock se arma solo a partir de los animales que cargues.{' '}
+          {lotes + rodeos > 0
+            ? `Ya tenés ${plural(lotes, 'lote', 'lotes')} y ${plural(rodeos, 'rodeo', 'rodeos')} para ubicarlos.`
+            : 'Podés crear lotes y rodeos para ubicarlos.'}
         </p>
       </div>
-      <Link
-        to="/animales"
-        className="bg-brand-600 hover:bg-brand-700 inline-flex items-center justify-center gap-2 rounded-lg px-4 py-2 text-sm font-medium text-white"
-      >
-        <Plus className="size-4" />
-        Cargar animales
-      </Link>
+      {puedeCargar && (
+        <Link
+          to="/animales"
+          className="bg-brand-600 hover:bg-brand-700 inline-flex items-center justify-center gap-2 rounded-lg px-4 py-2 text-sm font-medium text-white"
+        >
+          <Plus className="size-4" />
+          Cargar animales
+        </Link>
+      )}
     </section>
   )
 }

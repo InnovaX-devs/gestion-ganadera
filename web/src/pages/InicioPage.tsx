@@ -3,7 +3,10 @@ import { Link } from 'react-router'
 import { ArrowRight, CircleCheck, CircleX, LoaderCircle, MapPinned } from 'lucide-react'
 import { PageHeader } from '@/components/PageHeader'
 import { useAuth } from '@/features/auth/useAuth'
+import { puede } from '@/features/establecimientos/permisos'
 import { useEstablecimientoActivo } from '@/features/establecimientos/useEstablecimientoActivo'
+import { AccesosRapidos } from '@/features/inicio/AccesosRapidos'
+import { UltimosEventos } from '@/features/inicio/UltimosEventos'
 import { StockPanel } from '@/features/stock/StockPanel'
 import { api, getErrorMessage } from '@/lib/api'
 
@@ -16,6 +19,19 @@ function saludo() {
   return 'Buenas noches'
 }
 
+const formatoFecha = new Intl.DateTimeFormat('es-AR', {
+  weekday: 'long',
+  day: 'numeric',
+  month: 'long',
+})
+
+/** "Jueves 29 de octubre" */
+function fechaDeHoy() {
+  const texto = formatoFecha.format(new Date()).replace(',', '')
+  return texto.charAt(0).toUpperCase() + texto.slice(1)
+}
+
+/** Dashboard de inicio (#26): saludo, accesos para registrar, stock y últimos eventos. */
 export function InicioPage() {
   const { usuario } = useAuth()
   const { activo, cargando } = useEstablecimientoActivo()
@@ -24,21 +40,24 @@ export function InicioPage() {
     <>
       <PageHeader
         title={`${saludo()}, ${usuario?.nombre ?? ''}`}
-        description={
-          activo ? `${usuario?.organizacionNombre} · ${activo.nombre}` : usuario?.organizacionNombre
-        }
+        description={[fechaDeHoy(), usuario?.organizacionNombre, activo?.nombre]
+          .filter(Boolean)
+          .join(' · ')}
       />
       {!cargando && !activo && <PrimerosPasos />}
+      {/* key: al cambiar de establecimiento todo arranca de cero (diálogos abiertos incluidos) */}
       {activo && (
-        <div className="mb-6">
+        <div key={activo.id} className="mb-6 grid grid-cols-1 gap-6">
+          <AccesosRapidos establecimientoId={activo.id} rol={activo.rol} />
           <StockPanel
-            key={activo.id}
             establecimientoId={activo.id}
             establecimientoNombre={activo.nombre}
+            puedeCargarAnimales={puede(activo.rol, 'GESTIONAR_ANIMALES')}
           />
+          <UltimosEventos establecimientoId={activo.id} />
         </div>
       )}
-      <div className="grid gap-4 md:grid-cols-2">
+      <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
         <EstadoBackend />
         <Tarjeta
           titulo="Referencias de mercado"
