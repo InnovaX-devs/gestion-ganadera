@@ -1,9 +1,12 @@
-import { type FormEvent, type KeyboardEvent, useRef, useState } from 'react'
+import { type FormEvent, type KeyboardEvent, useEffect, useRef, useState } from 'react'
 import { CircleCheck, Plus, X } from 'lucide-react'
 import { Button } from '@/components/Button'
 import { FormError } from '@/components/FormError'
 import { TextField } from '@/components/TextField'
 import { hoyISO } from '@/features/eventos/fechas'
+import { buscarPorEid } from '@/features/lector/buscar'
+import { useLectura } from '@/features/lector/contexto'
+import { formatearEid } from '@/features/lector/lectura'
 import { getErrorMessage, getFieldErrors } from '@/lib/api'
 import { leerKg } from './formato'
 import { useRegistrarGrilla } from './queries'
@@ -66,6 +69,59 @@ export function GrillaPesajes({ establecimientoId }: { establecimientoId: string
     if (siguiente) return enfocar(siguiente.id, 'caravana')
     if (filas.length < MAX_FILAS) enfocar(agregarFila(), 'caravana')
   }
+
+  // Lector de caravanas (#33): la lectura va a la fila donde está el cursor, o a la primera vacía.
+  // Se busca el animal por su caravana electrónica y se pone su caravana visual; si el bastón
+  // manda también el peso (conectado a la balanza), se completa y se pasa a la fila siguiente.
+  const filasActuales = useRef(filas)
+  useEffect(() => {
+    filasActuales.current = filas
+  })
+  useLectura((lectura) => {
+    const enCampo = lectura.campo
+      ? [...campos.current.entries()].find(([, el]) => el === lectura.campo)?.[0]
+      : undefined
+    // Escrita en un campo que no es de la grilla (ej: la fecha): no es para acá
+    if (lectura.campo && !enCampo) return false
+
+    const actuales = filasActuales.current
+    let id = enCampo ? Number(enCampo.split('-')[0]) : actuales.find((f) => !f.caravana.trim())?.id
+    if (enCampo?.endsWith('-kg')) {
+      // Se leyó con el cursor en un peso: lo tecleado se saca y la caravana va a la fila siguiente
+      const fila = actuales.find((f) => f.id === id)
+      if (fila && lectura.crudo) cambiar(fila.id, { kg: fila.kg.replace(lectura.crudo, '') })
+      const indice = actuales.findIndex((f) => f.id === id)
+      id = actuales[indice + 1]?.id
+    }
+    if (id === undefined) {
+      if (actuales.length >= MAX_FILAS) return true
+      id = agregarFila()
+    }
+    const destino = id
+    const kg = lectura.kg !== undefined ? String(lectura.kg).replace('.', ',') : undefined
+    cambiar(destino, { caravana: formatearEid(lectura.eid), ...(kg ? { kg } : {}) })
+
+    void buscarPorEid(establecimientoId, lectura.eid)
+      .then((animal) => {
+        if (animal) {
+          cambiar(destino, { caravana: animal.caravana })
+        } else {
+          setErrores((e) => ({
+            ...e,
+            [destino]: {
+              caravana: 'Esa caravana electrónica no está cargada en este establecimiento',
+            },
+          }))
+        }
+      })
+      .catch(() => undefined)
+
+    if (!kg) return (enfocar(destino, 'kg'), true)
+    const indice = filasActuales.current.findIndex((f) => f.id === destino)
+    const siguiente = filasActuales.current[indice + 1]
+    enfocar(siguiente ? siguiente.id : agregarFila(), 'caravana')
+    return true
+  })
 
   const quitarFila = (id: number) =>
     setFilas((fs) =>
@@ -133,7 +189,8 @@ export function GrillaPesajes({ establecimientoId }: { establecimientoId: string
         <div>
           <h2 className="text-sm font-semibold">Carga rápida</h2>
           <p className="mt-0.5 text-xs text-stone-500">
-            Caravana, Enter, peso, Enter: pasa a la fila siguiente.
+            Caravana, Enter, peso, Enter: pasa a la fila siguiente. Con el bastón, leé y se completa
+            sola.
           </p>
         </div>
         <TextField

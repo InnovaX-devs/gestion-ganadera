@@ -77,4 +77,6 @@ export interface Pagina<T> {
 /** Para abrir el listado ya filtrado desde otra pantalla: `<Link to="/animales" state={{ filtros }}>`. */
 export interface AnimalesLocationState {
   filtros?: Omit<FiltroAnimales, 'pagina' | 'tamanio'>
+  /** Abre el alta con estos datos (ej: una caravana leída que no está cargada, #33) */
+  nuevo?: { caravanaElectronica: string }
 }

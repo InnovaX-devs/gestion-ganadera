@@ -6,6 +6,8 @@ import { navigation } from '@/config/navigation'
 import { useAuth } from '@/features/auth/useAuth'
 import { EstablecimientoActivoProvider } from '@/features/establecimientos/EstablecimientoActivoProvider'
 import { EstablecimientoSelector } from '@/features/establecimientos/EstablecimientoSelector'
+import { BotonLector } from '@/features/lector/BotonLector'
+import { LectorProvider } from '@/features/lector/LectorProvider'
 import { AvisoSinConexion } from '@/features/offline/AvisoSinConexion'
 import { usePendientes } from '@/features/offline/hooks'
 import { IndicadorSync } from '@/features/offline/IndicadorSync'
@@ -20,28 +22,30 @@ export function AppLayout() {
 
   return (
     <EstablecimientoActivoProvider>
-      <SincronizacionAutomatica />
-      <div className="min-h-dvh lg:grid lg:grid-cols-[16rem_1fr]">
-        {/* Fondo oscuro del menú en celular */}
-        {sidebarOpen && (
-          <button
-            type="button"
-            aria-label="Cerrar menú"
-            className="fixed inset-0 z-30 bg-stone-950/40 lg:hidden"
-            onClick={() => setSidebarOpen(false)}
-          />
-        )}
+      <LectorProvider>
+        <SincronizacionAutomatica />
+        <div className="min-h-dvh lg:grid lg:grid-cols-[16rem_1fr]">
+          {/* Fondo oscuro del menú en celular */}
+          {sidebarOpen && (
+            <button
+              type="button"
+              aria-label="Cerrar menú"
+              className="fixed inset-0 z-30 bg-stone-950/40 lg:hidden"
+              onClick={() => setSidebarOpen(false)}
+            />
+          )}
 
-        <Sidebar open={sidebarOpen} onClose={() => setSidebarOpen(false)} />
+          <Sidebar open={sidebarOpen} onClose={() => setSidebarOpen(false)} />
 
-        <div className="flex min-w-0 flex-col">
-          <Header onOpenMenu={() => setSidebarOpen(true)} />
-          <AvisoSinConexion />
-          <main className="flex-1 px-4 py-6 sm:px-6 lg:px-8">
-            <Outlet />
-          </main>
+          <div className="flex min-w-0 flex-col">
+            <Header onOpenMenu={() => setSidebarOpen(true)} />
+            <AvisoSinConexion />
+            <main className="flex-1 px-4 py-6 sm:px-6 lg:px-8">
+              <Outlet />
+            </main>
+          </div>
         </div>
-      </div>
+      </LectorProvider>
     </EstablecimientoActivoProvider>
   )
 }
@@ -129,6 +133,7 @@ function Header({ onOpenMenu }: { onOpenMenu: () => void }) {
         >
           {isDark ? <Sun className="size-5" /> : <Moon className="size-5" />}
         </button>
+        <BotonLector />
         <IndicadorSync />
         <UserMenu />
       </div>
