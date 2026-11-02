@@ -1,7 +1,7 @@
 import { useEffect, useState, useSyncExternalStore } from 'react'
-import { alCambiarLaCola, listarCola } from './cola'
+import { alCambiarLaCola, listarAvisos, listarCola } from './cola'
 import { alCambiarEstadoSync, leerEstadoSync } from './sincronizar'
-import type { OperacionPendiente } from './tipos'
+import type { AvisoSync, OperacionPendiente } from './tipos'
 
 function suscribirRed(oyente: () => void) {
   window.addEventListener('online', oyente)
@@ -38,4 +38,23 @@ export function usePendientes(): OperacionPendiente[] {
     }
   }, [])
   return pendientes
+}
+
+/** Avisos de la sincronización (ej: campos que no se aplicaron por un conflicto). */
+export function useAvisosSync(): AvisoSync[] {
+  const [avisos, setAvisos] = useState<AvisoSync[]>([])
+  useEffect(() => {
+    let activo = true
+    const leer = () =>
+      listarAvisos()
+        .then((lista) => activo && setAvisos(lista))
+        .catch(() => undefined)
+    leer()
+    const dejar = alCambiarLaCola(leer)
+    return () => {
+      activo = false
+      dejar()
+    }
+  }, [])
+  return avisos
 }

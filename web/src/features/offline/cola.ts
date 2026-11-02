@@ -1,5 +1,5 @@
 import { db } from './db'
-import type { OperacionPendiente, OperacionSync } from './tipos'
+import type { AvisoSync, OperacionPendiente, OperacionSync } from './tipos'
 
 /**
  * Cola de lo hecho sin conexión (#30). Se guarda en IndexedDB, así sobrevive a cerrar la app.
@@ -63,4 +63,55 @@ export async function actualizarEnLaCola(op: OperacionPendiente) {
 export async function establecimientosConPendientes() {
   const todas = await listarCola()
   return [...new Set(todas.filter((o) => o.estado !== 'RECHAZADO').map((o) => o.establecimientoId))]
+}
+
+/** Vuelve a intentar una rechazada (ej: después de que le dieron el permiso que faltaba). */
+export async function reintentar(id: string) {
+  const op = await (await db()).get('cola', id)
+  if (!op) return
+  await actualizarEnLaCola({ ...op, estado: 'PENDIENTE', mensaje: undefined, errores: undefined })
+}
+
+// ---------- Avisos ----------
+
+/**
+ * Cosas que el usuario tiene que saber aunque se hayan aplicado: hoy, campos de una edición que no
+ * se aplicaron porque en el servidor había un cambio más nuevo (last-write-wins por campo).
+ */
+const AVISOS = 'avisos'
+
+export async function listarAvisos(): Promise<AvisoSync[]> {
+  return ((await (await db()).get('meta', AVISOS)) as AvisoSync[] | undefined) ?? []
+}
+
+export async function agregarAviso(aviso: AvisoSync) {
+  const base = await db()
+  await base.put('meta', [...(await listarAvisos()), aviso], AVISOS)
+  avisarCambioDeCola()
+}
+
+export async function quitarAviso(id: string) {
+  const base = await db()
+  await base.put(
+    'meta',
+    (await listarAvisos()).filter((a) => a.id !== id),
+    AVISOS,
+  )
+  avisarCambioDeCola()
+}
+
+// ---------- Sincronizar a mano ----------
+
+const pedidos = new Set<() => void>()
+
+/** Lo escucha SincronizacionAutomatica, que sabe qué establecimientos sincronizar. */
+export function alPedirSincronizacion(oyente: () => void) {
+  pedidos.add(oyente)
+  return () => {
+    pedidos.delete(oyente)
+  }
+}
+
+export function pedirSincronizacion() {
+  pedidos.forEach((o) => o())
 }

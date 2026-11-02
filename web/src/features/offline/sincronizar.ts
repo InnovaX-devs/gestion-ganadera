@@ -2,7 +2,7 @@ import { isAxiosError } from 'axios'
 import { queryClient } from '@/lib/query-client'
 import { api } from '@/lib/api'
 import { borrarEstablecimiento, db, metaClave, TABLAS } from './db'
-import { actualizarEnLaCola, paraEnviar, quitarDeLaCola } from './cola'
+import { actualizarEnLaCola, agregarAviso, paraEnviar, quitarDeLaCola } from './cola'
 import { enLinea } from './red'
 import type { OperacionPendiente, SyncResponse } from './tipos'
 
@@ -13,12 +13,14 @@ import type { OperacionPendiente, SyncResponse } from './tipos'
 
 export interface EstadoSync {
   sincronizando: boolean
+  /** El último intento falló porque no llegó al servidor (señal mala aunque el celular diga que hay red) */
+  sinRed: boolean
   /** Última sincronización completa, por establecimiento (ISO) */
   ultima: Record<string, string>
   error: string | null
 }
 
-let estado: EstadoSync = { sincronizando: false, ultima: {}, error: null }
+let estado: EstadoSync = { sincronizando: false, sinRed: false, ultima: {}, error: null }
 const oyentes = new Set<() => void>()
 
 export const leerEstadoSync = () => estado
@@ -33,6 +35,16 @@ function cambiar(parcial: Partial<EstadoSync>) {
   oyentes.forEach((o) => o())
 }
 
+/** Campos de la ficha que se editan sin conexión (como los llama el backend). */
+const CAMPOS: Record<string, string> = {
+  caravana: 'caravana',
+  caravanaElectronica: 'caravana electrónica',
+  raza: 'raza',
+  fechaNacimiento: 'fecha de nacimiento',
+  fechaNacimientoEstimada: 'fecha estimada',
+  observaciones: 'observaciones',
+}
+
 const MAX_OPERACIONES = 100
 const MAX_VUELTAS = 50
 let enCurso: Promise<void> | null = null
@@ -43,11 +55,11 @@ export function sincronizar(establecimientos: string[]): Promise<void> {
   if (!enLinea() || establecimientos.length === 0) return Promise.resolve()
   if (enCurso) return enCurso
   enCurso = (async () => {
-    cambiar({ sincronizando: true, error: null })
+    cambiar({ sincronizando: true, error: null, sinRed: false })
     try {
       for (const est of new Set(establecimientos)) await sincronizarUno(est)
     } catch (e) {
-      cambiar({ error: mensajeDe(e) })
+      cambiar(isAxiosError(e) && !e.response ? { sinRed: true } : { error: mensajeDe(e) })
     } finally {
       cambiar({ sincronizando: false })
       enCurso = null
@@ -121,6 +133,18 @@ async function aplicarResultados(lote: OperacionPendiente[], respuesta: SyncResp
     if (!r) continue
     if (r.estado === 'APLICADO') {
       await quitarDeLaCola(op.id)
+      // Una edición de la ficha puede aplicarse a medias: se avisa qué campos ganó el servidor
+      if (r.descartados && r.descartados.length > 0) {
+        await agregarAviso({
+          id: op.id,
+          establecimientoId: op.establecimientoId,
+          descripcion: op.descripcion,
+          mensaje:
+            `No se aplicó: ${r.descartados.map((c) => CAMPOS[c] ?? c).join(', ')}. ` +
+            'Alguien lo cambió después en el servidor y quedó ese valor.',
+          en: new Date().toISOString(),
+        })
+      }
     } else {
       await actualizarEnLaCola({
         ...op,
