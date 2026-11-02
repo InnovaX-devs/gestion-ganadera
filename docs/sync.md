@@ -158,11 +158,32 @@ El código está en `web/src/features/offline` y `web/src/features/pwa`.
   sesión). Al cerrar sesión se borra lo guardado; si hay cargas sin enviar, se pide confirmación.
   Si entra otro usuario en el mismo navegador, se borra lo del anterior.
 
-## Pendiente (próximo PR del issue)
+- **Editar la ficha sin conexión:** caravana, caravana electrónica, raza, fecha de nacimiento y
+  observaciones. Se manda solo lo que cambió (`ACTUALIZAR_ANIMAL`) y se resuelve campo por campo al
+  sincronizar. Lote, rodeo, categoría, sexo, madre y padre necesitan conexión: si se cambian sin
+  señal, el formulario lo avisa. El alta de animales también necesita conexión.
 
-- El indicador de pendientes: cuántas cargas faltan enviar, cuáles fueron rechazadas (para
-  corregirlas o descartarlas) y un botón para sincronizar a mano. Hoy solo se ve la cantidad en la
-  franja de "sin conexión".
-- Editar la ficha del animal sin conexión (el backend ya lo soporta con `ACTUALIZAR_ANIMAL`).
-- Hoy solo se sincroniza el establecimiento activo y los que tienen cargas pendientes. Si un
-  usuario pierde el acceso a un establecimiento, `/api/sync` responde 404 y se borran sus datos.
+### Indicador de pendientes
+
+Un ícono en el encabezado muestra el estado: sin conexión, sincronizando, cargas por enviar o todo
+sincronizado. Tiene un número con las cargas pendientes (en rojo si alguna fue rechazada).
+
+Al tocarlo se abre el detalle:
+
+- **Por enviar:** lo guardado en el dispositivo, con cuándo se cargó. Las que fallaron por un error
+  del servidor dicen "se reintenta".
+- **Rechazadas:** el servidor no las aceptó, con el motivo (ej: el animal ya se vendió). Se pueden
+  **reintentar** (por ejemplo, si ya se corrigió lo que faltaba) o **descartar**.
+- **Avisos:** ediciones de la ficha que se aplicaron a medias porque otro cambió el mismo campo
+  después (last-write-wins). Dice qué campos no se aplicaron.
+- **Sincronizar ahora**, para no esperar al próximo intento automático.
+
+Si una carga es de otro establecimiento (no el activo), se indica de cuál.
+
+## Limitaciones conocidas
+
+- Solo se sincronizan el establecimiento activo y los que tienen cargas pendientes. Si un usuario
+  pierde el acceso a un establecimiento, `/api/sync` responde 404 y se borran sus datos.
+- Lo cargado sin conexión no aparece en el historial de eventos hasta que se sincroniza: mientras
+  tanto se ve en el indicador de pendientes.
+- No hay sincronización con la app cerrada (ver ADR 0004).

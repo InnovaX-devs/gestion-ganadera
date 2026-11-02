@@ -1,5 +1,6 @@
 import { keepPreviousData, useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { conRespaldo } from '@/features/offline/conRespaldo'
+import { editarAnimalSinConexion, online } from '@/features/offline/escrituras'
 import { animalLocal, animalesLocales } from '@/features/offline/local'
 import { api } from '@/lib/api'
 import { stockKey } from '@/features/stock/queries'
@@ -77,14 +78,23 @@ function useInvalidar(establecimientoId: string) {
     ])
 }
 
+/**
+ * Alta o edición. Sin conexión se puede editar la ficha (caravana, raza, fecha de nacimiento,
+ * observaciones): queda pendiente y se resuelve campo por campo al sincronizar (#30). El alta y el
+ * resto de los cambios necesitan conexión.
+ */
 export function useGuardarAnimal(establecimientoId: string) {
   const invalidar = useInvalidar(establecimientoId)
   return useMutation({
-    mutationFn: ({ id, data }: { id?: string; data: AnimalInput }) =>
-      (id
-        ? api.put<Animal>(`${base(establecimientoId)}/${id}`, data)
-        : api.post<Animal>(base(establecimientoId), data)
-      ).then((r) => r.data),
+    mutationFn: ({ id, data }: { id?: string; data: AnimalInput }) => {
+      const remoto = () =>
+        (id
+          ? api.put<Animal>(`${base(establecimientoId)}/${id}`, data)
+          : api.post<Animal>(base(establecimientoId), data)
+        ).then((r) => r.data)
+      if (!id) return remoto()
+      return online(remoto, () => editarAnimalSinConexion(establecimientoId, id, data))
+    },
     onSuccess: invalidar,
   })
 }

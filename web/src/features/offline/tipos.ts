@@ -117,3 +117,12 @@ export interface OperacionPendiente {
   errores?: { field: string; message: string }[]
   intentos: number
 }
+
+/** Algo que pasó al sincronizar y conviene mostrar (ver cola.ts). */
+export interface AvisoSync {
+  id: string
+  establecimientoId: string
+  descripcion: string
+  mensaje: string
+  en: string
+}

@@ -8,6 +8,7 @@ import { EstablecimientoActivoProvider } from '@/features/establecimientos/Estab
 import { EstablecimientoSelector } from '@/features/establecimientos/EstablecimientoSelector'
 import { AvisoSinConexion } from '@/features/offline/AvisoSinConexion'
 import { usePendientes } from '@/features/offline/hooks'
+import { IndicadorSync } from '@/features/offline/IndicadorSync'
 import { SincronizacionAutomatica } from '@/features/offline/SincronizacionAutomatica'
 import { InstalarDialog } from '@/features/pwa/InstalarDialog'
 import { useInstalacion } from '@/features/pwa/useInstalacion'
@@ -128,6 +129,7 @@ function Header({ onOpenMenu }: { onOpenMenu: () => void }) {
         >
           {isDark ? <Sun className="size-5" /> : <Moon className="size-5" />}
         </button>
+        <IndicadorSync />
         <UserMenu />
       </div>
     </header>
