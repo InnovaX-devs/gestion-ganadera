@@ -29,6 +29,16 @@ public interface TipoEventoHandler<D> {
     Class<D> claseDatos();
 
     /**
+     * Al cargar por lote o rodeo, qué animales del grupo reciben el evento. Por defecto, todos. Ej:
+     * el servicio va solo a las vacas y vaquillonas del rodeo, no a los toros ni a los terneros al
+     * pie. Con animales elegidos uno por uno no se filtra: si alguno no corresponde, que lo rechace
+     * {@link #validar}.
+     */
+    default boolean aplicaA(Animal animal) {
+        return true;
+    }
+
+    /**
      * Reglas propias del tipo, además de las comunes (animales del establecimiento, fecha no futura
      * ni anterior al nacimiento). Lanzar {@code BusinessException} si algo no corresponde.
      */

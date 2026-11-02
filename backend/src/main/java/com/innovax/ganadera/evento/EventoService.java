@@ -155,10 +155,15 @@ public class EventoService {
                     establecimiento.getId(), lote.getId(), EstadoAnimal.ACTIVO)
                 : animalRepository.findByEstablecimientoIdAndRodeoIdAndEstadoOrderByCaravana(
                     establecimiento.getId(), rodeo.getId(), EstadoAnimal.ACTIVO);
+            String grupo = lote != null ? "El lote " + lote.getNombre() : "El rodeo " + rodeo.getNombre();
             if (animales.isEmpty()) {
-                throw new BusinessException(lote != null
-                    ? "El lote " + lote.getNombre() + " no tiene animales"
-                    : "El rodeo " + rodeo.getNombre() + " no tiene animales");
+                throw new BusinessException(grupo + " no tiene animales");
+            }
+            // Solo los del grupo a los que aplica el tipo (ej: el servicio, a las vacas y vaquillonas)
+            animales = animales.stream().filter(handler::aplicaA).toList();
+            if (animales.isEmpty()) {
+                throw new BusinessException(grupo + " no tiene animales a los que se pueda registrar un "
+                    + request.tipo().etiqueta().toLowerCase());
             }
             lote = null;
         }
