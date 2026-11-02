@@ -6,6 +6,7 @@ import { SelectField } from '@/components/SelectField'
 import { TextAreaField } from '@/components/TextAreaField'
 import { TextField } from '@/components/TextField'
 import { useAgrupaciones } from '@/features/agrupaciones/queries'
+import { useLectura } from '@/features/lector/contexto'
 import { getErrorMessage, getFieldErrors } from '@/lib/api'
 import { CATEGORIAS, RAZAS_SUGERIDAS, SEXOS, categoriasDe } from './config'
 import { useAnimales, useGuardarAnimal } from './queries'
@@ -16,10 +17,18 @@ interface Props {
   open: boolean
   /** Si viene, se edita; si no, se crea. */
   animal: Animal | null
+  /** Para un alta: caravana electrónica ya leída por el lector (#33) */
+  caravanaElectronica?: string
   onClose: () => void
 }
 
-export function AnimalFormDialog({ establecimientoId, open, animal, onClose }: Props) {
+export function AnimalFormDialog({
+  establecimientoId,
+  open,
+  animal,
+  caravanaElectronica,
+  onClose,
+}: Props) {
   return (
     <Dialog
       open={open}
@@ -31,6 +40,7 @@ export function AnimalFormDialog({ establecimientoId, open, animal, onClose }: P
         key={animal?.id ?? 'nuevo'}
         establecimientoId={establecimientoId}
         animal={animal}
+        caravanaElectronica={caravanaElectronica}
         onDone={onClose}
       />
     </Dialog>
@@ -81,13 +91,18 @@ const hoy = () => {
 function Formulario({
   establecimientoId,
   animal,
+  caravanaElectronica,
   onDone,
 }: {
   establecimientoId: string
   animal: Animal | null
+  caravanaElectronica?: string
   onDone: () => void
 }) {
-  const [c, setC] = useState(() => iniciales(animal))
+  const [c, setC] = useState(() => ({
+    ...iniciales(animal),
+    ...(caravanaElectronica && !animal ? { caravanaElectronica } : {}),
+  }))
   const [error, setError] = useState<string | null>(null)
   const [errores, setErrores] = useState<Record<string, string>>({})
   const guardar = useGuardarAnimal(establecimientoId)
@@ -97,6 +112,13 @@ function Formulario({
   // Posibles madres y padres: hembras y machos activos del establecimiento (después se filtran los adultos)
   const { data: hembras } = useAnimales(establecimientoId, { sexo: 'HEMBRA', tamanio: 200 })
   const { data: machos } = useAnimales(establecimientoId, { sexo: 'MACHO', tamanio: 200 })
+
+  // Con el formulario abierto, una lectura del bastón completa la caravana electrónica (#33)
+  useLectura((lectura) => {
+    if (lectura.campo && !lectura.campo.closest('[data-lector="electronica"]')) return false
+    setC((prev) => ({ ...prev, caravanaElectronica: lectura.eid }))
+    return true
+  })
 
   const set = <K extends keyof Campos>(campo: K, valor: Campos[K]) => {
     setC((prev) => ({ ...prev, [campo]: valor }))
@@ -177,6 +199,7 @@ function Formulario({
           maxLength={30}
           value={c.caravanaElectronica}
           onChange={(e) => set('caravanaElectronica', e.target.value)}
+          data-lector="electronica"
           error={errores.caravanaElectronica}
         />
       </div>

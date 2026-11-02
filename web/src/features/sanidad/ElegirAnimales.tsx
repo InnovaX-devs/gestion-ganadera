@@ -1,8 +1,11 @@
-import { useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { Search, X } from 'lucide-react'
 import { CategoriaBadge } from '@/features/animales/CategoriaBadge'
 import { useAnimales } from '@/features/animales/queries'
 import type { Animal, FiltroAnimales, Referencia } from '@/features/animales/types'
+import { buscarPorEid } from '@/features/lector/buscar'
+import { useLectura } from '@/features/lector/contexto'
+import { formatearEid } from '@/features/lector/lectura'
 import { useDebouncedValue } from '@/hooks/useDebouncedValue'
 
 interface Props {
@@ -34,6 +37,40 @@ export function ElegirAnimales({
   hint,
 }: Props) {
   const [busqueda, setBusqueda] = useState('')
+  const [aviso, setAviso] = useState<string | null>(null)
+  const buscador = useRef<HTMLInputElement>(null)
+  const elegidosActuales = useRef(elegidos)
+  useEffect(() => {
+    elegidosActuales.current = elegidos
+  })
+
+  // Lector de caravanas (#33): cada lectura suma el animal a la lista
+  useLectura((lectura) => {
+    if (lectura.campo && lectura.campo !== buscador.current) return false
+    if (lectura.campo) setBusqueda('')
+    setAviso(null)
+    void buscarPorEid(establecimientoId, lectura.eid)
+      .then((animal) => {
+        const actuales = elegidosActuales.current
+        if (!animal) {
+          setAviso(`La caravana ${formatearEid(lectura.eid)} no está cargada`)
+        } else if (actuales.some((e) => e.id === animal.id)) {
+          // Ya estaba en la lista: no se repite
+        } else if (maximo !== undefined && actuales.length >= maximo) {
+          setAviso('Ya elegiste el máximo')
+        } else if (
+          (filtro?.sexo && animal.sexo !== filtro.sexo) ||
+          (filtro?.categoria && animal.categoria !== filtro.categoria) ||
+          (aplica && !aplica(animal))
+        ) {
+          setAviso(`${animal.caravana} no se puede elegir acá`)
+        } else {
+          onChange([...actuales, { id: animal.id, nombre: animal.caravana }])
+        }
+      })
+      .catch(() => setAviso('No se pudo buscar la caravana'))
+    return true
+  })
   const q = useDebouncedValue(busqueda.trim())
   // Con un filtro fino se piden más, para que queden resultados después de filtrar
   const { data } = useAnimales(establecimientoId, { q, ...filtro, tamanio: aplica ? 12 : 6 })
@@ -52,10 +89,13 @@ export function ElegirAnimales({
       <div className="relative">
         <Search className="pointer-events-none absolute top-1/2 left-3 size-4 -translate-y-1/2 text-stone-400" />
         <input
+          ref={buscador}
           type="search"
           value={busqueda}
           onChange={(e) => setBusqueda(e.target.value)}
-          placeholder={lleno ? 'Ya elegiste el máximo' : 'Buscar por caravana…'}
+          placeholder={
+            lleno ? 'Ya elegiste el máximo' : 'Buscar por caravana o leer con el bastón…'
+          }
           disabled={lleno}
           aria-label={`Buscar ${etiqueta.toLowerCase()} por caravana`}
           className="focus:border-brand-500 focus:ring-brand-100 dark:focus:ring-brand-900 block w-full rounded-lg border border-stone-300 bg-white py-2 pr-3 pl-9 text-sm shadow-xs outline-none focus:ring-2 disabled:opacity-60 dark:border-stone-700 dark:bg-stone-900"
@@ -100,11 +140,11 @@ export function ElegirAnimales({
           ))}
         </ul>
       )}
-      {(error || hint) && (
+      {(aviso || error || hint) && (
         <p
-          className={`mt-1.5 text-xs ${error ? 'text-red-600 dark:text-red-400' : 'text-stone-500'}`}
+          className={`mt-1.5 text-xs ${aviso || error ? 'text-red-600 dark:text-red-400' : 'text-stone-500'}`}
         >
-          {error ?? hint}
+          {aviso ?? error ?? hint}
         </p>
       )}
     </div>

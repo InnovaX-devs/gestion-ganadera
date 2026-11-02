@@ -115,7 +115,19 @@ function Listado({
   const [filtros, setFiltros] = useState<Filtros>(
     () => (location.state as AnimalesLocationState | null)?.filtros ?? {},
   )
+  const [formulario, setFormulario] = useState<{
+    animal: Animal | null
+    caravanaElectronica?: string
+  } | null>(null)
   // Se limpia el state para que al recargar la página no vuelva a aplicarse el filtro
+  // Caravana leída que no estaba cargada (#33): se abre el alta con ella. Se hace al renderizar
+  // (no en un efecto) y una sola vez por cada navegación.
+  const [estadoAtendido, setEstadoAtendido] = useState<unknown>(null)
+  const nuevo = (location.state as AnimalesLocationState | null)?.nuevo
+  if (nuevo && location.state !== estadoAtendido) {
+    setEstadoAtendido(location.state)
+    setFormulario({ animal: null, caravanaElectronica: nuevo.caravanaElectronica })
+  }
   useEffect(() => {
     if (location.state) navigate(location.pathname, { replace: true, state: null })
   }, [location.state, location.pathname, navigate])
@@ -128,7 +140,6 @@ function Listado({
   const [moviendo, setMoviendo] = useState(false)
   const [vendiendo, setVendiendo] = useState(false)
   const [dandoDeBaja, setDandoDeBaja] = useState(false)
-  const [formulario, setFormulario] = useState<{ animal: Animal | null } | null>(null)
   const [aBorrar, setABorrar] = useState<Animal | null>(null)
   const [asignando, setAsignando] = useState<CampoAsignacion | null>(null)
 
@@ -574,6 +585,7 @@ function Listado({
         establecimientoId={establecimientoId}
         open={formulario !== null}
         animal={formulario?.animal ?? null}
+        caravanaElectronica={formulario?.caravanaElectronica}
         onClose={() => setFormulario(null)}
       />
 
