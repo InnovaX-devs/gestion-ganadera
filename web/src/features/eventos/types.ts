@@ -47,6 +47,8 @@ export interface Operacion {
   operacionId: string
   cantidad: number
   eventos: Evento[]
+  /** Se guardó sin conexión y se va a enviar al volver la señal (#30). Sin `eventos` todavía. */
+  pendiente?: boolean
 }
 
 export interface FiltroEventos {

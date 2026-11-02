@@ -133,9 +133,36 @@ Detalles:
   operación entera vuelve `RECHAZADO` y no se aplica ningún campo.
 - **Animales anteriores a esto:** un campo sin versión vale la fecha de alta del animal.
 
-## Pendiente (próximos PRs del issue)
+## En la web (PWA)
 
-- La PWA: service worker, IndexedDB, cola de operaciones y carga de eventos sin conexión.
-- El indicador de pendientes de sincronizar.
-- Hoy solo se sincroniza el establecimiento activo. Si un usuario pierde el acceso al
-  establecimiento, `/api/sync` responde 404 y el celular tiene que borrar esos datos.
+El código está en `web/src/features/offline` y `web/src/features/pwa`.
+
+- **Instalar la app:** en Chrome, Edge y Android hay un botón "Instalar app" en el menú del usuario
+  y una tarjeta en el inicio (se puede descartar). En iPhone no se puede instalar con un botón:
+  se muestran los pasos de Safari (Compartir → Agregar a pantalla de inicio).
+- **Abrir sin conexión:** un service worker (`web/pwa/sw.js`, lo completa el build) guarda la app
+  entera. Las páginas van primero a la red, con un tope de 4 segundos para la señal mala del campo.
+  La API no pasa por el service worker.
+- **Base local (IndexedDB):** animales, lotes, rodeos, productos y eventos de cada establecimiento,
+  la cola de operaciones y el cursor. Se llena con `/api/sync`.
+- **Lecturas:** las consultas van primero al servidor; si no hay red, responden con lo guardado
+  (mismos filtros y la misma forma que la API). Así funcionan sin conexión los listados, los
+  selectores de los diálogos y el stock del inicio.
+- **Escrituras:** registrar eventos (todos los diálogos), la grilla de pesajes y anular eventos.
+  Sin red, o si se corta a mitad, se guardan en la cola con su id y se envían en la próxima
+  sincronización. El mismo id sirve para el intento directo y para la cola: nunca se duplica.
+- **Cuándo se sincroniza:** al abrir la app, al cambiar de establecimiento, al recuperar la señal,
+  al volver a la app, un momento después de guardar algo sin conexión, cada 30 segundos mientras
+  haya pendientes y cada 5 minutos.
+- **Sesión:** sin conexión se usa el último usuario validado (antes, abrir sin señal cerraba la
+  sesión). Al cerrar sesión se borra lo guardado; si hay cargas sin enviar, se pide confirmación.
+  Si entra otro usuario en el mismo navegador, se borra lo del anterior.
+
+## Pendiente (próximo PR del issue)
+
+- El indicador de pendientes: cuántas cargas faltan enviar, cuáles fueron rechazadas (para
+  corregirlas o descartarlas) y un botón para sincronizar a mano. Hoy solo se ve la cantidad en la
+  franja de "sin conexión".
+- Editar la ficha del animal sin conexión (el backend ya lo soporta con `ACTUALIZAR_ANIMAL`).
+- Hoy solo se sincroniza el establecimiento activo y los que tienen cargas pendientes. Si un
+  usuario pierde el acceso a un establecimiento, `/api/sync` responde 404 y se borran sus datos.

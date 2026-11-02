@@ -1,5 +1,7 @@
 import { type QueryClient, useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { stockKey } from '@/features/stock/queries'
+import { conRespaldo } from '@/features/offline/conRespaldo'
+import { agrupacionesLocales } from '@/features/offline/local'
 import { api } from '@/lib/api'
 import type { Agrupacion, AgrupacionInput, TipoAgrupacion } from './types'
 
@@ -21,7 +23,11 @@ function invalidar(queryClient: QueryClient, tipo: TipoAgrupacion, establecimien
 export function useAgrupaciones(tipo: TipoAgrupacion, establecimientoId: string | undefined) {
   return useQuery({
     queryKey: agrupacionesKey(tipo, establecimientoId),
-    queryFn: () => api.get<Agrupacion[]>(base(tipo, establecimientoId!)).then((r) => r.data),
+    queryFn: () =>
+      conRespaldo(
+        () => api.get<Agrupacion[]>(base(tipo, establecimientoId!)).then((r) => r.data),
+        () => agrupacionesLocales(tipo, establecimientoId!),
+      ),
     enabled: !!establecimientoId,
   })
 }

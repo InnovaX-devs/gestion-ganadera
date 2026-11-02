@@ -1,4 +1,6 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
+import { conRespaldo } from '@/features/offline/conRespaldo'
+import { productosLocales } from '@/features/offline/local'
 import { api } from '@/lib/api'
 import type { ProductoInput, ProductoSanitario } from './types'
 
@@ -11,7 +13,11 @@ const key = (establecimientoId: string | undefined) => ['productos-sanitarios', 
 export function useProductos(establecimientoId: string | undefined) {
   return useQuery({
     queryKey: key(establecimientoId),
-    queryFn: () => api.get<ProductoSanitario[]>(base(establecimientoId!)).then((r) => r.data),
+    queryFn: () =>
+      conRespaldo(
+        () => api.get<ProductoSanitario[]>(base(establecimientoId!)).then((r) => r.data),
+        () => productosLocales(establecimientoId!),
+      ),
     enabled: !!establecimientoId,
   })
 }

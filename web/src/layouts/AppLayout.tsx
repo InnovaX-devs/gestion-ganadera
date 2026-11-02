@@ -1,10 +1,16 @@
 import { useCallback, useRef, useState } from 'react'
 import { NavLink, Outlet } from 'react-router'
-import { LogOut, Menu, Moon, Sun, X } from 'lucide-react'
+import { Download, LogOut, Menu, Moon, Sun, X } from 'lucide-react'
+import { ConfirmDialog } from '@/components/ConfirmDialog'
 import { navigation } from '@/config/navigation'
 import { useAuth } from '@/features/auth/useAuth'
 import { EstablecimientoActivoProvider } from '@/features/establecimientos/EstablecimientoActivoProvider'
 import { EstablecimientoSelector } from '@/features/establecimientos/EstablecimientoSelector'
+import { AvisoSinConexion } from '@/features/offline/AvisoSinConexion'
+import { usePendientes } from '@/features/offline/hooks'
+import { SincronizacionAutomatica } from '@/features/offline/SincronizacionAutomatica'
+import { InstalarDialog } from '@/features/pwa/InstalarDialog'
+import { useInstalacion } from '@/features/pwa/useInstalacion'
 import { useDismiss } from '@/hooks/useDismiss'
 import { useTheme } from '@/hooks/useTheme'
 
@@ -13,6 +19,7 @@ export function AppLayout() {
 
   return (
     <EstablecimientoActivoProvider>
+      <SincronizacionAutomatica />
       <div className="min-h-dvh lg:grid lg:grid-cols-[16rem_1fr]">
         {/* Fondo oscuro del menú en celular */}
         {sidebarOpen && (
@@ -28,6 +35,7 @@ export function AppLayout() {
 
         <div className="flex min-w-0 flex-col">
           <Header onOpenMenu={() => setSidebarOpen(true)} />
+          <AvisoSinConexion />
           <main className="flex-1 px-4 py-6 sm:px-6 lg:px-8">
             <Outlet />
           </main>
@@ -128,7 +136,11 @@ function Header({ onOpenMenu }: { onOpenMenu: () => void }) {
 
 function UserMenu() {
   const { usuario, logout } = useAuth()
+  const { forma } = useInstalacion()
+  const pendientes = usePendientes().length
   const [abierto, setAbierto] = useState(false)
+  const [instalarAbierto, setInstalarAbierto] = useState(false)
+  const [confirmarSalida, setConfirmarSalida] = useState(false)
   const ref = useRef<HTMLDivElement>(null)
   const cerrar = useCallback(() => setAbierto(false), [])
   useDismiss(ref, abierto, cerrar)
@@ -161,10 +173,27 @@ function UserMenu() {
             <p className="truncate text-xs text-stone-500">{usuario.email}</p>
             <p className="mt-1 truncate text-xs text-stone-500">{usuario.organizacionNombre}</p>
           </div>
+          {forma !== 'no' && (
+            <button
+              type="button"
+              role="menuitem"
+              onClick={() => {
+                setAbierto(false)
+                setInstalarAbierto(true)
+              }}
+              className="flex w-full items-center gap-2 px-4 py-2.5 text-left text-sm text-stone-700 hover:bg-stone-100 dark:text-stone-300 dark:hover:bg-stone-800"
+            >
+              <Download className="size-4" />
+              Instalar app
+            </button>
+          )}
           <button
             type="button"
             role="menuitem"
-            onClick={logout}
+            // Cerrar sesión borra lo guardado en el dispositivo: si hay cargas sin enviar, se avisa
+            onClick={() =>
+              pendientes > 0 ? (setAbierto(false), setConfirmarSalida(true)) : logout()
+            }
             className="flex w-full items-center gap-2 px-4 py-2.5 text-left text-sm text-stone-700 hover:bg-stone-100 dark:text-stone-300 dark:hover:bg-stone-800"
           >
             <LogOut className="size-4" />
@@ -172,6 +201,18 @@ function UserMenu() {
           </button>
         </div>
       )}
+      <InstalarDialog open={instalarAbierto} onClose={() => setInstalarAbierto(false)} />
+      <ConfirmDialog
+        open={confirmarSalida}
+        title="Hay cargas sin enviar"
+        description={`${pendientes === 1 ? 'Hay 1 carga que todavía no se envió' : `Hay ${pendientes} cargas que todavía no se enviaron`} al servidor. Si cerrás la sesión se pierden. Conectate a internet y esperá a que se envíen antes de salir.`}
+        confirmLabel="Cerrar sesión igual"
+        onConfirm={() => {
+          setConfirmarSalida(false)
+          logout()
+        }}
+        onClose={() => setConfirmarSalida(false)}
+      />
     </div>
   )
 }

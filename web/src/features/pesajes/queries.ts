@@ -1,6 +1,8 @@
 import { keepPreviousData, useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import type { Pagina } from '@/features/animales/types'
 import type { Operacion } from '@/features/eventos/types'
+import { online, registrarGrillaSinConexion } from '@/features/offline/escrituras'
+import { nuevoId } from '@/features/offline/red'
 import { api } from '@/lib/api'
 import type { FiltroPesajes, GrillaInput, Pesaje } from './types'
 
@@ -21,8 +23,14 @@ export function usePesajes(establecimientoId: string | undefined, filtro: Filtro
 export function useRegistrarGrilla(establecimientoId: string) {
   const queryClient = useQueryClient()
   return useMutation({
-    mutationFn: (data: GrillaInput) =>
-      api.post<Operacion>(`${base(establecimientoId)}/grilla`, data).then((r) => r.data),
+    // Sin conexión queda pendiente y se envía al sincronizar (#30)
+    mutationFn: (data: GrillaInput) => {
+      const conId = { ...data, operacionId: data.operacionId ?? nuevoId() }
+      return online(
+        () => api.post<Operacion>(`${base(establecimientoId)}/grilla`, conId).then((r) => r.data),
+        () => registrarGrillaSinConexion(establecimientoId, conId),
+      )
+    },
     onSuccess: () =>
       Promise.all([
         queryClient.invalidateQueries({ queryKey: ['pesajes', establecimientoId] }),

@@ -1,5 +1,7 @@
 const ACCESS_KEY = 'access_token'
 const REFRESH_KEY = 'refresh_token'
+/** Último usuario validado: para abrir la app sin conexión (#30). */
+const USUARIO_KEY = 'usuario'
 
 // localStorage puede fallar (modo privado, almacenamiento bloqueado): nunca romper la app por eso.
 function leer(key: string): string | null {
@@ -30,5 +32,18 @@ export const authStorage = {
   clear() {
     escribir(ACCESS_KEY, null)
     escribir(REFRESH_KEY, null)
+    escribir(USUARIO_KEY, null)
+  },
+  /** Se guarda cada vez que el backend confirma la sesión. */
+  setUsuario(usuario: unknown) {
+    escribir(USUARIO_KEY, JSON.stringify(usuario))
+  },
+  getUsuario<T>(): T | null {
+    try {
+      const guardado = leer(USUARIO_KEY)
+      return guardado ? (JSON.parse(guardado) as T) : null
+    } catch {
+      return null
+    }
   },
 }
