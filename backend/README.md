@@ -261,6 +261,10 @@ GET /api/mercado/historico?producto=NOVILLO&producto=TERNERO&desde=2026-10-01&ha
 
 `GET /api/establecimientos/{id}/clima`: clima actual y pronóstico de 5 días de Open-Meteo, con las coordenadas del establecimiento (o buscando su localidad). El backend hace de intermediario y guarda los pronósticos 30 minutos, para respetar el límite de la API gratuita y no exponer nunca una clave. Condiciones de uso y configuración: [`docs/clima.md`](../docs/clima.md).
 
+## Sincronización offline (#30)
+
+`POST /api/sync`: push de lo que se hizo sin conexión (eventos, anulaciones, ediciones de la ficha) y pull de lo que cambió desde un cursor `(updated_at, id)`. Las operaciones son idempotentes y las ediciones de la ficha se resuelven con last-write-wins por campo. Protocolo completo y reglas de conflicto: [`docs/sync.md`](../docs/sync.md).
+
 ## Errores
 
 Toda la API responde los errores con este formato:

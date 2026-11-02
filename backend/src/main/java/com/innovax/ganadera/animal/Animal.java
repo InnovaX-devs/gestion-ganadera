@@ -1,21 +1,27 @@
 package com.innovax.ganadera.animal;
 
+import java.time.Instant;
 import java.time.LocalDate;
+import java.util.EnumMap;
 import java.util.Locale;
+import java.util.Map;
 import java.util.UUID;
 
 import com.innovax.ganadera.agrupacion.Lote;
 import com.innovax.ganadera.agrupacion.Rodeo;
 import com.innovax.ganadera.common.tenant.TenantEntity;
 import com.innovax.ganadera.establecimiento.Establecimiento;
+import com.innovax.ganadera.sync.BajaSyncListener;
 
 import jakarta.persistence.Column;
 import jakarta.persistence.Convert;
 import jakarta.persistence.Entity;
+import jakarta.persistence.EntityListeners;
 import jakarta.persistence.FetchType;
 import jakarta.persistence.JoinColumn;
 import jakarta.persistence.ManyToOne;
 import jakarta.persistence.Table;
+import jakarta.persistence.Transient;
 import lombok.AccessLevel;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
@@ -29,6 +35,8 @@ import lombok.Setter;
 @Setter
 @Entity
 @Table(name = "animal")
+// Registra las bajas para la sincronización cuando el animal se borra o sale del establecimiento (#30)
+@EntityListeners(BajaSyncListener.class)
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
 public class Animal extends TenantEntity {
 
@@ -96,6 +104,22 @@ public class Animal extends TenantEntity {
     @Column(name = "evento_nacimiento_id", updatable = false)
     private UUID eventoNacimientoId;
 
+    /**
+     * Cuándo se modificó por última vez cada campo de la ficha, para resolver conflictos de la
+     * sincronización campo por campo (#30). Un campo que no está vale {@code createdAt}.
+     */
+    @Setter(AccessLevel.NONE)
+    @Getter(AccessLevel.NONE)
+    @Convert(converter = VersionesConverter.class)
+    @Column(length = 1000)
+    private Map<CampoAnimal, Instant> versiones = new EnumMap<>(CampoAnimal.class);
+
+    /** Establecimiento del que salió en esta transacción (lo usa {@link BajaSyncListener}). */
+    @Transient
+    @Getter(AccessLevel.NONE)
+    @Setter(AccessLevel.NONE)
+    private UUID establecimientoAnterior;
+
     public Animal(Establecimiento establecimiento, String caravana, Sexo sexo, Categoria categoria) {
         this.establecimiento = establecimiento;
         setCaravana(caravana);
@@ -122,9 +146,33 @@ public class Animal extends TenantEntity {
      * quedan sin asignar: quien llama les pone los nuevos si corresponde.
      */
     public void trasladarA(Establecimiento destino) {
+        if (establecimientoAnterior == null && establecimiento != null) {
+            establecimientoAnterior = establecimiento.getId();
+        }
         this.establecimiento = destino;
         this.lote = null;
         this.rodeo = null;
+    }
+
+    /** Cuándo cambió por última vez ese campo (o cuándo se creó el animal, si nunca se editó). */
+    public Instant versionDe(CampoAnimal campo) {
+        Instant version = versiones == null ? null : versiones.get(campo);
+        return version != null ? version : getCreatedAt();
+    }
+
+    public void marcarVersion(CampoAnimal campo, Instant cuando) {
+        // Copia: Hibernate detecta el cambio de la colección al compararla con la anterior
+        Map<CampoAnimal, Instant> nuevas = new EnumMap<>(CampoAnimal.class);
+        if (versiones != null) nuevas.putAll(versiones);
+        nuevas.put(campo, cuando);
+        this.versiones = nuevas;
+    }
+
+    /** El establecimiento del que salió (si salió), y lo olvida. Lo usa {@link BajaSyncListener}. */
+    public UUID consumirEstablecimientoAnterior() {
+        UUID anterior = establecimientoAnterior;
+        establecimientoAnterior = null;
+        return anterior;
     }
 
     public static String normalizarCaravana(String valor) {

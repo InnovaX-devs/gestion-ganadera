@@ -15,7 +15,7 @@ Necesitamos un sistema web multi-usuario y multi-establecimiento, con una app m�
 | Web | React 19, TypeScript, Vite, Tailwind CSS 4, React Router |
 | Infra local | Docker Compose |
 | CI | GitHub Actions |
-| Móvil | A definir en M5 (React Native/Expo o PWA) |
+| Móvil | PWA dentro de `/web` (ver [0004](0004-app-movil-offline.md)) |
 
 Organización: monorepo con `/backend`, `/web`, `/mobile` y `/docs`.
 
