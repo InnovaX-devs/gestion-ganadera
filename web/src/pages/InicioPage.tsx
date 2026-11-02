@@ -9,6 +9,7 @@ import { useEstablecimientoActivo } from '@/features/establecimientos/useEstable
 import { AccesosRapidos } from '@/features/inicio/AccesosRapidos'
 import { UltimosEventos } from '@/features/inicio/UltimosEventos'
 import { MercadoPanel } from '@/features/mercado/MercadoPanel'
+import { InstalarTarjeta } from '@/features/pwa/InstalarTarjeta'
 import { StockPanel } from '@/features/stock/StockPanel'
 import { api, getErrorMessage } from '@/lib/api'
 
@@ -46,6 +47,10 @@ export function InicioPage() {
           .filter(Boolean)
           .join(' · ')}
       />
+      {/* Se oculta sola si no se puede instalar, ya está instalada o se descartó */}
+      <div className="mb-6 empty:hidden">
+        <InstalarTarjeta />
+      </div>
       {!cargando && !activo && <PrimerosPasos />}
       {/* key: al cambiar de establecimiento todo arranca de cero (diálogos abiertos incluidos) */}
       {activo && (

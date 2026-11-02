@@ -1,5 +1,7 @@
 import { type ReactNode, useCallback, useEffect, useMemo, useState } from 'react'
 import { useQueryClient } from '@tanstack/react-query'
+import { borrarTodo } from '@/features/offline/db'
+import { esErrorDeRed } from '@/features/offline/red'
 import { setOnSessionExpired } from '@/lib/api'
 import { authStorage } from '@/lib/auth-storage'
 import { authApi } from './auth-api'
@@ -31,12 +33,22 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       .me()
       .then((u) => {
         if (!activo) return
+        authStorage.setUsuario(u)
         setUsuario(u)
         setStatus('authenticated')
       })
-      .catch(() => {
+      .catch((error) => {
         if (!activo) return
-        authStorage.clear()
+        // Sin conexión no se puede validar la sesión: se sigue con el último usuario conocido (#30).
+        // Cuando vuelva la red, cualquier pedido con un token vencido cierra la sesión como siempre.
+        const guardado = authStorage.getUsuario<Usuario>()
+        if (esErrorDeRed(error) && guardado) {
+          setUsuario(guardado)
+          setStatus('authenticated')
+          return
+        }
+        // Sin red y sin usuario guardado no hay nada para mostrar; los tokens se conservan
+        if (!esErrorDeRed(error)) authStorage.clear()
         setStatus('anonymous')
       })
     return () => {
@@ -46,6 +58,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const iniciarSesion = useCallback((data: AuthResponse) => {
     authStorage.setTokens(data.accessToken, data.refreshToken)
+    authStorage.setUsuario(data.usuario)
     setUsuario(data.usuario)
     setStatus('authenticated')
   }, [])
@@ -62,6 +75,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const logout = useCallback(() => {
     authStorage.clear()
+    // Los datos guardados para trabajar sin conexión son de este usuario (#30)
+    borrarTodo().catch(() => undefined)
     // Borra los datos en caché para que el próximo usuario no vea los del anterior
     queryClient.clear()
     setUsuario(null)

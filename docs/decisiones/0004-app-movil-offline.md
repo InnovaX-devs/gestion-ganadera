@@ -35,6 +35,8 @@ resolver conflictos y mostrar qué falta sincronizar.
 - **Service worker** para que la app abra sin conexión.
 - Se sincroniza al abrir la app, al recuperar la señal, después de cargar algo y cada pocos minutos
   mientras está abierta. No hay sincronización con la app cerrada.
+- Service worker propio (sin plugins): el build le pasa la lista de archivos a guardar. Para la base
+  local se usa `idb`, una librería chica sobre IndexedDB.
 - Se pide almacenamiento persistente (`navigator.storage.persist()`) para que el navegador no borre
   los datos, y la app avisa si hay pendientes viejos sin enviar.
 

@@ -1,4 +1,6 @@
 import { keepPreviousData, useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
+import { conRespaldo } from '@/features/offline/conRespaldo'
+import { animalLocal, animalesLocales } from '@/features/offline/local'
 import { api } from '@/lib/api'
 import { stockKey } from '@/features/stock/queries'
 import type { Animal, AnimalInput, FiltroAnimales, Pagina } from './types'
@@ -23,10 +25,15 @@ function params(filtro: FiltroAnimales) {
 export function useAnimales(establecimientoId: string | undefined, filtro: FiltroAnimales) {
   return useQuery({
     queryKey: ['animales', establecimientoId, 'lista', filtro],
+    // Sin conexión: los animales guardados en el dispositivo (#30)
     queryFn: () =>
-      api
-        .get<Pagina<Animal>>(base(establecimientoId!), { params: params(filtro) })
-        .then((r) => r.data),
+      conRespaldo(
+        () =>
+          api
+            .get<Pagina<Animal>>(base(establecimientoId!), { params: params(filtro) })
+            .then((r) => r.data),
+        () => animalesLocales(establecimientoId!, filtro),
+      ),
     enabled: !!establecimientoId,
     // Al cambiar de página o filtro se sigue mostrando lo anterior hasta que llegan los datos nuevos
     placeholderData: keepPreviousData,
@@ -36,7 +43,11 @@ export function useAnimales(establecimientoId: string | undefined, filtro: Filtr
 export function useAnimal(establecimientoId: string | undefined, id: string | undefined) {
   return useQuery({
     queryKey: ['animales', establecimientoId, 'ficha', id],
-    queryFn: () => api.get<Animal>(`${base(establecimientoId!)}/${id}`).then((r) => r.data),
+    queryFn: () =>
+      conRespaldo(
+        () => api.get<Animal>(`${base(establecimientoId!)}/${id}`).then((r) => r.data),
+        () => animalLocal(establecimientoId!, id!),
+      ),
     enabled: !!establecimientoId && !!id,
     // Un 404 no se arregla reintentando
     retry: false,

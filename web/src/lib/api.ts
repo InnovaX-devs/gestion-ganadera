@@ -90,8 +90,12 @@ api.interceptors.response.use(
 
 // ---------- Helpers de errores ----------
 
+/** Error armado en el navegador con un mensaje pensado para el usuario (ej: sin conexión). */
+export class ErrorConMensaje extends Error {}
+
 /** Mensaje legible para mostrar al usuario a partir de cualquier error de la API. */
 export function getErrorMessage(error: unknown): string {
+  if (error instanceof ErrorConMensaje) return error.message
   if (axios.isAxiosError<ApiError>(error)) {
     if (error.response?.data?.message) return error.response.data.message
     if (!error.response) return 'No se pudo conectar con el servidor'
