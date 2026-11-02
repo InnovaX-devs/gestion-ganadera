@@ -265,6 +265,10 @@ GET /api/mercado/historico?producto=NOVILLO&producto=TERNERO&desde=2026-10-01&ha
 
 `POST /api/sync`: push de lo que se hizo sin conexión (eventos, anulaciones, ediciones de la ficha) y pull de lo que cambió desde un cursor `(updated_at, id)`. Las operaciones son idempotentes y las ediciones de la ficha se resuelven con last-write-wins por campo. Protocolo completo y reglas de conflicto: [`docs/sync.md`](../docs/sync.md).
 
+## Reportes (#32)
+
+`GET /api/establecimientos/{id}/reportes/pesos?desde=&hasta=&loteId=&categoria=` (evolución de pesos y ganancia diaria) y `GET /api/establecimientos/{id}/reportes/existencias` (para SENASA, con RENSPA y planilla de animales). El stock sale de `GET /api/stock`. El Excel y el PDF se generan en la web. Detalle: [`docs/reportes.md`](../docs/reportes.md).
+
 ## Errores
 
 Toda la API responde los errores con este formato:
