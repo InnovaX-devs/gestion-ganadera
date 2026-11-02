@@ -19,6 +19,8 @@ import { PesajesPage } from '@/pages/PesajesPage'
 import { PlaceholderPage } from '@/pages/PlaceholderPage'
 import { RegisterPage } from '@/pages/RegisterPage'
 import { ReportesPage } from '@/pages/ReportesPage'
+import { ServiciosPage } from '@/pages/ServiciosPage'
+import { TactosPage } from '@/pages/TactosPage'
 import { TratamientosPage } from '@/pages/TratamientosPage'
 import { VentasPage } from '@/pages/VentasPage'
 
@@ -32,6 +34,8 @@ const IMPLEMENTADAS = new Set([
   '/invitaciones',
   '/observaciones',
   '/nacimientos',
+  '/servicios',
+  '/tactos',
   '/tratamientos',
   '/pesajes',
   '/movimientos',
@@ -80,6 +84,8 @@ export const router = createBrowserRouter([
           { path: 'animales/:animalId', element: <AnimalPage /> },
           { path: 'observaciones', element: <ObservacionesPage /> },
           { path: 'nacimientos', element: <NacimientosPage /> },
+          { path: 'servicios', element: <ServiciosPage /> },
+          { path: 'tactos', element: <TactosPage /> },
           { path: 'tratamientos', element: <TratamientosPage /> },
           { path: 'pesajes', element: <PesajesPage /> },
           { path: 'movimientos', element: <MovimientosPage /> },
