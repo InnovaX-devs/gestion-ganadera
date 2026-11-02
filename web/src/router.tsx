@@ -18,6 +18,7 @@ import { NotFoundPage } from '@/pages/NotFoundPage'
 import { PesajesPage } from '@/pages/PesajesPage'
 import { PlaceholderPage } from '@/pages/PlaceholderPage'
 import { RegisterPage } from '@/pages/RegisterPage'
+import { ReportesPage } from '@/pages/ReportesPage'
 import { TratamientosPage } from '@/pages/TratamientosPage'
 import { VentasPage } from '@/pages/VentasPage'
 
@@ -36,6 +37,7 @@ const IMPLEMENTADAS = new Set([
   '/movimientos',
   '/ventas',
   '/importar',
+  '/reportes',
 ])
 
 // Secciones del menú que todavía no tienen página propia
@@ -82,6 +84,7 @@ export const router = createBrowserRouter([
           { path: 'pesajes', element: <PesajesPage /> },
           { path: 'movimientos', element: <MovimientosPage /> },
           { path: 'ventas', element: <VentasPage /> },
+          { path: 'reportes', element: <ReportesPage /> },
           ...placeholderRoutes,
           { path: '*', element: <NotFoundPage /> },
         ],
