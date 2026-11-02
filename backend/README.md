@@ -166,10 +166,16 @@ DELETE /api/establecimientos/{id}/eventos/{eventoId}   // anula, no borra
 **Para agregar un tipo** (#18 a #23), sin tocar `EventoService`:
 
 1. Un record con sus datos y validaciones en `evento/tipos` (ej: `PesajeDatos(@Positive BigDecimal kg)`).
-2. Un `@Component` que implemente `TipoEventoHandler<PesajeDatos>`: `validar` (reglas propias), `aplicar` (cambios en el animal) y `revertir` (deshacerlos al anular).
+2. Un `@Component` que implemente `TipoEventoHandler<PesajeDatos>`: `validar` (reglas propias), `aplicar` (cambios en el animal) y `revertir` (deshacerlos al anular). Si al cargar por lote o rodeo el evento no va a todos los animales del grupo, sobrescribir `aplicaA` (ej: el servicio va solo a vacas y vaquillonas).
 3. Tests en un `XxxEventoTest` usando `ApiTestClient`.
 
 `ObservacionHandler` es el ejemplo más simple. El permiso que pide cada tipo está en `TipoEvento`.
+
+## Servicio, tacto y estado reproductivo (#19)
+
+- **Servicio** (`GESTIONAR_ANIMALES`): `NATURAL` (con `toroIds`) o `INSEMINACION` (con `pajuela` o un toro). La fecha del evento es el inicio; `fechaFin` es opcional. Con `rodeoId` o `loteId` se registra solo en las vacas y vaquillonas del grupo.
+- **Tacto** (`REGISTRAR_SANIDAD`): `PRENADA` con `mesesGestacion` (1 a 9) o `VACIA`, y `veterinario`. El servidor calcula `fechaEstimadaParto` = fecha del tacto − meses + 283 días (`reproduccion.Gestacion`).
+- **Estado reproductivo**: `estadoReproductivo` en la respuesta de cada vaca y vaquillona (`SIN_DATOS`, `EN_SERVICIO`, `SERVIDA`, `PRENADA`, `VACIA`, `PARIDA`). No se guarda: sale del último servicio, tacto o parto vigente (`EstadoReproductivoService`), así que anular un evento lo corrige solo.
 ## Importar animales (#31)
 
 ```

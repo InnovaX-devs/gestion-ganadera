@@ -14,6 +14,8 @@ import { type Permiso, type Rol, puede } from '@/features/establecimientos/permi
 import { VIAS, formatearDiasCarencia } from '@/features/sanidad/config'
 import { resumenMovimiento } from '@/features/movimientos/config'
 import type { MovimientoDatos } from '@/features/movimientos/types'
+import { resumenServicio, resumenTacto } from '@/features/reproduccion/config'
+import type { ServicioDatos, TactoDatos } from '@/features/reproduccion/types'
 import type { TratamientoDatos } from '@/features/sanidad/types'
 import { resumenBaja, resumenVenta } from '@/features/ventas/config'
 import type { BajaDatos, VentaDatos } from '@/features/ventas/types'
@@ -41,8 +43,18 @@ export const TIPOS_EVENTO: Record<TipoEvento, ConfigTipo> = {
     permisos: ['GESTIONAR_ANIMALES'],
     resumen: resumirNacimiento,
   },
-  SERVICIO: { etiqueta: 'Servicio', icono: HeartHandshake, permisos: ['GESTIONAR_ANIMALES'] },
-  TACTO: { etiqueta: 'Tacto', icono: ScanSearch, permisos: ['REGISTRAR_SANIDAD'] },
+  SERVICIO: {
+    etiqueta: 'Servicio',
+    icono: HeartHandshake,
+    permisos: ['GESTIONAR_ANIMALES'],
+    resumen: (d) => resumenServicio(d as unknown as ServicioDatos),
+  },
+  TACTO: {
+    etiqueta: 'Tacto',
+    icono: ScanSearch,
+    permisos: ['REGISTRAR_SANIDAD'],
+    resumen: (d) => resumenTacto(d as unknown as TactoDatos),
+  },
   TRATAMIENTO: {
     etiqueta: 'Tratamiento',
     icono: Syringe,

@@ -174,18 +174,12 @@ class EventoControllerTest {
     }
 
     @Test
-    void tipoInexistenteDevuelve400YTipoTodaviaNoDisponible422() throws Exception {
+    void tipoInexistenteDevuelve400() throws Exception {
+        // Con servicio y tacto (#19) ya no quedan tipos sin handler: el 422 de "todavía no está
+        // disponible" de EventoService no tiene caso para probar hasta que se agregue un tipo nuevo.
         var invalido = observacion(HOY, "X", List.of());
         invalido.put("tipo", "INVENTADO");
         api.post(token, eventos(), invalido).andExpect(status().isBadRequest());
-
-        // SERVICIO ya existe como tipo, pero su handler todavía no está hecho (cuando llegue, usar otro tipo sin handler)
-        String vaca = crearAnimal("V-1", "HEMBRA", "VACA");
-        var servicio = observacion(HOY, "X", List.of(vaca));
-        servicio.put("tipo", "SERVICIO");
-        api.post(token, eventos(), servicio)
-            .andExpect(status().isUnprocessableEntity())
-            .andExpect(jsonPath("$.message").value("El evento Servicio todavía no está disponible"));
     }
 
     @Test

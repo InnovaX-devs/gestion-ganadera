@@ -1,3 +1,4 @@
+import type { EstadoReproductivo } from '@/features/reproduccion/types'
 import type { Carencia } from '@/features/sanidad/types'
 
 export type Sexo = 'HEMBRA' | 'MACHO'
@@ -34,6 +35,8 @@ export interface Animal {
   createdAt: string
   /** Solo si está en período de carencia por un tratamiento (#20). */
   carencia?: Carencia | null
+  /** Solo en vacas y vaquillonas (#19). Sin conexión no viene: sale de los eventos en el servidor. */
+  estadoReproductivo?: EstadoReproductivo | null
 }
 
 export interface AnimalInput {
