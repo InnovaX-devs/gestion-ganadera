@@ -70,6 +70,10 @@ app:
     dolar-api-url: ${MERCADO_DOLAR_API_URL:https://dolarapi.com/v1}
     pizarra-rosario-url: ${MERCADO_PIZARRA_ROSARIO_URL:https://www.cac.bcr.com.ar/es/precios-de-pizarra}
     timeout: ${MERCADO_TIMEOUT:15s}
+  sync:
+    # App offline (issue #30). El pull no entrega filas de los últimos `margen`: ver docs/sync.md.
+    margen: ${SYNC_MARGEN:10s}
+    limite-por-defecto: ${SYNC_LIMITE:500}
   clima:
     # Open-Meteo (issue #29). La API gratuita es para uso no comercial: ver docs/clima.md.
     # Plan comercial: CLIMA_URL=https://customer-api.open-meteo.com/v1 y OPEN_METEO_API_KEY.

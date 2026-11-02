@@ -1,7 +1,12 @@
 package com.innovax.ganadera.animal;
 
 import java.time.Clock;
+import java.time.Instant;
 import java.time.LocalDate;
+import java.time.format.DateTimeParseException;
+import java.time.temporal.ChronoUnit;
+import java.util.ArrayList;
+import java.util.EnumMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
@@ -15,6 +20,7 @@ import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.innovax.ganadera.agrupacion.Lote;
 import com.innovax.ganadera.agrupacion.LoteRepository;
@@ -149,10 +155,132 @@ public class AnimalService {
         autorizacion.exigir(establecimientoId, Permiso.GESTIONAR_ANIMALES);
         Animal animal = buscar(establecimientoId, id);
         Categoria categoriaAnterior = animal.getCategoria();
+        Map<CampoAnimal, Object> antes = valoresDeFicha(animal);
         aplicar(request, animal);
+        marcarCambios(animal, antes, reloj.instant().truncatedTo(ChronoUnit.MILLIS));
         Animal guardado = repository.saveAndFlush(animal);
         categoriaService.registrarCambioManual(guardado, categoriaAnterior);
         return conCarencia(establecimientoId, guardado);
+    }
+
+    // ---------- Sincronización (#30) ----------
+
+    /**
+     * Resultado de aplicar una edición hecha sin conexión: los campos que quedaron y los que se
+     * descartaron porque en el servidor había un cambio más nuevo de ese mismo campo.
+     */
+    public record ResultadoCambios(List<String> aplicados, List<String> descartados) {
+    }
+
+    /**
+     * Aplica una edición de la ficha hecha en el celular, con last-write-wins por campo: cada campo
+     * se aplica solo si {@code modificadoEn} es posterior a su última modificación en el servidor.
+     * Así dos personas que editan campos distintos del mismo animal no se pisan. Un
+     * {@code modificadoEn} en el futuro (reloj del celular adelantado) se toma como "ahora".
+     *
+     * @param cambios nombre del campo ({@link CampoAnimal#nombre()}) y su valor nuevo
+     * @throws BusinessException si algún valor es inválido: no se aplica ninguno
+     */
+    @Transactional
+    public ResultadoCambios aplicarCambiosSincronizados(UUID establecimientoId, UUID animalId,
+                                                       Map<String, JsonNode> cambios, Instant modificadoEn) {
+        autorizacion.exigir(establecimientoId, Permiso.GESTIONAR_ANIMALES);
+        Animal animal = buscar(establecimientoId, animalId);
+        if (cambios == null || cambios.isEmpty()) {
+            throw new BusinessException("No hay cambios para aplicar");
+        }
+        Map<CampoAnimal, JsonNode> porCampo = new EnumMap<>(CampoAnimal.class);
+        cambios.forEach((nombre, valor) -> porCampo.put(
+            CampoAnimal.deNombre(nombre).orElseThrow(() ->
+                new BusinessException("El campo \"" + nombre + "\" no se puede editar sin conexión")),
+            valor));
+
+        // En milisegundos, como se guardan las versiones: así reenviar la misma edición no la repite
+        Instant ahora = reloj.instant().truncatedTo(ChronoUnit.MILLIS);
+        Instant cuando = modificadoEn == null || modificadoEn.isAfter(ahora)
+            ? ahora : modificadoEn.truncatedTo(ChronoUnit.MILLIS);
+        List<String> aplicados = new ArrayList<>();
+        List<String> descartados = new ArrayList<>();
+        for (var entrada : porCampo.entrySet()) {
+            CampoAnimal campo = entrada.getKey();
+            // Empate: gana lo que ya está en el servidor
+            if (!cuando.isAfter(animal.versionDe(campo))) {
+                descartados.add(campo.nombre());
+                continue;
+            }
+            asignarCampo(animal, campo, entrada.getValue());
+            animal.marcarVersion(campo, cuando);
+            aplicados.add(campo.nombre());
+        }
+        if (animal.getFechaNacimiento() == null) {
+            animal.setFechaNacimientoEstimada(false);
+        }
+        if (aplicados.contains(CampoAnimal.CARAVANA.nombre())
+                || aplicados.contains(CampoAnimal.CARAVANA_ELECTRONICA.nombre())) {
+            validarCaravanas(animal);
+        }
+        repository.saveAndFlush(animal);
+        return new ResultadoCambios(aplicados, descartados);
+    }
+
+    private static Map<CampoAnimal, Object> valoresDeFicha(Animal animal) {
+        Map<CampoAnimal, Object> valores = new EnumMap<>(CampoAnimal.class);
+        for (CampoAnimal campo : CampoAnimal.values()) {
+            valores.put(campo, campo.valorEn(animal));
+        }
+        return valores;
+    }
+
+    /** Lo editado desde la web también cuenta como versión, para que el celular no lo pise con algo más viejo. */
+    private static void marcarCambios(Animal animal, Map<CampoAnimal, Object> antes, Instant cuando) {
+        antes.forEach((campo, valorAnterior) -> {
+            if (campo.cambio(animal, valorAnterior)) animal.marcarVersion(campo, cuando);
+        });
+    }
+
+    private void asignarCampo(Animal animal, CampoAnimal campo, JsonNode valor) {
+        switch (campo) {
+            case CARAVANA -> {
+                String caravana = texto(valor, campo, 30);
+                if (caravana == null) throw new BusinessException("La caravana no puede quedar vacía");
+                animal.setCaravana(caravana);
+            }
+            case CARAVANA_ELECTRONICA -> animal.setCaravanaElectronica(texto(valor, campo, 30));
+            case RAZA -> animal.setRaza(texto(valor, campo, 50));
+            case OBSERVACIONES -> animal.setObservaciones(texto(valor, campo, 500));
+            case FECHA_NACIMIENTO -> {
+                String fecha = texto(valor, campo, 10);
+                LocalDate nacimiento;
+                try {
+                    nacimiento = fecha == null ? null : LocalDate.parse(fecha);
+                } catch (DateTimeParseException e) {
+                    throw new BusinessException("La fecha de nacimiento no es válida");
+                }
+                if (nacimiento != null && nacimiento.isAfter(LocalDate.now(reloj))) {
+                    throw new BusinessException("La fecha de nacimiento no puede ser futura");
+                }
+                animal.setFechaNacimiento(nacimiento);
+            }
+            case FECHA_NACIMIENTO_ESTIMADA -> {
+                if (valor == null || !valor.isBoolean()) {
+                    throw new BusinessException("fechaNacimientoEstimada tiene que ser true o false");
+                }
+                animal.setFechaNacimientoEstimada(valor.booleanValue());
+            }
+        }
+    }
+
+    /** Texto recortado; vacío o null queda en null. */
+    private static String texto(JsonNode valor, CampoAnimal campo, int maximo) {
+        if (valor == null || valor.isNull()) return null;
+        if (!valor.isTextual()) {
+            throw new BusinessException("El valor de " + campo.nombre() + " tiene que ser texto");
+        }
+        String limpio = valor.asText().trim();
+        if (limpio.length() > maximo) {
+            throw new BusinessException("Máximo " + maximo + " caracteres en " + campo.nombre());
+        }
+        return limpio.isEmpty() ? null : limpio;
     }
 
     /** Borrado definitivo, solo para corregir una carga equivocada. No se puede si tiene crías o eventos. */

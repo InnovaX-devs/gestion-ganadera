@@ -15,3 +15,6 @@ app:
   mercado:
     # Los tests no salen a internet: usan fuentes falsas (ver MercadoControllerTest)
     fuentes-externas: false
+  sync:
+    # En los tests lo recién guardado se tiene que ver enseguida
+    margen: 0s
