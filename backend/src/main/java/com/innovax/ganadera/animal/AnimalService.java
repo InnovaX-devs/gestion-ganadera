@@ -7,6 +7,7 @@ import java.time.format.DateTimeParseException;
 import java.time.temporal.ChronoUnit;
 import java.util.ArrayList;
 import java.util.EnumMap;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
@@ -44,8 +45,8 @@ import com.innovax.ganadera.evento.dto.EventoRequest;
 import com.innovax.ganadera.evento.tipos.MovimientoDatos;
 import com.innovax.ganadera.membresia.AutorizacionService;
 import com.innovax.ganadera.membresia.Permiso;
+import com.innovax.ganadera.reproduccion.EstadoReproductivoService;
 import com.innovax.ganadera.sanidad.CarenciaService;
-import com.innovax.ganadera.sanidad.dto.CarenciaResponse;
 
 import lombok.RequiredArgsConstructor;
 
@@ -68,6 +69,7 @@ public class AnimalService {
     private final CategoriaService categoriaService;
     private final EventoRepository eventoRepository;
     private final CarenciaService carenciaService;
+    private final EstadoReproductivoService estadoReproductivoService;
     private final EventoService eventoService;
     private final ObjectMapper objectMapper;
     private final Clock reloj;
@@ -79,8 +81,8 @@ public class AnimalService {
         establecimientoActivo(establecimientoId);
         var pageable = PageRequest.of(filtro.paginaValida(), filtro.tamanioValido(), Sort.by("caravana"));
         var pagina = repository.findAll(AnimalSpecs.de(establecimientoId, filtro), pageable);
-        var carencias = carenciaService.deAnimales(establecimientoId, pagina.map(Animal::getId).getContent());
-        return PaginaResponse.de(pagina, a -> AnimalResponse.from(a, carencias.get(a.getId())));
+        var respuestas = respuestas(establecimientoId, pagina.getContent());
+        return PaginaResponse.de(pagina, a -> respuestas.get(a.getId()));
     }
 
     /**
@@ -128,7 +130,7 @@ public class AnimalService {
     @Transactional(readOnly = true)
     public AnimalResponse obtener(UUID establecimientoId, UUID id) {
         autorizacion.exigir(establecimientoId, Permiso.VER);
-        return conCarencia(establecimientoId, buscar(establecimientoId, id));
+        return completa(establecimientoId, buscar(establecimientoId, id));
     }
 
     @Transactional(readOnly = true)
@@ -136,9 +138,8 @@ public class AnimalService {
         autorizacion.exigir(establecimientoId, Permiso.VER);
         buscar(establecimientoId, id);
         List<Animal> crias = repository.buscarCrias(id);
-        Map<UUID, CarenciaResponse> carencias =
-            carenciaService.deAnimales(establecimientoId, crias.stream().map(Animal::getId).toList());
-        return crias.stream().map(a -> AnimalResponse.from(a, carencias.get(a.getId()))).toList();
+        Map<UUID, AnimalResponse> respuestas = respuestas(establecimientoId, crias);
+        return crias.stream().map(a -> respuestas.get(a.getId())).toList();
     }
 
     @Transactional
@@ -147,7 +148,7 @@ public class AnimalService {
         Establecimiento establecimiento = establecimientoActivo(establecimientoId);
         Animal animal = new Animal(establecimiento, request.caravana(), request.sexo(), request.categoria());
         aplicar(request, animal);
-        return AnimalResponse.from(repository.save(animal));
+        return completa(establecimientoId, repository.save(animal));
     }
 
     @Transactional
@@ -160,7 +161,7 @@ public class AnimalService {
         marcarCambios(animal, antes, reloj.instant().truncatedTo(ChronoUnit.MILLIS));
         Animal guardado = repository.saveAndFlush(animal);
         categoriaService.registrarCambioManual(guardado, categoriaAnterior);
-        return conCarencia(establecimientoId, guardado);
+        return completa(establecimientoId, guardado);
     }
 
     // ---------- Sincronización (#30) ----------
@@ -298,9 +299,19 @@ public class AnimalService {
         repository.delete(animal);
     }
 
-    private AnimalResponse conCarencia(UUID establecimientoId, Animal animal) {
-        return AnimalResponse.from(animal, carenciaService.deAnimales(establecimientoId, List.of(animal.getId()))
-            .get(animal.getId()));
+    private AnimalResponse completa(UUID establecimientoId, Animal animal) {
+        return respuestas(establecimientoId, List.of(animal)).get(animal.getId());
+    }
+
+    /** Respuestas con lo que sale de los eventos: carencia (#20) y estado reproductivo (#19). Por id. */
+    private Map<UUID, AnimalResponse> respuestas(UUID establecimientoId, List<Animal> animales) {
+        var carencias = carenciaService.deAnimales(establecimientoId, animales.stream().map(Animal::getId).toList());
+        var reproductivos = estadoReproductivoService.deAnimales(animales);
+        Map<UUID, AnimalResponse> respuestas = new HashMap<>();
+        for (Animal a : animales) {
+            respuestas.put(a.getId(), AnimalResponse.from(a, carencias.get(a.getId()), reproductivos.get(a.getId())));
+        }
+        return respuestas;
     }
 
     // ---------- Reglas ----------

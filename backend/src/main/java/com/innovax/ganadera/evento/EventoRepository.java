@@ -47,6 +47,18 @@ public interface EventoRepository extends JpaRepository<Evento, UUID>, JpaSpecif
                                        @Param("animalIds") Collection<UUID> animalIds,
                                        @Param("desde") LocalDate desde);
 
+    /**
+     * Todos los eventos no anulados de esos tipos y animales, de cualquier fecha. De acá sale el
+     * estado reproductivo (ver EstadoReproductivoService). Como {@link #buscarDeAnimalesDesde}, no
+     * filtra por establecimiento.
+     */
+    @Query("""
+        select e from Evento e
+        where e.tipo in :tipos and e.deletedAt is null and e.animal.id in :animalIds
+        """)
+    List<Evento> buscarDeAnimales(@Param("tipos") Collection<TipoEvento> tipos,
+                                  @Param("animalIds") Collection<UUID> animalIds);
+
     boolean existsByOperacionId(UUID operacionId);
 
     boolean existsByAnimalIdAndDeletedAtIsNull(UUID animalId);
