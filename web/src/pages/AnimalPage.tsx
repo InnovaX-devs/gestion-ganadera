@@ -34,6 +34,11 @@ import { MovimientoDialog } from '@/features/movimientos/MovimientoDialog'
 import { Ganancia } from '@/features/pesajes/Ganancia'
 import { PesajeDialog } from '@/features/pesajes/PesajeDialog'
 import { usePesajes } from '@/features/pesajes/queries'
+import { EstadoReproductivoBadge } from '@/features/reproduccion/EstadoReproductivoBadge'
+import { Reproduccion } from '@/features/reproduccion/Reproduccion'
+import { ServicioDialog } from '@/features/reproduccion/ServicioDialog'
+import { TactoDialog } from '@/features/reproduccion/TactoDialog'
+import { esHembraDeCria } from '@/features/reproduccion/config'
 import { CarenciaBadge } from '@/features/sanidad/CarenciaBadge'
 import { TratamientoDialog } from '@/features/sanidad/TratamientoDialog'
 import { formatearDiasCarencia } from '@/features/sanidad/config'
@@ -48,6 +53,8 @@ import { getErrorMessage } from '@/lib/api'
  */
 const REGISTRABLES: { tipo: TipoEvento; aplica: (animal: Animal) => boolean }[] = [
   { tipo: 'NACIMIENTO', aplica: (a) => a.sexo === 'HEMBRA' },
+  { tipo: 'SERVICIO', aplica: esHembraDeCria },
+  { tipo: 'TACTO', aplica: esHembraDeCria },
   { tipo: 'PESAJE', aplica: () => true },
   { tipo: 'MOVIMIENTO', aplica: () => true },
   { tipo: 'TRATAMIENTO', aplica: () => true },
@@ -140,6 +147,7 @@ function Ficha({
               {animal.caravana}
             </h1>
             <CategoriaBadge animal={animal} />
+            <EstadoReproductivoBadge estado={animal.estadoReproductivo} />
             <CarenciaBadge carencia={animal.carencia} />
             {animal.estado !== 'ACTIVO' && (
               <span className="rounded-full bg-stone-200 px-2 py-0.5 text-xs font-medium text-stone-700 dark:bg-stone-800 dark:text-stone-300">
@@ -181,6 +189,8 @@ function Ficha({
             )}
           </Tarjeta>
 
+          {animal.estadoReproductivo && <Reproduccion estado={animal.estadoReproductivo} />}
+
           {animal.carencia && <Carencia carencia={animal.carencia} />}
 
           <Tarjeta titulo="Ubicación">
@@ -217,6 +227,18 @@ function Ficha({
         establecimientoId={establecimientoId}
         open={registrando === 'NACIMIENTO'}
         madre={{ id: animal.id, caravana: animal.caravana }}
+        onClose={() => setRegistrando(null)}
+      />
+      <ServicioDialog
+        establecimientoId={establecimientoId}
+        open={registrando === 'SERVICIO'}
+        hembra={{ id: animal.id, caravana: animal.caravana }}
+        onClose={() => setRegistrando(null)}
+      />
+      <TactoDialog
+        establecimientoId={establecimientoId}
+        open={registrando === 'TACTO'}
+        hembra={{ id: animal.id, caravana: animal.caravana }}
         onClose={() => setRegistrando(null)}
       />
       <PesajeDialog
@@ -297,9 +319,6 @@ function MenuRegistrar({
               </button>
             )
           })}
-          <p className="px-3 pt-1 pb-2 text-xs text-stone-500">
-            Pesajes y el resto, a medida que se habiliten.
-          </p>
         </div>
       )}
     </div>
