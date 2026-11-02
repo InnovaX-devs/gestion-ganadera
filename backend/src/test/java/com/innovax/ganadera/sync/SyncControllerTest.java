@@ -39,6 +39,9 @@ import com.innovax.ganadera.support.DbCleaner;
 @ActiveProfiles("test")
 class SyncControllerTest {
 
+    /** Ayer en cualquier zona horaria: "hoy" puede ser mañana para el servidor si el test corre de noche en UTC. */
+    private static final String AYER = LocalDate.now().minusDays(1).toString();
+
     @Autowired
     private MockMvc mockMvc;
 
@@ -157,7 +160,7 @@ class SyncControllerTest {
 
         api.delete(token, "/api/establecimientos/" + est + "/animales/" + borrado).andExpect(status().isNoContent());
         String movimiento = api.leer(api.post(token, eventos(est), Map.of(
-                "tipo", "MOVIMIENTO", "fecha", LocalDate.now().toString(), "animalIds", List.of(trasladado),
+                "tipo", "MOVIMIENTO", "fecha", AYER, "animalIds", List.of(trasladado),
                 "datos", Map.of("establecimientoDestinoId", otro)))
             .andExpect(status().isCreated()), "operacionId");
 
@@ -227,7 +230,7 @@ class SyncControllerTest {
 
         JsonNode r = sync(Map.of("establecimientoId", est, "operaciones", List.of(Map.of(
             "id", UUID.randomUUID().toString(), "tipo", "REGISTRAR_EVENTOS_POR_ANIMAL", "eventoTipo", "PESAJE",
-            "fecha", LocalDate.now().toString(),
+            "fecha", AYER,
             "items", List.of(Map.of("animalId", a1, "datos", Map.of("kg", 310)),
                 Map.of("animalId", a2, "datos", Map.of("kg", 295.5)))))));
 
@@ -394,7 +397,7 @@ class SyncControllerTest {
 
     private static Map<String, Object> registrarObservacion(String id, String animal, String texto) {
         return Map.of("id", id, "tipo", "REGISTRAR_EVENTO", "evento", Map.of(
-            "tipo", "OBSERVACION", "fecha", LocalDate.now().toString(), "animalIds", List.of(animal),
+            "tipo", "OBSERVACION", "fecha", AYER, "animalIds", List.of(animal),
             "datos", Map.of("texto", texto)));
     }
 
@@ -405,7 +408,7 @@ class SyncControllerTest {
 
     private String observacion(String animal, String texto) throws Exception {
         return api.leer(api.post(token, eventos(est), Map.of("tipo", "OBSERVACION",
-                "fecha", LocalDate.now().toString(), "animalIds", List.of(animal), "datos", Map.of("texto", texto)))
+                "fecha", AYER, "animalIds", List.of(animal), "datos", Map.of("texto", texto)))
             .andExpect(status().isCreated()), "operacionId");
     }
 
