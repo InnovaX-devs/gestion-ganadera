@@ -66,6 +66,8 @@ app:
     cotizaciones-cron: ${JOB_COTIZACIONES_CRON:0 0 19 * * *}
     # Aviso diario de alertas sanitarias por email (issue #34)
     alertas-cron: ${JOB_ALERTAS_CRON:0 0 7 * * *}
+    # Suscripciones vencidas (sin pago ni gracia): la cuenta queda sin uso pago (issue #35)
+    suscripciones-cron: ${JOB_SUSCRIPCIONES_CRON:0 0 4 * * *}
   mercado:
     # false: no se consulta ninguna fuente externa (los tests usan fuentes falsas)
     fuentes-externas: ${MERCADO_FUENTES_EXTERNAS:true}
@@ -75,6 +77,40 @@ app:
   alertas:
     # Cuántos días hacia adelante se consideran "próximos" (calendario sanitario, issue #34)
     dias-proximos: ${ALERTAS_DIAS_PROXIMOS:7}
+  admin:
+    # Panel de administración del equipo de Innovax (/admin en la web): cuentas, planes, suspensiones.
+    # Se entra con uno de estos emails (separados por coma) y ADMIN_PASSWORD. Sin contraseña, el panel está cerrado.
+    emails: ${ADMIN_EMAILS:}
+    password: ${ADMIN_PASSWORD:}
+    # Cuánto dura la sesión del panel antes de pedir la contraseña de nuevo
+    sesion: ${ADMIN_SESION:8h}
+  planes:
+    # Planes y límites (issue #35). Una organización nueva tiene estos días de prueba gratis...
+    dias-prueba: ${PLAN_DIAS_PRUEBA:30}
+    # ...con los límites de este plan (INICIAL, PRODUCTOR o EMPRESA). Al terminar, rige su plan contratado.
+    plan-prueba: ${PLAN_PRUEBA:PRODUCTOR}
+  cobro:
+    # Suscripciones con Mercado Pago (issue #35): ver docs/planes.md.
+    # Access Token de la aplicación (Tus integraciones → Credenciales). Vacío = pago online apagado.
+    mp-access-token: ${MP_ACCESS_TOKEN:}
+    # Clave secreta de los webhooks (Tus integraciones → Webhooks). Vacía = no se valida la firma.
+    mp-webhook-secret: ${MP_WEBHOOK_SECRET:}
+    mp-api-url: ${MP_API_URL:https://api.mercadopago.com}
+    # A dónde vuelve el cliente después de pagar
+    back-url: ${MP_BACK_URL:${APP_WEB_URL:http://localhost:5173}/plan}
+    # Solo para probar: Mercado Pago exige que el pagador sea un usuario de prueba (email @testuser.com)
+    email-pagador-prueba: ${MP_EMAIL_PAGADOR_PRUEBA:}
+    moneda: ${MP_MONEDA:ARS}
+    # Si no se puede cobrar, el plan sigue estos días después de lo pago; después baja a Inicial
+    dias-gracia: ${COBRO_DIAS_GRACIA:7}
+    # Ningún plan es gratis: sin prueba, suscripción al día ni pago manual, la cuenta queda en solo lectura.
+    # En false no se bloquea a nadie (por ejemplo, para lanzar el cobro sin cortar cuentas existentes).
+    exigir-pago: ${COBRO_EXIGIR_PAGO:true}
+    cache-estado: ${COBRO_CACHE_ESTADO:30s}
+    # Pago manual (transferencia): se paga del 1 a este día de cada mes. "Registrar pago" en el panel
+    # deja la cuenta pagada hasta este día del mes siguiente; el día después queda en solo lectura.
+    dia-vencimiento-manual: ${COBRO_DIA_VENCIMIENTO:10}
+    timeout: ${MP_TIMEOUT:15s}
   sync:
     # App offline (issue #30). El pull no entrega filas de los últimos `margen`: ver docs/sync.md.
     margen: ${SYNC_MARGEN:10s}

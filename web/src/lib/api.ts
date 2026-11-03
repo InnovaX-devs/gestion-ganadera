@@ -10,6 +10,8 @@ export interface ApiError {
   message: string
   path: string
   fieldErrors?: { field: string; message: string }[]
+  /** Para reconocer errores puntuales sin leer el mensaje (ej: LIMITE_PLAN, #35) */
+  codigo?: string
 }
 
 export const api = axios.create({
@@ -22,8 +24,13 @@ export const api = axios.create({
 const RUTAS_PUBLICAS = ['/auth/login', '/auth/register', '/auth/refresh']
 // Ver y registrarse desde el link de una invitación (aceptar, en cambio, sí lleva el token)
 const RUTA_INVITACION_PUBLICA = /^\/invitaciones\/[^/]+(\/registro)?$/
+// Link para activar una cuenta creada desde el panel de administración (#35)
+const RUTA_ACTIVACION = /^\/activacion\/[^/]+$/
 const esRutaPublica = (url?: string) =>
-  !!url && (RUTAS_PUBLICAS.some((ruta) => url.endsWith(ruta)) || RUTA_INVITACION_PUBLICA.test(url))
+  !!url &&
+  (RUTAS_PUBLICAS.some((ruta) => url.endsWith(ruta)) ||
+    RUTA_INVITACION_PUBLICA.test(url) ||
+    RUTA_ACTIVACION.test(url))
 
 api.interceptors.request.use((config) => {
   const token = authStorage.getAccessToken()
@@ -40,6 +47,13 @@ let onSessionExpired: (() => void) | null = null
 /** Lo registra AuthProvider para enterarse cuando la sesión venció del todo. */
 export function setOnSessionExpired(callback: (() => void) | null) {
   onSessionExpired = callback
+}
+
+let onPagoRequerido: (() => void) | null = null
+
+/** Lo registra la app para enterarse cuando la cuenta queda en solo lectura por falta de pago (402). */
+export function setOnPagoRequerido(callback: (() => void) | null) {
+  onPagoRequerido = callback
 }
 
 // Si varios requests reciben 401 a la vez, se hace un solo refresh y todos esperan ese.
@@ -74,6 +88,8 @@ api.interceptors.response.use(
       !original._reintentado &&
       !esRutaPublica(original.url)
 
+    // Cuenta en solo lectura por falta de pago (#35): se refresca el plan para mostrar el aviso
+    if (error.response?.data?.codigo === 'PAGO_REQUERIDO') onPagoRequerido?.()
     if (!puedeReintentar) return Promise.reject(error)
 
     original._reintentado = true
@@ -101,6 +117,11 @@ export function getErrorMessage(error: unknown): string {
     if (!error.response) return 'No se pudo conectar con el servidor'
   }
   return 'Ocurrió un error inesperado'
+}
+
+/** Se llegó a un límite del plan (animales, establecimientos o usuarios, #35). */
+export function esLimitePlan(error: unknown): boolean {
+  return axios.isAxiosError<ApiError>(error) && error.response?.data?.codigo === 'LIMITE_PLAN'
 }
 
 /** Errores de validación por campo: { email: 'El email no es válido', ... } */

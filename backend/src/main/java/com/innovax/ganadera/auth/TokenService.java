@@ -3,6 +3,7 @@ package com.innovax.ganadera.auth;
 import java.time.Duration;
 import java.time.Instant;
 import java.util.UUID;
+import java.util.function.Predicate;
 
 import javax.crypto.SecretKey;
 
@@ -38,6 +39,8 @@ public class TokenService {
 
     public static final String TIPO_ACCESS = "access";
     public static final String TIPO_REFRESH = "refresh";
+    /** Sesión del panel de administración: el subject es el email y no lleva organización. */
+    public static final String TIPO_ADMIN = "admin";
 
     static final String CLAIM_TIPO = "type";
     static final String CLAIM_ORGANIZACION = "org";
@@ -61,6 +64,25 @@ public class TokenService {
             firmar(usuario, TIPO_ACCESS, properties.accessTokenTtl()),
             firmar(usuario, TIPO_REFRESH, properties.refreshTokenTtl()),
             properties.accessTokenTtl().toSeconds());
+    }
+
+    /** Token del panel de administración (sin refresh: al vencer se vuelve a ingresar). */
+    public String generarAdmin(String email, Duration duracion) {
+        Instant ahora = Instant.now();
+        JwtClaimsSet claims = JwtClaimsSet.builder()
+            .id(UUID.randomUUID().toString())
+            .subject(email)
+            .issuedAt(ahora)
+            .expiresAt(ahora.plus(duracion))
+            .claim(CLAIM_TIPO, TIPO_ADMIN)
+            .build();
+        JwsHeader header = JwsHeader.with(MacAlgorithm.HS256).build();
+        return encoder.encode(JwtEncoderParameters.from(header, claims)).getTokenValue();
+    }
+
+    /** Si el token (ya validado) es del panel de administración. */
+    public static boolean esAdmin(Jwt jwt) {
+        return TIPO_ADMIN.equals(jwt.getClaimAsString(CLAIM_TIPO));
     }
 
     /**
@@ -97,12 +119,29 @@ public class TokenService {
 
     /** Decoder que valida firma, vencimiento y que el token sea del tipo indicado. */
     static JwtDecoder decoderPara(SecretKey key, String tipoEsperado) {
-        NimbusJwtDecoder decoder = JwtConfig.baseDecoder(key);
-        OAuth2TokenValidator<Jwt> tipoValidator = jwt -> tipoEsperado.equals(jwt.getClaimAsString(CLAIM_TIPO))
+        return decoder(key, jwt -> esDeUsuario(jwt, tipoEsperado));
+    }
+
+    /**
+     * Decoder de cada request: acepta el access token de un usuario o el del panel de
+     * administración. Qué puede hacer cada uno lo decide {@code SecurityConfig} por rol.
+     */
+    static JwtDecoder decoderDeRequests(SecretKey key) {
+        return decoder(key, jwt -> esDeUsuario(jwt, TIPO_ACCESS)
+            || (TIPO_ADMIN.equals(jwt.getClaimAsString(CLAIM_TIPO)) && jwt.getSubject() != null));
+    }
+
+    private static boolean esDeUsuario(Jwt jwt, String tipo) {
+        return tipo.equals(jwt.getClaimAsString(CLAIM_TIPO))
             && jwt.getSubject() != null
-            && jwt.getClaimAsString(CLAIM_ORGANIZACION) != null
-                ? OAuth2TokenValidatorResult.success()
-                : OAuth2TokenValidatorResult.failure(new OAuth2Error("invalid_token", "Tipo de token inválido", null));
+            && jwt.getClaimAsString(CLAIM_ORGANIZACION) != null;
+    }
+
+    private static JwtDecoder decoder(SecretKey key, Predicate<Jwt> valido) {
+        NimbusJwtDecoder decoder = JwtConfig.baseDecoder(key);
+        OAuth2TokenValidator<Jwt> tipoValidator = jwt -> valido.test(jwt)
+            ? OAuth2TokenValidatorResult.success()
+            : OAuth2TokenValidatorResult.failure(new OAuth2Error("invalid_token", "Tipo de token inválido", null));
         decoder.setJwtValidator(new DelegatingOAuth2TokenValidator<>(JwtValidators.createDefault(), tipoValidator));
         return decoder;
     }

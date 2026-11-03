@@ -20,7 +20,8 @@ import com.nimbusds.jose.jwk.source.ImmutableSecret;
  * Firma y validación de JWT con HS256 (clave simétrica).
  *
  * <p>El único {@link JwtDecoder} registrado como bean es el de access tokens: es el que usa Spring
- * Security para autenticar cada request. Los refresh tokens se validan aparte en {@link TokenService}.
+ * Security para autenticar cada request (access token de un usuario o
+ * sesión del panel de administración). Los refresh tokens se validan aparte en {@link TokenService}.
  */
 @Configuration
 @EnableConfigurationProperties(JwtProperties.class)
@@ -45,7 +46,7 @@ public class JwtConfig {
 
     @Bean
     JwtDecoder jwtDecoder(SecretKey jwtSecretKey) {
-        return TokenService.decoderPara(jwtSecretKey, TokenService.TIPO_ACCESS);
+        return TokenService.decoderDeRequests(jwtSecretKey);
     }
 
     static NimbusJwtDecoder baseDecoder(SecretKey key) {

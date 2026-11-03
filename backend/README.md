@@ -273,6 +273,16 @@ GET /api/mercado/historico?producto=NOVILLO&producto=TERNERO&desde=2026-10-01&ha
 
 Tratamientos planificados por lote, rodeo o establecimiento (`/api/establecimientos/{id}/plan-sanitario`), alertas de tratamientos vencidos o próximos y de vencimientos de carencia (`/alertas`), y un aviso diario por email (`AlertasJob`, a las 7). Detalle: [`docs/calendario-sanitario.md`](../docs/calendario-sanitario.md).
 
+## Planes (#35)
+
+`GET /api/plan` devuelve el plan que rige, la prueba gratis y el uso. Para limitar algo nuevo que agregue datos: `planService.exigirLugarParaAnimales(n)`, `exigirLugarParaEstablecimiento()` o `exigirLugarParaInvitar(email)` antes de guardar. Detalle en [`docs/planes.md`](../docs/planes.md).
+
+Panel de administración del equipo de Innovax (`/api/admin/**`): tiene su propio login (`POST /api/admin/auth/login` con un email de `ADMIN_EMAILS` y `ADMIN_PASSWORD`), separado de las cuentas de los clientes. Ese token tiene rol ADMIN y solo sirve para `/api/admin/**`; el de un usuario tiene rol USUARIO y no entra al panel.
+
+En los tests las cuentas arrancan sin límites (`application-test.yml`); `PlanControllerTest` muestra cómo poner un plan.
+
+Suscripciones con Mercado Pago (paquete `cobro`): el cliente se suscribe desde Mi plan, Mercado Pago avisa por webhook (`/api/mercadopago/webhook`) y un job diario baja a Inicial las que se quedaron sin pago ni gracia. Configuración y cómo probarlo con cuentas de prueba en [`docs/planes.md`](../docs/planes.md). En los tests Mercado Pago es `FakeMercadoPago` (ver `SuscripcionTest`).
+
 ## Errores
 
 Toda la API responde los errores con este formato:

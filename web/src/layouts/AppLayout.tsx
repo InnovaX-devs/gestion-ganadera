@@ -1,6 +1,6 @@
 import { useCallback, useRef, useState } from 'react'
-import { NavLink, Outlet } from 'react-router'
-import { Download, LogOut, Menu, Moon, Sun, X } from 'lucide-react'
+import { Link, NavLink, Outlet } from 'react-router'
+import { BadgeCheck, Download, LogOut, Menu, Moon, Sun, X } from 'lucide-react'
 import { ConfirmDialog } from '@/components/ConfirmDialog'
 import { navigation } from '@/config/navigation'
 import { useAuth } from '@/features/auth/useAuth'
@@ -8,6 +8,7 @@ import { EstablecimientoActivoProvider } from '@/features/establecimientos/Estab
 import { EstablecimientoSelector } from '@/features/establecimientos/EstablecimientoSelector'
 import { BotonLector } from '@/features/lector/BotonLector'
 import { LectorProvider } from '@/features/lector/LectorProvider'
+import { AvisoPlan } from '@/features/plan/AvisoPlan'
 import { AvisoSinConexion } from '@/features/offline/AvisoSinConexion'
 import { usePendientes } from '@/features/offline/hooks'
 import { IndicadorSync } from '@/features/offline/IndicadorSync'
@@ -40,6 +41,7 @@ export function AppLayout() {
           <div className="flex min-w-0 flex-col">
             <Header onOpenMenu={() => setSidebarOpen(true)} />
             <AvisoSinConexion />
+            <AvisoPlan />
             <main className="flex-1 px-4 py-6 sm:px-6 lg:px-8">
               <Outlet />
             </main>
@@ -180,6 +182,15 @@ function UserMenu() {
             <p className="truncate text-xs text-stone-500">{usuario.email}</p>
             <p className="mt-1 truncate text-xs text-stone-500">{usuario.organizacionNombre}</p>
           </div>
+          <Link
+            to="/plan"
+            role="menuitem"
+            onClick={() => setAbierto(false)}
+            className="flex w-full items-center gap-2 px-4 py-2.5 text-left text-sm text-stone-700 hover:bg-stone-100 dark:text-stone-300 dark:hover:bg-stone-800"
+          >
+            <BadgeCheck className="size-4" />
+            Mi plan
+          </Link>
           {forma !== 'no' && (
             <button
               type="button"

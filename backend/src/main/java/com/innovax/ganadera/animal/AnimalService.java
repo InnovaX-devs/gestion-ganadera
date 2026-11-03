@@ -45,6 +45,7 @@ import com.innovax.ganadera.evento.dto.EventoRequest;
 import com.innovax.ganadera.evento.tipos.MovimientoDatos;
 import com.innovax.ganadera.membresia.AutorizacionService;
 import com.innovax.ganadera.membresia.Permiso;
+import com.innovax.ganadera.plan.PlanService;
 import com.innovax.ganadera.reproduccion.EstadoReproductivoService;
 import com.innovax.ganadera.sanidad.CarenciaService;
 
@@ -66,6 +67,7 @@ public class AnimalService {
     private final LoteRepository loteRepository;
     private final RodeoRepository rodeoRepository;
     private final AutorizacionService autorizacion;
+    private final PlanService planService;
     private final CategoriaService categoriaService;
     private final EventoRepository eventoRepository;
     private final CarenciaService carenciaService;
@@ -146,6 +148,7 @@ public class AnimalService {
     public AnimalResponse crear(UUID establecimientoId, AnimalRequest request) {
         autorizacion.exigir(establecimientoId, Permiso.GESTIONAR_ANIMALES);
         Establecimiento establecimiento = establecimientoActivo(establecimientoId);
+        planService.exigirLugarParaAnimales(1);
         Animal animal = new Animal(establecimiento, request.caravana(), request.sexo(), request.categoria());
         aplicar(request, animal);
         return completa(establecimientoId, repository.save(animal));

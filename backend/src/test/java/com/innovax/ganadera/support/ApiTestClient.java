@@ -23,6 +23,9 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 public class ApiTestClient {
 
     public static final String PASSWORD = "clave-segura-123";
+    /** Panel de administración: app.admin.* de application-test.yml */
+    public static final String ADMIN_EMAIL = "admin@innovax.test";
+    public static final String ADMIN_PASSWORD = "clave-admin-de-prueba";
 
     private final MockMvc mockMvc;
     private final ObjectMapper objectMapper;
@@ -43,6 +46,12 @@ public class ApiTestClient {
                 "email", email,
                 "password", PASSWORD))));
         return leer(result, "accessToken");
+    }
+
+    /** Entra al panel de administración y devuelve su token (rol ADMIN). */
+    public String loginAdmin() throws Exception {
+        return leer(post(null, "/api/admin/auth/login", Map.of("email", ADMIN_EMAIL, "password", ADMIN_PASSWORD)),
+            "accessToken");
     }
 
     public ResultActions get(String token, String url) throws Exception {

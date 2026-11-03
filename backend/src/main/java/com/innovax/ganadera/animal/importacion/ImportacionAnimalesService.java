@@ -42,6 +42,7 @@ import com.innovax.ganadera.establecimiento.Establecimiento;
 import com.innovax.ganadera.establecimiento.EstablecimientoRepository;
 import com.innovax.ganadera.membresia.AutorizacionService;
 import com.innovax.ganadera.membresia.Permiso;
+import com.innovax.ganadera.plan.PlanService;
 
 import lombok.RequiredArgsConstructor;
 
@@ -74,6 +75,7 @@ public class ImportacionAnimalesService {
     private final LoteRepository loteRepository;
     private final RodeoRepository rodeoRepository;
     private final AutorizacionService autorizacion;
+    private final PlanService planService;
     private final Clock reloj;
 
     @Transactional
@@ -82,6 +84,8 @@ public class ImportacionAnimalesService {
         Establecimiento establecimiento = establecimientoRepository.findByIdAndActivoTrue(establecimientoId)
             .orElseThrow(() -> NotFoundException.of("Establecimiento", establecimientoId));
 
+        // Antes de revisar fila por fila: si no entran en el plan, no tiene sentido corregir errores
+        planService.exigirLugarParaAnimales(request.filas().size());
         Revision revision = revisar(establecimientoId, request.filas());
         int validas = (int) revision.filas.stream().filter(f -> !revision.conError.contains(f.numero)).count();
 

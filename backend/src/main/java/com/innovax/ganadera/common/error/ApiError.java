@@ -13,13 +13,15 @@ public record ApiError(
     String error,
     String message,
     String path,
-    List<FieldError> fieldErrors
+    List<FieldError> fieldErrors,
+    /** Para que el cliente reconozca un error puntual sin leer el mensaje (ej: LIMITE_PLAN). */
+    String codigo
 ) {
 
     public record FieldError(String field, String message) {
     }
 
     public static ApiError of(int status, String error, String message, String path) {
-        return new ApiError(Instant.now(), status, error, message, path, List.of());
+        return new ApiError(Instant.now(), status, error, message, path, List.of(), null);
     }
 }
