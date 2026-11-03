@@ -49,6 +49,8 @@ function useInvalidar(establecimientoId: string) {
       queryClient.invalidateQueries({ queryKey: ['stock'] }),
       queryClient.invalidateQueries({ queryKey: ['agrupaciones'] }),
       queryClient.invalidateQueries({ queryKey: stockKey(establecimientoId) }),
+      // Un tratamiento cambia las carencias de las alertas sanitarias (#34)
+      queryClient.invalidateQueries({ queryKey: ['alertas', establecimientoId] }),
     ])
 }
 

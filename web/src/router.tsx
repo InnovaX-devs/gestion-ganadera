@@ -6,6 +6,7 @@ import { AgrupacionesPage } from '@/pages/AgrupacionesPage'
 import { ImportarAnimalesPage } from '@/pages/ImportarAnimalesPage'
 import { AnimalPage } from '@/pages/AnimalPage'
 import { AnimalesPage } from '@/pages/AnimalesPage'
+import { CalendarioSanitarioPage } from '@/pages/CalendarioSanitarioPage'
 import { EstablecimientosPage } from '@/pages/EstablecimientosPage'
 import { AceptarInvitacionPage } from '@/pages/AceptarInvitacionPage'
 import { InicioPage } from '@/pages/InicioPage'
@@ -19,8 +20,6 @@ import { PesajesPage } from '@/pages/PesajesPage'
 import { PlaceholderPage } from '@/pages/PlaceholderPage'
 import { RegisterPage } from '@/pages/RegisterPage'
 import { ReportesPage } from '@/pages/ReportesPage'
-import { ServiciosPage } from '@/pages/ServiciosPage'
-import { TactosPage } from '@/pages/TactosPage'
 import { TratamientosPage } from '@/pages/TratamientosPage'
 import { VentasPage } from '@/pages/VentasPage'
 
@@ -34,14 +33,13 @@ const IMPLEMENTADAS = new Set([
   '/invitaciones',
   '/observaciones',
   '/nacimientos',
-  '/servicios',
-  '/tactos',
   '/tratamientos',
   '/pesajes',
   '/movimientos',
   '/ventas',
   '/importar',
   '/reportes',
+  '/calendario-sanitario',
 ])
 
 // Secciones del menú que todavía no tienen página propia
@@ -84,13 +82,12 @@ export const router = createBrowserRouter([
           { path: 'animales/:animalId', element: <AnimalPage /> },
           { path: 'observaciones', element: <ObservacionesPage /> },
           { path: 'nacimientos', element: <NacimientosPage /> },
-          { path: 'servicios', element: <ServiciosPage /> },
-          { path: 'tactos', element: <TactosPage /> },
           { path: 'tratamientos', element: <TratamientosPage /> },
           { path: 'pesajes', element: <PesajesPage /> },
           { path: 'movimientos', element: <MovimientosPage /> },
           { path: 'ventas', element: <VentasPage /> },
           { path: 'reportes', element: <ReportesPage /> },
+          { path: 'calendario-sanitario', element: <CalendarioSanitarioPage /> },
           ...placeholderRoutes,
           { path: '*', element: <NotFoundPage /> },
         ],
