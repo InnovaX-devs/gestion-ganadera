@@ -21,6 +21,7 @@ import com.innovax.ganadera.membresia.Membresia;
 import com.innovax.ganadera.membresia.MembresiaRepository;
 import com.innovax.ganadera.membresia.Permiso;
 import com.innovax.ganadera.membresia.Rol;
+import com.innovax.ganadera.plan.PlanService;
 import com.innovax.ganadera.usuario.UsuarioRepository;
 
 import lombok.RequiredArgsConstructor;
@@ -43,6 +44,7 @@ public class EstablecimientoService {
     private final MembresiaRepository membresiaRepository;
     private final UsuarioRepository usuarioRepository;
     private final AutorizacionService autorizacion;
+    private final PlanService planService;
 
     @Transactional(readOnly = true)
     public List<EstablecimientoResponse> listar() {
@@ -61,6 +63,7 @@ public class EstablecimientoService {
 
     @Transactional
     public EstablecimientoResponse crear(EstablecimientoRequest request) {
+        planService.exigirLugarParaEstablecimiento();
         if (repository.existsByNombreIgnoreCaseAndActivoTrue(request.nombre())) {
             throw nombreRepetido(request.nombre());
         }

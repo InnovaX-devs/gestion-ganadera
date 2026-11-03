@@ -26,6 +26,8 @@ public final class DbCleaner {
         "rodeo",
         "producto_sanitario",
         "establecimiento",
+        "activacion_cuenta",
+        "suscripcion",
         "usuario",
         "organizacion"
     );
@@ -38,5 +40,8 @@ public final class DbCleaner {
         // primero se cortan esas relaciones
         jdbc.update("UPDATE animal SET madre_id = NULL, padre_id = NULL, evento_nacimiento_id = NULL");
         TABLAS_EN_ORDEN.forEach(tabla -> jdbc.update("DELETE FROM " + tabla));
+        // Los planes son datos fijos (V17): solo se borran los que agregó algún test
+        jdbc.update("DELETE FROM plan WHERE codigo NOT IN ('INICIAL', 'PRODUCTOR', 'EMPRESA')");
+        jdbc.update("UPDATE plan SET precio_mensual = NULL");
     }
 }

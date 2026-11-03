@@ -15,5 +15,8 @@ public interface EstablecimientoRepository extends JpaRepository<Establecimiento
 
     boolean existsByNombreIgnoreCaseAndActivoTrue(String nombre);
 
+    /** Establecimientos activos de la organización (límite del plan, #35). */
+    long countByActivoTrue();
+
     boolean existsByNombreIgnoreCaseAndActivoTrueAndIdNot(String nombre, UUID id);
 }

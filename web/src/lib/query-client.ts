@@ -1,5 +1,6 @@
-import { QueryClient } from '@tanstack/react-query'
+import { MutationCache, QueryClient } from '@tanstack/react-query'
 import axios from 'axios'
+import { setOnPagoRequerido } from './api'
 
 /**
  * Caché de datos del servidor (TanStack Query).
@@ -8,7 +9,12 @@ import axios from 'axios'
  * - `offlineFirst`: sin conexión las consultas y mutaciones se ejecutan igual (no quedan en pausa),
  *   porque saben responder con lo guardado en el dispositivo (#30, src/features/offline).
  */
-export const queryClient = new QueryClient({
+export const queryClient: QueryClient = new QueryClient({
+  // Cualquier carga puede cambiar el uso del plan (#35): se refresca, y si alguna chocó con un
+  // límite, el aviso del plan aparece enseguida. Solo se vuelve a pedir si hay una pantalla usándolo.
+  mutationCache: new MutationCache({
+    onSettled: () => queryClient.invalidateQueries({ queryKey: ['plan'] }),
+  }),
   defaultOptions: {
     mutations: {
       networkMode: 'offlineFirst',
@@ -25,3 +31,6 @@ export const queryClient = new QueryClient({
     },
   },
 })
+
+// Una cuenta que queda en solo lectura por falta de pago (402, #35) recarga el plan: aparece el aviso fijo
+setOnPagoRequerido(() => void queryClient.invalidateQueries({ queryKey: ['plan'] }))

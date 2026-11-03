@@ -17,6 +17,7 @@ import com.innovax.ganadera.membresia.Membresia;
 import com.innovax.ganadera.membresia.MembresiaRepository;
 import com.innovax.ganadera.organizacion.Organizacion;
 import com.innovax.ganadera.organizacion.OrganizacionRepository;
+import com.innovax.ganadera.plan.PlanService;
 import com.innovax.ganadera.usuario.Usuario;
 import com.innovax.ganadera.usuario.UsuarioRepository;
 
@@ -38,11 +39,13 @@ public class InvitacionAceptacionTx {
     private final MembresiaRepository membresiaRepository;
     private final PasswordEncoder passwordEncoder;
     private final AuthService authService;
+    private final PlanService planService;
 
     /** Crea la cuenta del invitado en la organización de la invitación, lo suma al establecimiento y lo loguea. */
     @Transactional
     public AuthResponse registrar(UUID invitacionId, RegistroInvitadoRequest request) {
         Invitacion invitacion = pendiente(invitacionId);
+        planService.exigirLugarParaUsuarioNuevo(invitacion.getOrganizacionId());
         Organizacion organizacion = organizacionRepository.getReferenceById(invitacion.getOrganizacionId());
         Usuario usuario = usuarioRepository.save(new Usuario(organizacion, invitacion.getEmail(),
             passwordEncoder.encode(request.password()), request.nombre(), request.apellido()));

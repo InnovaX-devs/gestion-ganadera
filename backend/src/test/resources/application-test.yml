@@ -18,3 +18,17 @@ app:
   sync:
     # En los tests lo recién guardado se tiene que ver enseguida
     margen: 0s
+  planes:
+    # Las cuentas de los tests arrancan sin límites; PlanControllerTest les pone el plan que necesita
+    dias-prueba: 30
+    plan-prueba: EMPRESA
+  cobro:
+    # Mercado Pago falso (FakeMercadoPago): con token, el pago online está habilitado
+    mp-access-token: TEST-falso
+    mp-webhook-secret: secreto-de-prueba
+    dias-gracia: 7
+    # Sin caché: los tests cambian la prueba y los pagos y miran el resultado enseguida
+    cache-estado: 0s
+  admin:
+    emails: admin@innovax.test
+    password: clave-admin-de-prueba

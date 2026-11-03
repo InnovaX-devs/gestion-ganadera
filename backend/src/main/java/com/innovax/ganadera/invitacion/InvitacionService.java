@@ -21,6 +21,7 @@ import com.innovax.ganadera.invitacion.dto.InvitacionResponse;
 import com.innovax.ganadera.membresia.AutorizacionService;
 import com.innovax.ganadera.membresia.MembresiaRepository;
 import com.innovax.ganadera.membresia.Permiso;
+import com.innovax.ganadera.plan.PlanService;
 import com.innovax.ganadera.usuario.Usuario;
 import com.innovax.ganadera.usuario.UsuarioRepository;
 
@@ -40,6 +41,7 @@ public class InvitacionService {
     private final UsuarioRepository usuarioRepository;
     private final MembresiaRepository membresiaRepository;
     private final AutorizacionService autorizacion;
+    private final PlanService planService;
     private final InvitacionProperties properties;
     private final ApplicationEventPublisher eventos;
 
@@ -69,6 +71,9 @@ public class InvitacionService {
                 throw new ConflictException("Ese usuario ya forma parte de este establecimiento");
             }
         });
+
+        boolean yaEsUsuario = usuarioRepository.findByEmailIgnoreCase(email).isPresent();
+        if (!yaEsUsuario) planService.exigirLugarParaInvitar(email);
 
         Instant ahora = Instant.now();
         boolean hayPendiente = repository.findByEstablecimientoIdAndEmail(establecimientoId, email).stream()

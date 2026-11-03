@@ -35,6 +35,6 @@ public class ClimaController {
     ResponseEntity<ApiError> noDisponible(ClimaNoDisponibleException ex, HttpServletRequest req) {
         HttpStatus estado = HttpStatus.SERVICE_UNAVAILABLE;
         return ResponseEntity.status(estado).body(new ApiError(Instant.now(), estado.value(),
-            estado.getReasonPhrase(), ex.getMessage(), req.getRequestURI(), null));
+            estado.getReasonPhrase(), ex.getMessage(), req.getRequestURI(), null, null));
     }
 }
