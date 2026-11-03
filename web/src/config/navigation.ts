@@ -1,4 +1,5 @@
 import {
+  CalendarDays,
   ArrowLeftRight,
   BarChart3,
   Baby,
@@ -51,6 +52,7 @@ export const navigation: NavSection[] = [
       { label: 'Servicios', path: '/servicios', icon: HeartHandshake },
       { label: 'Tactos', path: '/tactos', icon: ScanSearch },
       { label: 'Tratamientos', path: '/tratamientos', icon: Syringe },
+      { label: 'Calendario sanitario', path: '/calendario-sanitario', icon: CalendarDays },
       { label: 'Pesajes', path: '/pesajes', icon: Scale },
       { label: 'Movimientos', path: '/movimientos', icon: ArrowLeftRight },
       { label: 'Ventas y bajas', path: '/ventas', icon: Tag },

@@ -49,6 +49,11 @@ public class Usuario extends BaseEntity {
     @Column(nullable = false)
     private boolean activo = true;
 
+    /** Si quiere recibir por email las alertas sanitarias de sus establecimientos (#34). */
+    @Setter
+    @Column(name = "alertas_email", nullable = false)
+    private boolean alertasEmail = true;
+
     public Usuario(Organizacion organizacion, String email, String passwordHash, String nombre, String apellido) {
         this.organizacion = organizacion;
         setEmail(email);

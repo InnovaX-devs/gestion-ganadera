@@ -9,6 +9,7 @@ import { useAgrupaciones } from '@/features/agrupaciones/queries'
 import type { Referencia } from '@/features/animales/types'
 import { hoyISO, formatearFecha } from '@/features/eventos/fechas'
 import { useRegistrarEvento } from '@/features/eventos/queries'
+import type { Operacion } from '@/features/eventos/types'
 import { getErrorMessage, getFieldErrors } from '@/lib/api'
 import { libreDesdeDe } from './carencia'
 import { LISTA_VIAS, MAX_DIAS_CARENCIA, TIPOS_PRODUCTO, VIAS } from './config'
@@ -27,8 +28,18 @@ interface Props {
   animalIds?: string[]
   /** Quien puede cargar tratamientos puede también agregar productos al catálogo. */
   puedeCrearProductos?: boolean
+  /** Valores con los que arranca el formulario (ej: desde un tratamiento planificado, #34). */
+  inicial?: {
+    loteId?: string
+    rodeoId?: string
+    productoId?: string
+    dosis?: string
+    via?: ViaAdministracion
+    diasCarencia?: number
+  }
   onClose: () => void
-  onHecho?: () => void
+  /** Recibe la operación registrada (con `pendiente` si se guardó sin conexión). */
+  onHecho?: (operacion: Operacion) => void
 }
 
 type Destino = 'ANIMALES' | 'LOTE' | 'RODEO'
@@ -39,6 +50,7 @@ export function TratamientoDialog({
   open,
   animalIds,
   puedeCrearProductos = true,
+  inicial,
   onClose,
   onHecho,
 }: Props) {
@@ -59,9 +71,10 @@ export function TratamientoDialog({
           establecimientoId={establecimientoId}
           animalIds={animalIds}
           puedeCrearProductos={puedeCrearProductos}
+          inicial={inicial}
           onClose={onClose}
-          onHecho={() => {
-            onHecho?.()
+          onHecho={(operacion) => {
+            onHecho?.(operacion)
             onClose()
           }}
         />
@@ -74,25 +87,28 @@ function Formulario({
   establecimientoId,
   animalIds,
   puedeCrearProductos,
+  inicial,
   onClose,
   onHecho,
-}: Omit<Props, 'open'> & { onHecho: () => void }) {
+}: Omit<Props, 'open'> & { onHecho: (operacion: Operacion) => void }) {
   const animalesFijos = (animalIds?.length ?? 0) > 0
   const { data: productos } = useProductos(establecimientoId)
   const { data: lotes } = useAgrupaciones('lotes', establecimientoId)
   const { data: rodeos } = useAgrupaciones('rodeos', establecimientoId)
   const registrar = useRegistrarEvento<TratamientoDatos>(establecimientoId)
 
-  const [destino, setDestino] = useState<Destino>('ANIMALES')
+  const [destino, setDestino] = useState<Destino>(
+    inicial?.loteId ? 'LOTE' : inicial?.rodeoId ? 'RODEO' : 'ANIMALES',
+  )
   const [elegidos, setElegidos] = useState<Referencia[]>([])
-  const [loteId, setLoteId] = useState('')
-  const [rodeoId, setRodeoId] = useState('')
+  const [loteId, setLoteId] = useState(inicial?.loteId ?? '')
+  const [rodeoId, setRodeoId] = useState(inicial?.rodeoId ?? '')
   const [fecha, setFecha] = useState(hoyISO)
-  const [productoId, setProductoId] = useState('')
-  const [dosis, setDosis] = useState('')
-  const [via, setVia] = useState<ViaAdministracion | ''>('')
+  const [productoId, setProductoId] = useState(inicial?.productoId ?? '')
+  const [dosis, setDosis] = useState(inicial?.dosis ?? '')
+  const [via, setVia] = useState<ViaAdministracion | ''>(inicial?.via ?? '')
   const [veterinario, setVeterinario] = useState('')
-  const [dias, setDias] = useState('0')
+  const [dias, setDias] = useState(String(inicial?.diasCarencia ?? 0))
   const [creandoProducto, setCreandoProducto] = useState(false)
   const [errores, setErrores] = useState<Record<string, string>>({})
   const [error, setError] = useState<string | null>(null)
@@ -133,7 +149,7 @@ function Formulario({
     if (Object.keys(nuevos).length > 0 || !via) return
 
     try {
-      await registrar.mutateAsync({
+      const operacion = await registrar.mutateAsync({
         // Generado acá: si la red falla y se reintenta, el backend no la duplica
         operacionId: crypto.randomUUID(),
         tipo: 'TRATAMIENTO',
@@ -153,7 +169,7 @@ function Formulario({
           diasCarencia: diasNumero,
         },
       })
-      onHecho()
+      onHecho(operacion)
     } catch (err) {
       setErrores(getFieldErrors(err))
       setError(getErrorMessage(err))

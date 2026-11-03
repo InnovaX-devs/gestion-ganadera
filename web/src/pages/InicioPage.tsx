@@ -4,6 +4,7 @@ import { ArrowRight, CircleCheck, CircleX, LoaderCircle, MapPinned } from 'lucid
 import { PageHeader } from '@/components/PageHeader'
 import { useAuth } from '@/features/auth/useAuth'
 import { puede } from '@/features/establecimientos/permisos'
+import { AlertasSanitarias } from '@/features/calendario/AlertasSanitarias'
 import { ClimaPanel } from '@/features/clima/ClimaPanel'
 import { useEstablecimientoActivo } from '@/features/establecimientos/useEstablecimientoActivo'
 import { AccesosRapidos } from '@/features/inicio/AccesosRapidos'
@@ -56,6 +57,8 @@ export function InicioPage() {
       {activo && (
         <div key={activo.id} className="mb-6 grid grid-cols-1 gap-6">
           <AccesosRapidos establecimientoId={activo.id} rol={activo.rol} />
+          {/* Solo aparece si hay algo que avisar (#34) */}
+          <AlertasSanitarias establecimientoId={activo.id} compacta />
           <StockPanel
             establecimientoId={activo.id}
             establecimientoNombre={activo.nombre}
