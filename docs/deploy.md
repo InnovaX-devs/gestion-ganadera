@@ -6,10 +6,10 @@ Cómo está armado:
  Navegador / celular
         │
         ▼
- Vercel ─ web (React)            https://<proyecto>.vercel.app
+ Vercel ─ web (React)            https://gestion-ganadera-innovax.vercel.app
         │  llama a la API
         ▼
- Render ─ backend (Spring Boot)  https://<servicio>.onrender.com
+ Render ─ backend (Spring Boot)  https://gestion-ganadera-zxg1.onrender.com
         │
         ▼
  Supabase ─ base PostgreSQL
@@ -114,7 +114,7 @@ Guardalas en un lugar seguro (gestor de contraseñas). No van al repo.
    `APP_WEB_URL` y `CORS_ALLOWED_ORIGINS` se completan en el paso 6, cuando exista la web. `MP_*` por ahora son las de **prueba** (ver "Mercado Pago" abajo).
 
 5. **Create Web Service**. La primera vez tarda 5 a 10 minutos (baja Maven y compila). En **Logs** tiene que aparecer `Started GanaderaApplication`.
-6. Probalo: abrí `https://gestion-ganadera-api.onrender.com/api/health` → tiene que responder con el estado de la base en OK.
+6. Probalo: abrí `https://gestion-ganadera-zxg1.onrender.com/api/health` → tiene que responder con el estado de la base en OK.
 
 ## 5. Vercel (web)
 
@@ -123,7 +123,7 @@ Guardalas en un lugar seguro (gestor de contraseñas). No van al repo.
 3. **Environment Variables**:
 
    ```
-   VITE_API_URL=https://gestion-ganadera-api.onrender.com
+   VITE_API_URL=https://gestion-ganadera-zxg1.onrender.com
    ```
 
    Sin `/api` al final y sin barra final.
@@ -142,7 +142,7 @@ Exactamente la dirección de Vercel, sin barra al final. **Save, rebuild and dep
 
 ## 7. UptimeRobot (que no se duerma)
 
-**New monitor** → tipo **HTTP(s)** → URL `https://gestion-ganadera-api.onrender.com/api/health` → intervalo **5 minutos** → Create. Si el backend se cae, además te avisa por mail.
+**New monitor** → tipo **HTTP(s)** → URL `https://gestion-ganadera-zxg1.onrender.com/api/health` → intervalo **5 minutos** → Create. Si el backend se cae, además te avisa por mail.
 
 ## 8. Probar
 
@@ -165,7 +165,7 @@ Mientras se prueba, quedan las credenciales de **prueba** (vendedor de prueba + 
 
 - `MP_ACCESS_TOKEN` = Access Token de **producción** de la cuenta real de Innovax.
 - **Borrar** `MP_EMAIL_PAGADOR_PRUEBA`.
-- En la aplicación de Mercado Pago → **Webhooks**: URL `https://gestion-ganadera-api.onrender.com/api/mercadopago/webhook`, eventos de **Suscripciones**; copiar la clave secreta a `MP_WEBHOOK_SECRET`.
+- En la aplicación de Mercado Pago → **Webhooks**: URL `https://gestion-ganadera-zxg1.onrender.com/api/mercadopago/webhook`, eventos de **Suscripciones**; copiar la clave secreta a `MP_WEBHOOK_SECRET`.
 
 `MP_BACK_URL` no hace falta: en producción vuelve a `APP_WEB_URL/plan`. Detalle en [planes.md](planes.md).
 
@@ -177,6 +177,7 @@ Mientras se prueba, quedan las credenciales de **prueba** (vendedor de prueba + 
 | Render: `password authentication failed` | `DB_USERNAME` tiene que ser `postgres.xxxxx` (con el punto y el código del proyecto). |
 | Render: `Could not resolve placeholder 'MAIL_HOST'` (u otra) | Falta esa variable en Environment. |
 | Crear una cuenta tarda y dice "No se pudo conectar con el servidor" | El mail quedó esperando un puerto SMTP bloqueado. Usar `MAIL_PROVEEDOR=resend` (el valor por defecto). |
+| "No se puede pagar con el email de la cuenta de Mercado Pago que cobra" | MP no deja que alguien se pague a sí mismo: la cuenta de la app tiene que tener otro email. |
 | Log: `Resend rechazó el email (403)` | El dominio de `MAIL_FROM` no está verificado en Resend, o con `onboarding@resend.dev` se mandó a otro email que no es el dueño de la cuenta de Resend. |
 | La web carga pero el login dice "No se pudo conectar con el servidor" | `VITE_API_URL` mal en Vercel (cambiarla y volver a desplegar), o `CORS_ALLOWED_ORIGINS` no coincide exacto con la dirección de la web. |
 | Recargar `/plan` o `/admin` da 404 | Falta `web/vercel.json` en `main`. |

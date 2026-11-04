@@ -18,6 +18,7 @@ import org.springframework.web.client.RestClientResponseException;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.innovax.ganadera.animal.categoria.CategoriaConfig;
+import com.innovax.ganadera.common.error.BusinessException;
 
 import lombok.extern.slf4j.Slf4j;
 
@@ -31,6 +32,9 @@ public class MercadoPagoApi implements MercadoPago {
 
     private static final ZoneId ZONA = ZoneId.of(CategoriaConfig.ZONA_HORARIA);
     private static final DateTimeFormatter FECHA_MP = DateTimeFormatter.ofPattern("yyyy-MM-dd'T'HH:mm:ss.SSSXXX");
+
+    /** Lo que responde Mercado Pago si quien paga es el mismo usuario que cobra. */
+    static final String MISMO_USUARIO = "Payer and collector cannot be the same user";
 
     private final RestClient http;
     private final CobroProperties propiedades;
@@ -144,7 +148,13 @@ public class MercadoPagoApi implements MercadoPago {
         try {
             return llamada.get();
         } catch (RestClientResponseException e) {
-            log.error("Mercado Pago: no se pudo {} ({}): {}", que, e.getStatusCode(), e.getResponseBodyAsString());
+            String respuesta = e.getResponseBodyAsString();
+            log.error("Mercado Pago: no se pudo {} ({}): {}", que, e.getStatusCode(), respuesta);
+            if (respuesta != null && respuesta.contains(MISMO_USUARIO)) {
+                // No es una falla de comunicación: el email de la cuenta es el de quien cobra
+                throw new BusinessException("No se puede pagar con el email de la cuenta de Mercado Pago que "
+                    + "cobra. El dueño de esta cuenta tiene que usar otro email.");
+            }
             throw new MercadoPagoException("Mercado Pago rechazó el pedido al " + que, e);
         } catch (RestClientException e) {
             log.error("Mercado Pago: no se pudo {}", que, e);
