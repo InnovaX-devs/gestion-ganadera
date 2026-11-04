@@ -38,14 +38,15 @@ public class EstadoCuentas {
         Leido leido = cache.get(organizacionId);
         if (leido == null || ahora.isAfter(leido.hasta())) {
             boolean suspendida = organizacionRepository.findById(organizacionId)
-                .map(Organizacion::isSuspendida).orElse(false);
+                // Si ya no existe (se eliminó desde el panel), sus sesiones dejan de servir enseguida
+                .map(Organizacion::isSuspendida).orElse(true);
             leido = new Leido(suspendida, ahora.plus(VIGENCIA));
             cache.put(organizacionId, leido);
         }
         return leido.suspendida();
     }
 
-    void olvidar(UUID organizacionId) {
+    public void olvidar(UUID organizacionId) {
         cache.remove(organizacionId);
     }
 }

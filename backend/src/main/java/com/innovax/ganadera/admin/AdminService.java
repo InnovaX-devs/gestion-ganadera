@@ -12,6 +12,7 @@ import com.innovax.ganadera.common.error.NotFoundException;
 import com.innovax.ganadera.common.tenant.TenantContext;
 import com.innovax.ganadera.contrasena.RestablecimientoService;
 import com.innovax.ganadera.cuenta.CuentaService;
+import com.innovax.ganadera.cuenta.EliminacionCuenta;
 import com.innovax.ganadera.cuenta.dto.CrearCuentaRequest;
 import com.innovax.ganadera.organizacion.Organizacion;
 import com.innovax.ganadera.organizacion.OrganizacionRepository;
@@ -42,6 +43,7 @@ public class AdminService {
     private final PlanService planService;
     private final CuentaService cuentaService;
     private final RestablecimientoService restablecimientoService;
+    private final EliminacionCuenta eliminacionCuenta;
 
     public List<OrganizacionAdminResponse> organizaciones() {
         administradores.exigir();
@@ -71,6 +73,14 @@ public class AdminService {
         log.info("Administración: {} mandó un enlace para cambiar la contraseña a {} ({})", admin, email,
             organizacionId);
         return email;
+    }
+
+    /** Borra la cuenta con todos sus datos. No se puede deshacer. */
+    public void eliminar(UUID organizacionId, String confirmacion) {
+        String admin = administradores.exigir();
+        String nombre = eliminacionCuenta.eliminar(organizacionId, confirmacion);
+        log.warn("Administración: {} eliminó la cuenta \"{}\" ({}) con todos sus datos", admin, nombre,
+            organizacionId);
     }
 
     public OrganizacionAdminResponse suspender(UUID organizacionId, boolean suspendida) {
