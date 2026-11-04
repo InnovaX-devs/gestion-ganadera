@@ -66,6 +66,19 @@ public class AdminController {
     public record EnlaceEnviado(String email) {
     }
 
+    /**
+     * Borra la cuenta con todos sus datos (no se puede deshacer). Hay que mandar el nombre de la
+     * cuenta como confirmación: {@code { "confirmacion": "Estancia San Juan" }}.
+     */
+    @PostMapping("/{id}/eliminar")
+    @ResponseStatus(HttpStatus.NO_CONTENT)
+    public void eliminar(@PathVariable UUID id, @RequestBody Eliminacion request) {
+        service.eliminar(id, request.confirmacion());
+    }
+
+    public record Eliminacion(String confirmacion) {
+    }
+
     /** Suspende o reactiva la cuenta: {@code { "suspendida": true }}. */
     @PutMapping("/{id}/suspension")
     public OrganizacionAdminResponse suspender(@PathVariable UUID id, @RequestBody Suspension request) {

@@ -102,6 +102,16 @@ export function useRestablecerContrasena() {
   })
 }
 
+/** Borra la cuenta con todos sus datos. `confirmacion` es el nombre de la cuenta escrito a mano. */
+export function useEliminarCuenta() {
+  const queryClient = useQueryClient()
+  return useMutation({
+    mutationFn: ({ id, confirmacion }: { id: string; confirmacion: string }) =>
+      adminApi.post(`/organizaciones/${id}/eliminar`, { confirmacion }),
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['admin'] }),
+  })
+}
+
 export function useSuspender() {
   const queryClient = useQueryClient()
   return useMutation({

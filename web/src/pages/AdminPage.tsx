@@ -13,6 +13,7 @@ import {
   Search,
   Send,
   Tag,
+  Trash2,
   X,
 } from 'lucide-react'
 import { Button } from '@/components/Button'
@@ -26,6 +27,7 @@ import {
   type OrganizacionAdmin,
   useCambiarPlan,
   useCrearCuenta,
+  useEliminarCuenta,
   useRegistrarPago,
   useOrganizacionesAdmin,
   useCambiarPrecio,
@@ -56,6 +58,7 @@ export function AdminPage() {
   const [creando, setCreando] = useState(false)
   const [precios, setPrecios] = useState(false)
   const [aSuspender, setASuspender] = useState<OrganizacionAdmin | null>(null)
+  const [aEliminar, setAEliminar] = useState<OrganizacionAdmin | null>(null)
   const [aviso, setAviso] = useState<string | null>(null)
   const suspender = useSuspender()
   const reenviar = useReenviarActivacion()
@@ -209,6 +212,7 @@ export function AdminPage() {
                       })
                     }
                     onSuspender={() => setASuspender(o)}
+                    onEliminar={() => setAEliminar(o)}
                     onRegistrarPago={() =>
                       registrarPago.mutate(o.id, {
                         onSuccess: (a) =>
@@ -268,6 +272,17 @@ export function AdminPage() {
       >
         {precios && <Precios onListo={() => setPrecios(false)} />}
       </Dialog>
+
+      {aEliminar && (
+        <EliminarCuenta
+          organizacion={aEliminar}
+          onListo={() => {
+            setAviso(`Se eliminó la cuenta ${aEliminar.nombre} con todos sus datos.`)
+            setAEliminar(null)
+          }}
+          onCancelar={() => setAEliminar(null)}
+        />
+      )}
 
       <ConfirmDialog
         open={aSuspender !== null}
@@ -468,12 +483,14 @@ function MasAcciones({
   onReenviar,
   onRestablecer,
   onSuspender,
+  onEliminar,
   onRegistrarPago,
 }: {
   organizacion: OrganizacionAdmin
   onReenviar: () => void
   onRestablecer: () => void
   onSuspender: () => void
+  onEliminar: () => void
   onRegistrarPago: () => void
 }) {
   const cobro = organizacion.plan.cobro
@@ -571,6 +588,18 @@ function MasAcciones({
               <Ban className="size-4" />
             )}
             {organizacion.suspendida ? 'Reactivar cuenta' : 'Suspender cuenta'}
+          </button>
+          <button
+            type="button"
+            role="menuitem"
+            className={`${item} text-red-600 dark:text-red-400`}
+            onClick={() => {
+              setAbierto(false)
+              onEliminar()
+            }}
+          >
+            <Trash2 className="size-4" />
+            Eliminar cuenta
           </button>
         </div>
       )}
@@ -853,5 +882,61 @@ function Formulario({
         </Button>
       </div>
     </form>
+  )
+}
+
+/** Borrar una cuenta no se puede deshacer: hay que escribir su nombre para confirmar. */
+function EliminarCuenta({
+  organizacion,
+  onListo,
+  onCancelar,
+}: {
+  organizacion: OrganizacionAdmin
+  onListo: () => void
+  onCancelar: () => void
+}) {
+  const eliminar = useEliminarCuenta()
+  const [confirmacion, setConfirmacion] = useState('')
+  const normalizar = (t: string) => t.trim().replace(/\s+/g, ' ').toLowerCase()
+  const coincide = normalizar(confirmacion) === normalizar(organizacion.nombre)
+
+  function enviar(e: FormEvent) {
+    e.preventDefault()
+    if (!coincide) return
+    eliminar.mutate({ id: organizacion.id, confirmacion }, { onSuccess: onListo })
+  }
+
+  return (
+    <Dialog
+      open
+      onClose={onCancelar}
+      title={`Eliminar ${organizacion.nombre}`}
+      description="Se borran la cuenta, sus usuarios y todos sus datos: establecimientos, animales, eventos y suscripciones. No se puede deshacer."
+      size="sm"
+    >
+      <form onSubmit={enviar} noValidate className="space-y-4">
+        <FormError message={eliminar.error ? getErrorMessage(eliminar.error) : null} />
+        {organizacion.duenoEmail && (
+          <p className="text-sm text-stone-600 dark:text-stone-400">
+            El email {organizacion.duenoEmail} queda libre para crear otra cuenta.
+          </p>
+        )}
+        <TextField
+          label={`Escribí "${organizacion.nombre}" para confirmar`}
+          value={confirmacion}
+          onChange={(e) => setConfirmacion(e.target.value)}
+          autoComplete="off"
+          autoFocus
+        />
+        <div className="flex justify-end gap-2">
+          <Button variant="secondary" onClick={onCancelar} disabled={eliminar.isPending}>
+            Cancelar
+          </Button>
+          <Button type="submit" variant="danger" disabled={!coincide} loading={eliminar.isPending}>
+            Eliminar para siempre
+          </Button>
+        </div>
+      </form>
+    </Dialog>
   )
 }
