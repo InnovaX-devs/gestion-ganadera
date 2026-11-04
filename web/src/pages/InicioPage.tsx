@@ -1,6 +1,5 @@
-import { useEffect, useState } from 'react'
 import { Link } from 'react-router'
-import { ArrowRight, CircleCheck, CircleX, LoaderCircle, MapPinned } from 'lucide-react'
+import { ArrowRight, MapPinned } from 'lucide-react'
 import { PageHeader } from '@/components/PageHeader'
 import { useAuth } from '@/features/auth/useAuth'
 import { puede } from '@/features/establecimientos/permisos'
@@ -12,9 +11,6 @@ import { UltimosEventos } from '@/features/inicio/UltimosEventos'
 import { MercadoPanel } from '@/features/mercado/MercadoPanel'
 import { InstalarTarjeta } from '@/features/pwa/InstalarTarjeta'
 import { StockPanel } from '@/features/stock/StockPanel'
-import { api, getErrorMessage } from '@/lib/api'
-
-type Estado = { tipo: 'cargando' } | { tipo: 'ok' } | { tipo: 'error'; mensaje: string }
 
 function saludo() {
   const hora = new Date().getHours()
@@ -76,12 +72,7 @@ export function InicioPage() {
         </div>
       )}
       {/* El mercado es el mismo para todos: se muestra aunque no haya establecimiento */}
-      <div className="mb-6">
-        <MercadoPanel />
-      </div>
-      <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
-        <EstadoBackend />
-      </div>
+      <MercadoPanel />
     </>
   )
 }
@@ -107,45 +98,6 @@ function PrimerosPasos() {
         Crear establecimiento
         <ArrowRight className="size-4" />
       </Link>
-    </section>
-  )
-}
-
-/** Verifica la conexión con el backend (GET /api/health). Útil para validar el setup. */
-function EstadoBackend() {
-  const [estado, setEstado] = useState<Estado>({ tipo: 'cargando' })
-
-  useEffect(() => {
-    let activo = true
-    api
-      .get('/health')
-      .then(() => activo && setEstado({ tipo: 'ok' }))
-      .catch((e) => activo && setEstado({ tipo: 'error', mensaje: getErrorMessage(e) }))
-    return () => {
-      activo = false
-    }
-  }, [])
-
-  return (
-    <section className="rounded-xl border border-stone-200 bg-white p-5 dark:border-stone-800 dark:bg-stone-900">
-      <h2 className="text-sm font-medium text-stone-500">Conexión con el servidor</h2>
-      <div className="mt-2 flex items-center gap-2 text-sm">
-        {estado.tipo === 'cargando' && (
-          <>
-            <LoaderCircle className="size-4 animate-spin text-stone-400" /> Verificando…
-          </>
-        )}
-        {estado.tipo === 'ok' && (
-          <>
-            <CircleCheck className="size-4 text-emerald-600" /> Backend y base de datos OK
-          </>
-        )}
-        {estado.tipo === 'error' && (
-          <>
-            <CircleX className="size-4 text-red-600" /> {estado.mensaje}
-          </>
-        )}
-      </div>
     </section>
   )
 }
