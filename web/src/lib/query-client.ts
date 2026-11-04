@@ -1,5 +1,6 @@
 import { MutationCache, QueryClient } from '@tanstack/react-query'
 import axios from 'axios'
+import { esperarSoloEnLinea } from '@/features/offline/red'
 import { setOnPagoRequerido } from './api'
 
 /**
@@ -13,7 +14,8 @@ export const queryClient: QueryClient = new QueryClient({
   // Cualquier carga puede cambiar el uso del plan (#35): se refresca, y si alguna chocó con un
   // límite, el aviso del plan aparece enseguida. Solo se vuelve a pedir si hay una pantalla usándolo.
   mutationCache: new MutationCache({
-    onSettled: () => queryClient.invalidateQueries({ queryKey: ['plan'] }),
+    // Sin conexión no se espera: el refresco queda en pausa hasta que vuelva la red (ver esperarSoloEnLinea)
+    onSettled: () => esperarSoloEnLinea(queryClient.invalidateQueries({ queryKey: ['plan'] })),
   }),
   defaultOptions: {
     mutations: {

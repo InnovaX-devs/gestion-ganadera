@@ -2,6 +2,7 @@ import { keepPreviousData, useMutation, useQuery, useQueryClient } from '@tansta
 import { conRespaldo } from '@/features/offline/conRespaldo'
 import { editarAnimalSinConexion, online } from '@/features/offline/escrituras'
 import { animalLocal, animalesLocales } from '@/features/offline/local'
+import { esperarSoloEnLinea } from '@/features/offline/red'
 import { api } from '@/lib/api'
 import { stockKey } from '@/features/stock/queries'
 import type { Animal, AnimalInput, FiltroAnimales, Pagina } from './types'
@@ -71,11 +72,13 @@ export function useCrias(establecimientoId: string | undefined, id: string | und
 function useInvalidar(establecimientoId: string) {
   const queryClient = useQueryClient()
   return () =>
-    Promise.all([
-      queryClient.invalidateQueries({ queryKey: ['animales', establecimientoId] }),
-      queryClient.invalidateQueries({ queryKey: stockKey(establecimientoId) }),
-      queryClient.invalidateQueries({ queryKey: ['agrupaciones'] }),
-    ])
+    esperarSoloEnLinea(
+      Promise.all([
+        queryClient.invalidateQueries({ queryKey: ['animales', establecimientoId] }),
+        queryClient.invalidateQueries({ queryKey: stockKey(establecimientoId) }),
+        queryClient.invalidateQueries({ queryKey: ['agrupaciones'] }),
+      ]),
+    )
 }
 
 /**
