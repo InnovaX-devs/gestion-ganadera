@@ -114,19 +114,19 @@ function Header({ onOpenMenu }: { onOpenMenu: () => void }) {
   const { isDark, toggle } = useTheme()
 
   return (
-    <header className="sticky top-0 z-20 flex h-16 items-center gap-3 border-b border-stone-200 bg-white/80 px-4 backdrop-blur sm:px-6 lg:px-8 dark:border-stone-800 dark:bg-stone-900/80">
+    <header className="sticky top-0 z-20 flex h-16 items-center gap-2 border-b border-stone-200 bg-white/80 px-4 backdrop-blur sm:px-6 lg:px-8 dark:border-stone-800 dark:bg-stone-900/80">
       <button
         type="button"
         onClick={onOpenMenu}
         aria-label="Abrir menú"
-        className="rounded-md p-1.5 text-stone-600 hover:bg-stone-100 lg:hidden dark:text-stone-300 dark:hover:bg-stone-800"
+        className="shrink-0 rounded-md p-1.5 text-stone-600 hover:bg-stone-100 lg:hidden dark:text-stone-300 dark:hover:bg-stone-800"
       >
         <Menu className="size-5" />
       </button>
 
       <EstablecimientoSelector />
 
-      <div className="ml-auto flex items-center gap-2">
+      <div className="ml-auto flex shrink-0 items-center gap-1 sm:gap-2">
         <button
           type="button"
           onClick={toggle}

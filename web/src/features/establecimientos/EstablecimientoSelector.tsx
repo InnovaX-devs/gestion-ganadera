@@ -21,24 +21,25 @@ export function EstablecimientoSelector() {
       <Link
         to="/establecimientos"
         state={{ crear: true }}
-        className="border-brand-300 text-brand-700 hover:bg-brand-50 dark:border-brand-700 dark:text-brand-200 dark:hover:bg-brand-900/30 flex items-center gap-2 rounded-lg border border-dashed px-3 py-1.5 text-sm font-medium"
+        className="border-brand-300 text-brand-700 hover:bg-brand-50 dark:border-brand-700 dark:text-brand-200 dark:hover:bg-brand-900/30 flex min-w-0 items-center gap-2 rounded-lg border border-dashed px-3 py-1.5 text-sm font-medium"
       >
-        <Plus className="size-4" />
-        Crear establecimiento
+        <Plus className="size-4 shrink-0" />
+        <span className="truncate">Crear establecimiento</span>
       </Link>
     )
   }
 
   return (
-    <div ref={ref} className="relative min-w-0">
+    // Achica el nombre (con "…") antes que los botones del header en celulares angostos
+    <div ref={ref} className="relative min-w-0 sm:max-w-xs">
       <button
         type="button"
         onClick={() => setAbierto((a) => !a)}
         aria-haspopup="listbox"
         aria-expanded={abierto}
-        className="flex max-w-[60vw] items-center gap-2 rounded-lg border border-stone-200 px-3 py-1.5 text-sm font-medium hover:bg-stone-50 sm:max-w-xs dark:border-stone-700 dark:hover:bg-stone-800"
+        className="flex max-w-full items-center gap-2 rounded-lg border border-stone-200 px-3 py-1.5 text-sm font-medium hover:bg-stone-50 sm:max-w-xs dark:border-stone-700 dark:hover:bg-stone-800"
       >
-        <MapPinned className="size-4 shrink-0 text-stone-500" />
+        <MapPinned className="hidden size-4 shrink-0 text-stone-500 sm:block" />
         <span className="truncate">{activo.nombre}</span>
         <ChevronDown className="size-4 shrink-0 text-stone-500" />
       </button>
