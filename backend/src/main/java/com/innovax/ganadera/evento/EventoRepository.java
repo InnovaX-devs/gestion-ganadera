@@ -1,0 +1,77 @@
+package com.innovax.ganadera.evento;
+
+import java.time.LocalDate;
+import java.util.Collection;
+import java.util.List;
+import java.util.Optional;
+import java.util.UUID;
+
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.jpa.domain.Specification;
+import org.springframework.data.jpa.repository.EntityGraph;
+import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.JpaSpecificationExecutor;
+import org.springframework.data.jpa.repository.Modifying;
+import org.springframework.data.jpa.repository.Query;
+import org.springframework.data.repository.query.Param;
+
+/** Filtra solo por organización (@TenantId). */
+public interface EventoRepository extends JpaRepository<Evento, UUID>, JpaSpecificationExecutor<Evento> {
+
+    @Override
+    @EntityGraph(attributePaths = {"animal", "lote", "usuario"})
+    Page<Evento> findAll(Specification<Evento> spec, Pageable pageable);
+
+    @EntityGraph(attributePaths = {"animal", "lote", "usuario"})
+    Optional<Evento> findByIdAndEstablecimientoIdAndDeletedAtIsNull(UUID id, UUID establecimientoId);
+
+    @EntityGraph(attributePaths = {"animal", "lote", "usuario"})
+    List<Evento> findByOperacionIdOrderByCreatedAtAsc(UUID operacionId);
+
+    /**
+     * Eventos no anulados de un tipo de esos animales con fecha posterior a {@code desde}. De acá
+     * sale la carencia (ver CarenciaService): los días de carencia están en {@code datos}, así que
+     * el filtro fino se hace en Java.
+     *
+     * <p>No filtra por establecimiento: el historial sigue al animal cuando se mueve a otro campo
+     * (#22), así que la carencia y la curva de peso no se pierden. Quien llama ya limita los
+     * animales a los de su establecimiento.
+     */
+    @Query("""
+        select e from Evento e
+        where e.tipo = :tipo and e.deletedAt is null
+          and e.animal.id in :animalIds and e.fecha > :desde
+        """)
+    List<Evento> buscarDeAnimalesDesde(@Param("tipo") TipoEvento tipo,
+                                       @Param("animalIds") Collection<UUID> animalIds,
+                                       @Param("desde") LocalDate desde);
+
+    /**
+     * Todos los eventos no anulados de esos tipos y animales, de cualquier fecha. De acá sale el
+     * estado reproductivo (ver EstadoReproductivoService). Como {@link #buscarDeAnimalesDesde}, no
+     * filtra por establecimiento.
+     */
+    @Query("""
+        select e from Evento e
+        where e.tipo in :tipos and e.deletedAt is null and e.animal.id in :animalIds
+        """)
+    List<Evento> buscarDeAnimales(@Param("tipos") Collection<TipoEvento> tipos,
+                                  @Param("animalIds") Collection<UUID> animalIds);
+
+    boolean existsByOperacionId(UUID operacionId);
+
+    boolean existsByAnimalIdAndDeletedAtIsNull(UUID animalId);
+
+    /** Eventos vigentes de un tipo para un animal, entre dos fechas (inclusive). */
+    List<Evento> findByAnimalIdAndTipoAndDeletedAtIsNullAndFechaBetween(
+        UUID animalId, TipoEvento tipo, LocalDate desde, LocalDate hasta);
+
+    /** Si el animal tiene otro evento vigente de ese tipo, sin contar el indicado. */
+    boolean existsByAnimalIdAndTipoAndDeletedAtIsNullAndIdNot(UUID animalId, TipoEvento tipo, UUID id);
+
+    /** Al borrar un animal cargado por error se borran también sus eventos ya anulados. */
+    @Modifying
+    @Query("delete from Evento e where e.animal.id = :animalId and e.deletedAt is not null")
+    void borrarAnuladosDelAnimal(@Param("animalId") UUID animalId);
+}

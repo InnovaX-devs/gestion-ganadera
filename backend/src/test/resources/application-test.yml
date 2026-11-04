@@ -4,3 +4,31 @@ spring:
     url: jdbc:h2:mem:ganadera;MODE=PostgreSQL;DATABASE_TO_LOWER=TRUE;DB_CLOSE_DELAY=-1
     username: sa
     password:
+  flyway:
+    # db/testmigration tiene tablas que solo existen en tests (ej: para probar el aislamiento multi-tenant)
+    locations: classpath:db/migration,classpath:db/testmigration
+
+app:
+  jobs:
+    # Los tests llaman a los jobs a mano
+    habilitados: false
+  mercado:
+    # Los tests no salen a internet: usan fuentes falsas (ver MercadoControllerTest)
+    fuentes-externas: false
+  sync:
+    # En los tests lo recién guardado se tiene que ver enseguida
+    margen: 0s
+  planes:
+    # Las cuentas de los tests arrancan sin límites; PlanControllerTest les pone el plan que necesita
+    dias-prueba: 30
+    plan-prueba: EMPRESA
+  cobro:
+    # Mercado Pago falso (FakeMercadoPago): con token, el pago online está habilitado
+    mp-access-token: TEST-falso
+    mp-webhook-secret: secreto-de-prueba
+    dias-gracia: 7
+    # Sin caché: los tests cambian la prueba y los pagos y miran el resultado enseguida
+    cache-estado: 0s
+  admin:
+    emails: admin@innovax.test
+    password: clave-admin-de-prueba

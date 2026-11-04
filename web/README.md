@@ -42,13 +42,31 @@ src/
 
 ## Llamar al backend
 
-```ts
-import { api, getErrorMessage } from '@/lib/api'
+Para datos del servidor usamos **TanStack Query**: cachea, evita requests repetidos y actualiza todas las pantallas que muestran lo mismo. Cada módulo tiene su `queries.ts` (ver `src/features/establecimientos/queries.ts` como modelo):
 
-const { data } = await api.get('/establecimientos') // → GET {VITE_API_URL}/api/establecimientos
+```ts
+// Leer
+const { data, isPending, error } = useEstablecimientos()
+
+// Modificar: al terminar invalida la lista y todas las pantallas se refrescan solas
+const crear = useCrearEstablecimiento()
+await crear.mutateAsync({ nombre: 'La Esperanza', ... })
 ```
 
-El token se agrega solo en cada request. Los errores del backend llegan con el formato estándar (`message`, `fieldErrors`); `getErrorMessage(error)` devuelve el texto para mostrar.
+Por debajo usan `api` (`src/lib/api.ts`), que agrega el token y lo renueva solo cuando vence. Los errores del backend llegan con el formato estándar: `getErrorMessage(error)` da el texto general y `getFieldErrors(error)` los errores por campo.
+
+## Establecimiento activo
+
+Casi todo (lotes, animales, eventos) se muestra para el establecimiento elegido en el header:
+
+```ts
+const { activo } = useEstablecimientoActivo()
+// activo.id → filtrar los datos de ese campo. Es null si todavía no hay ninguno.
+```
+
+## Componentes base
+
+`Button` (variantes primary/secondary/danger y `loading`), `TextField`, `FormError`, `Dialog` (modal) y `ConfirmDialog` (confirmar acciones destructivas) están en `src/components`. Usarlos en vez de crear estilos nuevos.
 
 ## Colores
 

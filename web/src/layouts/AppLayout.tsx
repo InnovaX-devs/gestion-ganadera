@@ -1,33 +1,54 @@
-import { useState } from 'react'
-import { NavLink, Outlet } from 'react-router'
-import { ChevronDown, Menu, Moon, Sun, X } from 'lucide-react'
+import { useCallback, useRef, useState } from 'react'
+import { Link, NavLink, Outlet } from 'react-router'
+import { BadgeCheck, Download, LogOut, Menu, Moon, Sun, X } from 'lucide-react'
+import { ConfirmDialog } from '@/components/ConfirmDialog'
 import { navigation } from '@/config/navigation'
+import { useAuth } from '@/features/auth/useAuth'
+import { EstablecimientoActivoProvider } from '@/features/establecimientos/EstablecimientoActivoProvider'
+import { EstablecimientoSelector } from '@/features/establecimientos/EstablecimientoSelector'
+import { BotonLector } from '@/features/lector/BotonLector'
+import { LectorProvider } from '@/features/lector/LectorProvider'
+import { AvisoPlan } from '@/features/plan/AvisoPlan'
+import { AvisoSinConexion } from '@/features/offline/AvisoSinConexion'
+import { usePendientes } from '@/features/offline/hooks'
+import { IndicadorSync } from '@/features/offline/IndicadorSync'
+import { SincronizacionAutomatica } from '@/features/offline/SincronizacionAutomatica'
+import { InstalarDialog } from '@/features/pwa/InstalarDialog'
+import { useInstalacion } from '@/features/pwa/useInstalacion'
+import { useDismiss } from '@/hooks/useDismiss'
 import { useTheme } from '@/hooks/useTheme'
 
 export function AppLayout() {
   const [sidebarOpen, setSidebarOpen] = useState(false)
 
   return (
-    <div className="min-h-dvh lg:grid lg:grid-cols-[16rem_1fr]">
-      {/* Fondo oscuro del menú en celular */}
-      {sidebarOpen && (
-        <button
-          type="button"
-          aria-label="Cerrar menú"
-          className="fixed inset-0 z-30 bg-stone-950/40 lg:hidden"
-          onClick={() => setSidebarOpen(false)}
-        />
-      )}
+    <EstablecimientoActivoProvider>
+      <LectorProvider>
+        <SincronizacionAutomatica />
+        <div className="min-h-dvh lg:grid lg:grid-cols-[16rem_1fr]">
+          {/* Fondo oscuro del menú en celular */}
+          {sidebarOpen && (
+            <button
+              type="button"
+              aria-label="Cerrar menú"
+              className="fixed inset-0 z-30 bg-stone-950/40 lg:hidden"
+              onClick={() => setSidebarOpen(false)}
+            />
+          )}
 
-      <Sidebar open={sidebarOpen} onClose={() => setSidebarOpen(false)} />
+          <Sidebar open={sidebarOpen} onClose={() => setSidebarOpen(false)} />
 
-      <div className="flex min-w-0 flex-col">
-        <Header onOpenMenu={() => setSidebarOpen(true)} />
-        <main className="flex-1 px-4 py-6 sm:px-6 lg:px-8">
-          <Outlet />
-        </main>
-      </div>
-    </div>
+          <div className="flex min-w-0 flex-col">
+            <Header onOpenMenu={() => setSidebarOpen(true)} />
+            <AvisoSinConexion />
+            <AvisoPlan />
+            <main className="flex-1 px-4 py-6 sm:px-6 lg:px-8">
+              <Outlet />
+            </main>
+          </div>
+        </div>
+      </LectorProvider>
+    </EstablecimientoActivoProvider>
   )
 }
 
@@ -103,14 +124,7 @@ function Header({ onOpenMenu }: { onOpenMenu: () => void }) {
         <Menu className="size-5" />
       </button>
 
-      {/* Selector de establecimiento activo: se conecta en el issue de Establecimientos */}
-      <button
-        type="button"
-        className="flex items-center gap-2 rounded-lg border border-stone-200 px-3 py-1.5 text-sm font-medium hover:bg-stone-50 dark:border-stone-700 dark:hover:bg-stone-800"
-      >
-        Sin establecimiento
-        <ChevronDown className="size-4 text-stone-500" />
-      </button>
+      <EstablecimientoSelector />
 
       <div className="ml-auto flex items-center gap-2">
         <button
@@ -121,10 +135,102 @@ function Header({ onOpenMenu }: { onOpenMenu: () => void }) {
         >
           {isDark ? <Sun className="size-5" /> : <Moon className="size-5" />}
         </button>
-        <span className="bg-brand-600 grid size-8 place-items-center rounded-full text-sm font-semibold text-white">
-          U
-        </span>
+        <BotonLector />
+        <IndicadorSync />
+        <UserMenu />
       </div>
     </header>
+  )
+}
+
+function UserMenu() {
+  const { usuario, logout } = useAuth()
+  const { forma } = useInstalacion()
+  const pendientes = usePendientes().length
+  const [abierto, setAbierto] = useState(false)
+  const [instalarAbierto, setInstalarAbierto] = useState(false)
+  const [confirmarSalida, setConfirmarSalida] = useState(false)
+  const ref = useRef<HTMLDivElement>(null)
+  const cerrar = useCallback(() => setAbierto(false), [])
+  useDismiss(ref, abierto, cerrar)
+
+  if (!usuario) return null
+  const iniciales = `${usuario.nombre[0] ?? ''}${usuario.apellido?.[0] ?? ''}`.toUpperCase()
+
+  return (
+    <div ref={ref} className="relative">
+      <button
+        type="button"
+        onClick={() => setAbierto((a) => !a)}
+        aria-haspopup="menu"
+        aria-expanded={abierto}
+        aria-label="Menú de usuario"
+        className="bg-brand-600 focus-visible:ring-brand-300 grid size-8 place-items-center rounded-full text-sm font-semibold text-white outline-none focus-visible:ring-2"
+      >
+        {iniciales}
+      </button>
+
+      {abierto && (
+        <div
+          role="menu"
+          className="absolute right-0 mt-2 w-64 overflow-hidden rounded-xl border border-stone-200 bg-white shadow-lg dark:border-stone-800 dark:bg-stone-900"
+        >
+          <div className="border-b border-stone-200 px-4 py-3 dark:border-stone-800">
+            <p className="truncate text-sm font-medium">
+              {usuario.nombre} {usuario.apellido}
+            </p>
+            <p className="truncate text-xs text-stone-500">{usuario.email}</p>
+            <p className="mt-1 truncate text-xs text-stone-500">{usuario.organizacionNombre}</p>
+          </div>
+          <Link
+            to="/plan"
+            role="menuitem"
+            onClick={() => setAbierto(false)}
+            className="flex w-full items-center gap-2 px-4 py-2.5 text-left text-sm text-stone-700 hover:bg-stone-100 dark:text-stone-300 dark:hover:bg-stone-800"
+          >
+            <BadgeCheck className="size-4" />
+            Mi plan
+          </Link>
+          {forma !== 'no' && (
+            <button
+              type="button"
+              role="menuitem"
+              onClick={() => {
+                setAbierto(false)
+                setInstalarAbierto(true)
+              }}
+              className="flex w-full items-center gap-2 px-4 py-2.5 text-left text-sm text-stone-700 hover:bg-stone-100 dark:text-stone-300 dark:hover:bg-stone-800"
+            >
+              <Download className="size-4" />
+              Instalar app
+            </button>
+          )}
+          <button
+            type="button"
+            role="menuitem"
+            // Cerrar sesión borra lo guardado en el dispositivo: si hay cargas sin enviar, se avisa
+            onClick={() =>
+              pendientes > 0 ? (setAbierto(false), setConfirmarSalida(true)) : logout()
+            }
+            className="flex w-full items-center gap-2 px-4 py-2.5 text-left text-sm text-stone-700 hover:bg-stone-100 dark:text-stone-300 dark:hover:bg-stone-800"
+          >
+            <LogOut className="size-4" />
+            Cerrar sesión
+          </button>
+        </div>
+      )}
+      <InstalarDialog open={instalarAbierto} onClose={() => setInstalarAbierto(false)} />
+      <ConfirmDialog
+        open={confirmarSalida}
+        title="Hay cargas sin enviar"
+        description={`${pendientes === 1 ? 'Hay 1 carga que todavía no se envió' : `Hay ${pendientes} cargas que todavía no se enviaron`} al servidor. Si cerrás la sesión se pierden. Conectate a internet y esperá a que se envíen antes de salir.`}
+        confirmLabel="Cerrar sesión igual"
+        onConfirm={() => {
+          setConfirmarSalida(false)
+          logout()
+        }}
+        onClose={() => setConfirmarSalida(false)}
+      />
+    </div>
   )
 }

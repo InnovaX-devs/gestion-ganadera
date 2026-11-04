@@ -1,4 +1,5 @@
 import {
+  CalendarDays,
   ArrowLeftRight,
   BarChart3,
   Baby,
@@ -8,6 +9,7 @@ import {
   House,
   Layers,
   type LucideIcon,
+  MailPlus,
   MapPinned,
   PawPrint,
   Scale,
@@ -39,6 +41,7 @@ export const navigation: NavSection[] = [
       { label: 'Establecimientos', path: '/establecimientos', icon: MapPinned },
       { label: 'Lotes', path: '/lotes', icon: Fence },
       { label: 'Rodeos', path: '/rodeos', icon: Layers },
+      { label: 'Invitaciones', path: '/invitaciones', icon: MailPlus },
     ],
   },
   {
@@ -49,6 +52,7 @@ export const navigation: NavSection[] = [
       { label: 'Servicios', path: '/servicios', icon: HeartHandshake },
       { label: 'Tactos', path: '/tactos', icon: ScanSearch },
       { label: 'Tratamientos', path: '/tratamientos', icon: Syringe },
+      { label: 'Calendario sanitario', path: '/calendario-sanitario', icon: CalendarDays },
       { label: 'Pesajes', path: '/pesajes', icon: Scale },
       { label: 'Movimientos', path: '/movimientos', icon: ArrowLeftRight },
       { label: 'Ventas y bajas', path: '/ventas', icon: Tag },

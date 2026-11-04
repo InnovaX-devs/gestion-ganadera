@@ -26,5 +26,102 @@ server:
     include-stacktrace: never
 
 app:
+  mail:
+    # false: los emails no se mandan, el contenido (con el link) se escribe en el log. Solo para desarrollo.
+    enabled: ${MAIL_ENABLED:false}
+    from: ${MAIL_FROM:no-reply@gestion-ganadera.local}
+  invitaciones:
+    # URL de la web: los links de invitación son {web-url}/invitacion/{token}
+    web-url: ${APP_WEB_URL:http://localhost:5173}
+    # Cuánto dura un link antes de vencer
+    ttl: ${INVITACION_TTL:7d}
   cors:
     allowed-origins: ${CORS_ALLOWED_ORIGINS:http://localhost:5173}
+  jwt:
+    # Clave para firmar los tokens (HS256, mínimo 32 caracteres).
+    # Este valor por defecto es SOLO para desarrollo: en producción se exige JWT_SECRET (ver application-prod.yml).
+    secret: ${JWT_SECRET:dev-solo-local-no-usar-en-produccion-0123456789}
+    access-token-ttl: ${JWT_ACCESS_TTL:15m}
+    refresh-token-ttl: ${JWT_REFRESH_TTL:7d}
+  categorias:
+    # Reglas de cambio automático de categoría (issue #16). Valores iniciales, a validar con producción.
+    # Ternero/a que no tuvo destete registrado pasa de categoría a esta edad
+    meses-destete: ${CATEGORIA_MESES_DESTETE:8}
+    # Novillito -> novillo y torito -> toro a esta edad...
+    meses-adulto: ${CATEGORIA_MESES_ADULTO:24}
+    # ...o al registrar un pesaje de al menos estos kilos
+    kilos-novillo: ${CATEGORIA_KILOS_NOVILLO:400}
+    kilos-toro: ${CATEGORIA_KILOS_TORO:450}
+  sanidad:
+    # Días que se suman a la carencia del producto antes de dar al animal por libre (issue #20).
+    # 0: con 28 días de carencia, el animal queda libre el día 28 después de la aplicación.
+    # 1: queda libre recién el día 29 (más conservador). Si lo cambiás, cambiá también
+    # VITE_CARENCIA_DIAS_EXTRA en la web, que lo usa para las vistas previas.
+    carencia-dias-extra: ${SANIDAD_CARENCIA_DIAS_EXTRA:0}
+  jobs:
+    habilitados: ${JOBS_HABILITADOS:true}
+    # Cron de Spring (segundo minuto hora día mes día-semana), hora de Argentina
+    cambio-categoria-cron: ${JOB_CAMBIO_CATEGORIA_CRON:0 0 3 * * *}
+    # Cotizaciones de mercado (issue #27). A las 19 ya cerró el dólar y está la pizarra del día hábil anterior.
+    cotizaciones-cron: ${JOB_COTIZACIONES_CRON:0 0 19 * * *}
+    # Aviso diario de alertas sanitarias por email (issue #34)
+    alertas-cron: ${JOB_ALERTAS_CRON:0 0 7 * * *}
+    # Suscripciones vencidas (sin pago ni gracia): la cuenta queda sin uso pago (issue #35)
+    suscripciones-cron: ${JOB_SUSCRIPCIONES_CRON:0 0 4 * * *}
+  mercado:
+    # false: no se consulta ninguna fuente externa (los tests usan fuentes falsas)
+    fuentes-externas: ${MERCADO_FUENTES_EXTERNAS:true}
+    dolar-api-url: ${MERCADO_DOLAR_API_URL:https://dolarapi.com/v1}
+    pizarra-rosario-url: ${MERCADO_PIZARRA_ROSARIO_URL:https://www.cac.bcr.com.ar/es/precios-de-pizarra}
+    timeout: ${MERCADO_TIMEOUT:15s}
+  alertas:
+    # Cuántos días hacia adelante se consideran "próximos" (calendario sanitario, issue #34)
+    dias-proximos: ${ALERTAS_DIAS_PROXIMOS:7}
+  admin:
+    # Panel de administración del equipo de Innovax (/admin en la web): cuentas, planes, suspensiones.
+    # Se entra con uno de estos emails (separados por coma) y ADMIN_PASSWORD. Sin contraseña, el panel está cerrado.
+    emails: ${ADMIN_EMAILS:}
+    password: ${ADMIN_PASSWORD:}
+    # Cuánto dura la sesión del panel antes de pedir la contraseña de nuevo
+    sesion: ${ADMIN_SESION:8h}
+  planes:
+    # Planes y límites (issue #35). Una organización nueva tiene estos días de prueba gratis...
+    dias-prueba: ${PLAN_DIAS_PRUEBA:30}
+    # ...con los límites de este plan (INICIAL, PRODUCTOR o EMPRESA). Al terminar, rige su plan contratado.
+    plan-prueba: ${PLAN_PRUEBA:PRODUCTOR}
+  cobro:
+    # Suscripciones con Mercado Pago (issue #35): ver docs/planes.md.
+    # Access Token de la aplicación (Tus integraciones → Credenciales). Vacío = pago online apagado.
+    mp-access-token: ${MP_ACCESS_TOKEN:}
+    # Clave secreta de los webhooks (Tus integraciones → Webhooks). Vacía = no se valida la firma.
+    mp-webhook-secret: ${MP_WEBHOOK_SECRET:}
+    mp-api-url: ${MP_API_URL:https://api.mercadopago.com}
+    # A dónde vuelve el cliente después de pagar
+    back-url: ${MP_BACK_URL:${APP_WEB_URL:http://localhost:5173}/plan}
+    # Solo para probar: Mercado Pago exige que el pagador sea un usuario de prueba (email @testuser.com)
+    email-pagador-prueba: ${MP_EMAIL_PAGADOR_PRUEBA:}
+    moneda: ${MP_MONEDA:ARS}
+    # Si no se puede cobrar, el plan sigue estos días después de lo pago; después baja a Inicial
+    dias-gracia: ${COBRO_DIAS_GRACIA:7}
+    # Ningún plan es gratis: sin prueba, suscripción al día ni pago manual, la cuenta queda en solo lectura.
+    # En false no se bloquea a nadie (por ejemplo, para lanzar el cobro sin cortar cuentas existentes).
+    exigir-pago: ${COBRO_EXIGIR_PAGO:true}
+    cache-estado: ${COBRO_CACHE_ESTADO:30s}
+    # Pago manual (transferencia): se paga del 1 a este día de cada mes. "Registrar pago" en el panel
+    # deja la cuenta pagada hasta este día del mes siguiente; el día después queda en solo lectura.
+    dia-vencimiento-manual: ${COBRO_DIA_VENCIMIENTO:10}
+    timeout: ${MP_TIMEOUT:15s}
+  sync:
+    # App offline (issue #30). El pull no entrega filas de los últimos `margen`: ver docs/sync.md.
+    margen: ${SYNC_MARGEN:10s}
+    limite-por-defecto: ${SYNC_LIMITE:500}
+  clima:
+    # Open-Meteo (issue #29). La API gratuita es para uso no comercial: ver docs/clima.md.
+    # Plan comercial: CLIMA_URL=https://customer-api.open-meteo.com/v1 y OPEN_METEO_API_KEY.
+    url: ${CLIMA_URL:https://api.open-meteo.com/v1}
+    geocoding-url: ${CLIMA_GEOCODING_URL:https://geocoding-api.open-meteo.com/v1}
+    api-key: ${OPEN_METEO_API_KEY:}
+    dias: ${CLIMA_DIAS:5}
+    # Cuánto se reutiliza un pronóstico antes de volver a pedirlo
+    cache: ${CLIMA_CACHE:30m}
+    timeout: ${CLIMA_TIMEOUT:8s}
