@@ -153,6 +153,10 @@ Exactamente la dirección de Vercel, sin barra al final. **Save, rebuild and dep
 
 ## Mails (Resend)
 
+El plan gratis de Render **bloquea los puertos SMTP** (25, 465 y 587). Por eso en producción los mails salen por la **API HTTP de Resend** (puerto 443), con la misma clave `MAIL_PASSWORD`: es el valor por defecto (`MAIL_PROVEEDOR=resend`), no hay que configurar nada más. `MAIL_HOST`, `MAIL_PORT` y `MAIL_USERNAME` solo se usan con `MAIL_PROVEEDOR=smtp` (por ejemplo en un plan pago de Render u otro hosting).
+
+Si un mail falla, el motivo queda en los **Logs** de Render (`No se pudo enviar...`), y desde el panel se puede volver a mandar con **Reenviar enlace**.
+
 Con `MAIL_FROM=onboarding@resend.dev`, Resend **solo manda al email del dueño de la cuenta de Resend**. Para mandar a clientes: en Resend → **Domains** → agregar `innovax-team.com` (o un subdominio), cargar los registros DNS que pide en el proveedor del dominio y, ya verificado, poner `MAIL_FROM=no-reply@innovax-team.com`.
 
 ## Mercado Pago
@@ -172,6 +176,8 @@ Mientras se prueba, quedan las credenciales de **prueba** (vendedor de prueba + 
 | Render: `Connection refused` / `Network is unreachable` a la base | Se usó la conexión **Direct** de Supabase. Usar la de **Session pooler**. |
 | Render: `password authentication failed` | `DB_USERNAME` tiene que ser `postgres.xxxxx` (con el punto y el código del proyecto). |
 | Render: `Could not resolve placeholder 'MAIL_HOST'` (u otra) | Falta esa variable en Environment. |
+| Crear una cuenta tarda y dice "No se pudo conectar con el servidor" | El mail quedó esperando un puerto SMTP bloqueado. Usar `MAIL_PROVEEDOR=resend` (el valor por defecto). |
+| Log: `Resend rechazó el email (403)` | El dominio de `MAIL_FROM` no está verificado en Resend, o con `onboarding@resend.dev` se mandó a otro email que no es el dueño de la cuenta de Resend. |
 | La web carga pero el login dice "No se pudo conectar con el servidor" | `VITE_API_URL` mal en Vercel (cambiarla y volver a desplegar), o `CORS_ALLOWED_ORIGINS` no coincide exacto con la dirección de la web. |
 | Recargar `/plan` o `/admin` da 404 | Falta `web/vercel.json` en `main`. |
 | La primera carga tarda un minuto | Render estaba dormido: revisar que UptimeRobot esté activo. |
