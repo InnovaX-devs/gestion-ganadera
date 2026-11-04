@@ -8,7 +8,7 @@ import {
   registrarEventoSinConexion,
 } from '@/features/offline/escrituras'
 import { eventosLocales } from '@/features/offline/local'
-import { nuevoId } from '@/features/offline/red'
+import { esperarSoloEnLinea, nuevoId } from '@/features/offline/red'
 import { api } from '@/lib/api'
 import type { Evento, EventoInput, FiltroEventos, Operacion } from './types'
 
@@ -43,15 +43,17 @@ export function useEventos<D = Record<string, unknown>>(
 function useInvalidar(establecimientoId: string) {
   const queryClient = useQueryClient()
   return () =>
-    Promise.all([
-      queryClient.invalidateQueries({ queryKey: ['eventos'] }),
-      queryClient.invalidateQueries({ queryKey: ['animales'] }),
-      queryClient.invalidateQueries({ queryKey: ['stock'] }),
-      queryClient.invalidateQueries({ queryKey: ['agrupaciones'] }),
-      queryClient.invalidateQueries({ queryKey: stockKey(establecimientoId) }),
-      // Un tratamiento cambia las carencias de las alertas sanitarias (#34)
-      queryClient.invalidateQueries({ queryKey: ['alertas', establecimientoId] }),
-    ])
+    esperarSoloEnLinea(
+      Promise.all([
+        queryClient.invalidateQueries({ queryKey: ['eventos'] }),
+        queryClient.invalidateQueries({ queryKey: ['animales'] }),
+        queryClient.invalidateQueries({ queryKey: ['stock'] }),
+        queryClient.invalidateQueries({ queryKey: ['agrupaciones'] }),
+        queryClient.invalidateQueries({ queryKey: stockKey(establecimientoId) }),
+        // Un tratamiento cambia las carencias de las alertas sanitarias (#34)
+        queryClient.invalidateQueries({ queryKey: ['alertas', establecimientoId] }),
+      ]),
+    )
 }
 
 /**

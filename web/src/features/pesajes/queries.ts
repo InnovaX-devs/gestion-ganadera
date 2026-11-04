@@ -2,7 +2,7 @@ import { keepPreviousData, useMutation, useQuery, useQueryClient } from '@tansta
 import type { Pagina } from '@/features/animales/types'
 import type { Operacion } from '@/features/eventos/types'
 import { online, registrarGrillaSinConexion } from '@/features/offline/escrituras'
-import { nuevoId } from '@/features/offline/red'
+import { esperarSoloEnLinea, nuevoId } from '@/features/offline/red'
 import { api } from '@/lib/api'
 import type { FiltroPesajes, GrillaInput, Pesaje } from './types'
 
@@ -32,12 +32,14 @@ export function useRegistrarGrilla(establecimientoId: string) {
       )
     },
     onSuccess: () =>
-      Promise.all([
-        queryClient.invalidateQueries({ queryKey: ['pesajes', establecimientoId] }),
-        queryClient.invalidateQueries({ queryKey: ['eventos', establecimientoId] }),
-        // Un pesaje puede cambiar la categoría de un animal
-        queryClient.invalidateQueries({ queryKey: ['animales', establecimientoId] }),
-        queryClient.invalidateQueries({ queryKey: ['agrupaciones'] }),
-      ]),
+      esperarSoloEnLinea(
+        Promise.all([
+          queryClient.invalidateQueries({ queryKey: ['pesajes', establecimientoId] }),
+          queryClient.invalidateQueries({ queryKey: ['eventos', establecimientoId] }),
+          // Un pesaje puede cambiar la categoría de un animal
+          queryClient.invalidateQueries({ queryKey: ['animales', establecimientoId] }),
+          queryClient.invalidateQueries({ queryKey: ['agrupaciones'] }),
+        ]),
+      ),
   })
 }
