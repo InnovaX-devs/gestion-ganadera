@@ -27,6 +27,7 @@ public final class DbCleaner {
         "producto_sanitario",
         "establecimiento",
         "activacion_cuenta",
+        "restablecimiento_contrasena",
         "suscripcion",
         "usuario",
         "organizacion"

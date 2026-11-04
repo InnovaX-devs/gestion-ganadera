@@ -3,7 +3,7 @@ import { api } from '@/lib/api'
 import { planKey } from './queries'
 import type { Plan } from './types'
 
-export { contratable, diaSiguiente, pesos } from './cobro'
+export { contratable, diaSiguiente, motivoPrimerCobro, pesos } from './cobro'
 
 /** Crea la suscripción y lleva al cliente a pagarla en Mercado Pago. */
 export function useSuscribir() {

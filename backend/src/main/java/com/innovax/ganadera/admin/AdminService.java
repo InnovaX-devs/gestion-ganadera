@@ -10,6 +10,7 @@ import com.innovax.ganadera.admin.dto.CambioPlanRequest;
 import com.innovax.ganadera.admin.dto.OrganizacionAdminResponse;
 import com.innovax.ganadera.common.error.NotFoundException;
 import com.innovax.ganadera.common.tenant.TenantContext;
+import com.innovax.ganadera.contrasena.RestablecimientoService;
 import com.innovax.ganadera.cuenta.CuentaService;
 import com.innovax.ganadera.cuenta.dto.CrearCuentaRequest;
 import com.innovax.ganadera.organizacion.Organizacion;
@@ -40,6 +41,7 @@ public class AdminService {
     private final UsuarioRepository usuarioRepository;
     private final PlanService planService;
     private final CuentaService cuentaService;
+    private final RestablecimientoService restablecimientoService;
 
     public List<OrganizacionAdminResponse> organizaciones() {
         administradores.exigir();
@@ -60,6 +62,15 @@ public class AdminService {
     public void reenviarActivacion(UUID organizacionId) {
         administradores.exigir();
         cuentaService.reenviarActivacion(organizacionId);
+    }
+
+    /** Link para que el dueño elija una contraseña nueva. Devuelve a qué email se mandó. */
+    public String restablecerContrasena(UUID organizacionId) {
+        String admin = administradores.exigir();
+        String email = restablecimientoService.enviarAlDueno(organizacionId);
+        log.info("Administración: {} mandó un enlace para cambiar la contraseña a {} ({})", admin, email,
+            organizacionId);
+        return email;
     }
 
     public OrganizacionAdminResponse suspender(UUID organizacionId, boolean suspendida) {

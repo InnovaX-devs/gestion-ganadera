@@ -81,6 +81,12 @@ public class CuentaService {
         return activacionRepository.existsByUsuarioIdAndUsadaAtIsNull(usuarioId);
     }
 
+    /** El usuario ya eligió su contraseña por otro camino (ej: "olvidé mi contraseña"): los links de activación no sirven más. */
+    @Transactional
+    public void cerrarActivacionesPendientes(UUID usuarioId, Instant ahora) {
+        activacionRepository.findByUsuarioIdAndUsadaAtIsNull(usuarioId).forEach(a -> a.usar(ahora));
+    }
+
     @Transactional
     public void suspender(UUID organizacionId, boolean suspendida) {
         Organizacion organizacion = organizacionRepository.findById(organizacionId)

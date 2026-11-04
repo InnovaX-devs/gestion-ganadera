@@ -3,6 +3,7 @@ import { describe, it } from 'node:test'
 import {
   contratable,
   diaSiguiente,
+  motivoPrimerCobro,
   siguienteVencimiento,
   sumarMesesISO,
 } from '../src/features/plan/cobro.ts'
@@ -45,5 +46,19 @@ describe('siguienteVencimiento (pago por transferencia, del 1 al 10)', () => {
   it('respeta el largo del mes', () => {
     assert.equal(siguienteVencimiento(null, '2027-01-31', 31), '2027-02-28')
     assert.equal(sumarMesesISO('2027-01-31', 1), '2027-02-28')
+  })
+})
+
+describe('motivoPrimerCobro', () => {
+  it('si lo pagado por transferencia termina justo antes, lo dice', () => {
+    assert.equal(
+      motivoPrimerCobro('2026-12-11', '2026-12-10'),
+      'cuando termina lo pagado por transferencia',
+    )
+  })
+
+  it('si no, es por la prueba gratis', () => {
+    assert.equal(motivoPrimerCobro('2026-12-04', null), 'cuando termina la prueba gratis')
+    assert.equal(motivoPrimerCobro('2026-12-04', '2026-11-10'), 'cuando termina la prueba gratis')
   })
 })

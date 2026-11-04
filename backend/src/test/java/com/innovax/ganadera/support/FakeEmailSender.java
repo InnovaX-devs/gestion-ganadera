@@ -21,7 +21,7 @@ public class FakeEmailSender implements EmailSender {
     public record Mensaje(String destinatario, String asunto, String texto) {
     }
 
-    private static final Pattern LINK = Pattern.compile("/(?:invitacion|activar)/([A-Za-z0-9_-]+)");
+    private static final Pattern LINK = Pattern.compile("/(?:invitacion|activar|restablecer)/([A-Za-z0-9_-]+)");
 
     private final List<Mensaje> mensajes = new CopyOnWriteArrayList<>();
 

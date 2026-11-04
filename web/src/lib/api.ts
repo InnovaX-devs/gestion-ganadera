@@ -21,16 +21,19 @@ export const api = axios.create({
 })
 
 // Endpoints que no llevan token (si se manda uno vencido, el backend respondería 401)
-const RUTAS_PUBLICAS = ['/auth/login', '/auth/register', '/auth/refresh']
+const RUTAS_PUBLICAS = ['/auth/login', '/auth/register', '/auth/refresh', '/auth/olvide-contrasena']
 // Ver y registrarse desde el link de una invitación (aceptar, en cambio, sí lleva el token)
 const RUTA_INVITACION_PUBLICA = /^\/invitaciones\/[^/]+(\/registro)?$/
 // Link para activar una cuenta creada desde el panel de administración (#35)
 const RUTA_ACTIVACION = /^\/activacion\/[^/]+$/
+// Link de "olvidé mi contraseña"
+const RUTA_RESTABLECER = /^\/restablecer\/[^/]+$/
 const esRutaPublica = (url?: string) =>
   !!url &&
   (RUTAS_PUBLICAS.some((ruta) => url.endsWith(ruta)) ||
     RUTA_INVITACION_PUBLICA.test(url) ||
-    RUTA_ACTIVACION.test(url))
+    RUTA_ACTIVACION.test(url) ||
+    RUTA_RESTABLECER.test(url))
 
 api.interceptors.request.use((config) => {
   const token = authStorage.getAccessToken()

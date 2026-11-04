@@ -4,6 +4,7 @@ import {
   Banknote,
   Clock,
   CreditCard,
+  KeyRound,
   LoaderCircle,
   MoreHorizontal,
   Pencil,
@@ -30,6 +31,7 @@ import {
   useCambiarPrecio,
   usePlanesAdmin,
   useReenviarActivacion,
+  useRestablecerContrasena,
   useSuspender,
 } from '@/features/admin/queries'
 import { formatearFecha, hoyISO } from '@/features/eventos/fechas'
@@ -57,6 +59,7 @@ export function AdminPage() {
   const [aviso, setAviso] = useState<string | null>(null)
   const suspender = useSuspender()
   const reenviar = useReenviarActivacion()
+  const restablecer = useRestablecerContrasena()
   const registrarPago = useRegistrarPago()
 
   const q = busqueda.trim().toLowerCase()
@@ -193,6 +196,15 @@ export function AdminPage() {
                     onReenviar={() =>
                       reenviar.mutate(o.id, {
                         onSuccess: () => setAviso(`Se mandó un enlace nuevo a ${o.duenoEmail}.`),
+                        onError: (e) => setAviso(getErrorMessage(e)),
+                      })
+                    }
+                    onRestablecer={() =>
+                      restablecer.mutate(o.id, {
+                        onSuccess: (r) =>
+                          setAviso(
+                            `Se mandó a ${r.email} un enlace para elegir una contraseña nueva.`,
+                          ),
                         onError: (e) => setAviso(getErrorMessage(e)),
                       })
                     }
@@ -454,11 +466,13 @@ function Precios({ onListo }: { onListo: () => void }) {
 function MasAcciones({
   organizacion,
   onReenviar,
+  onRestablecer,
   onSuspender,
   onRegistrarPago,
 }: {
   organizacion: OrganizacionAdmin
   onReenviar: () => void
+  onRestablecer: () => void
   onSuspender: () => void
   onRegistrarPago: () => void
 }) {
@@ -521,6 +535,25 @@ function MasAcciones({
             >
               <Send className="size-4 text-stone-500" />
               Reenviar enlace de activación
+            </button>
+          )}
+          {!organizacion.duenoPendiente && (
+            <button
+              type="button"
+              role="menuitem"
+              className={`${item} items-start`}
+              onClick={() => {
+                setAbierto(false)
+                onRestablecer()
+              }}
+            >
+              <KeyRound className="mt-0.5 size-4 text-stone-500" />
+              <span>
+                Enviar enlace para cambiar contraseña
+                <span className="block text-xs text-stone-500">
+                  Al dueño. La contraseña la elige él.
+                </span>
+              </span>
             </button>
           )}
           <button
