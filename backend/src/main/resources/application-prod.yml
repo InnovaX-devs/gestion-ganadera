@@ -7,13 +7,18 @@ spring:
     hikari:
       maximum-pool-size: ${DB_POOL_SIZE:10}
   mail:
-    host: ${MAIL_HOST}
+    # Solo se usa con MAIL_PROVEEDOR=smtp
+    host: ${MAIL_HOST:smtp.resend.com}
     port: ${MAIL_PORT:587}
-    username: ${MAIL_USERNAME}
+    username: ${MAIL_USERNAME:resend}
     password: ${MAIL_PASSWORD}
     properties:
       "[mail.smtp.auth]": true
       "[mail.smtp.starttls.enable]": true
+      # Sin esto, si el puerto está bloqueado la request queda colgada
+      "[mail.smtp.connectiontimeout]": 10000
+      "[mail.smtp.timeout]": 10000
+      "[mail.smtp.writetimeout]": 10000
 
 app:
   jwt:
@@ -23,6 +28,12 @@ app:
     # En producción los emails se mandan de verdad (si no, los links de invitación quedarían en el log)
     enabled: true
     from: ${MAIL_FROM}
+    # resend: API HTTP de Resend (puerto 443). Render gratis bloquea los puertos SMTP (25, 465, 587).
+    # smtp: servidor SMTP de spring.mail.*
+    proveedor: ${MAIL_PROVEEDOR:resend}
+    resend:
+      # La API key de Resend es la misma que se usa como contraseña SMTP
+      api-key: ${RESEND_API_KEY:${MAIL_PASSWORD}}
   invitaciones:
     web-url: ${APP_WEB_URL}
 

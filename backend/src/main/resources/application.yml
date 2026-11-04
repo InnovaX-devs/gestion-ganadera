@@ -30,6 +30,10 @@ app:
     # false: los emails no se mandan, el contenido (con el link) se escribe en el log. Solo para desarrollo.
     enabled: ${MAIL_ENABLED:false}
     from: ${MAIL_FROM:no-reply@gestion-ganadera.local}
+    # smtp (spring.mail.*) o resend (API HTTP de Resend, para hostings que bloquean SMTP)
+    proveedor: ${MAIL_PROVEEDOR:smtp}
+    resend:
+      api-key: ${RESEND_API_KEY:${MAIL_PASSWORD:}}
   invitaciones:
     # URL de la web: los links de invitación son {web-url}/invitacion/{token}
     web-url: ${APP_WEB_URL:http://localhost:5173}
