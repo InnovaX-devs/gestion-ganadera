@@ -1,8 +1,11 @@
 package com.innovax.ganadera.auth;
 
+import java.time.Instant;
+import java.time.temporal.ChronoUnit;
 import java.util.UUID;
 
 import org.springframework.security.crypto.password.PasswordEncoder;
+import org.springframework.security.oauth2.jwt.Jwt;
 import org.springframework.security.oauth2.jwt.JwtException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -85,15 +88,20 @@ public class AuthService {
 
     @Transactional(readOnly = true)
     public AuthResponse refrescar(String refreshToken) {
+        Jwt token;
         UUID usuarioId;
         try {
-            usuarioId = tokenService.validarRefreshToken(refreshToken);
+            token = tokenService.decodificarRefreshToken(refreshToken);
+            usuarioId = UUID.fromString(token.getSubject());
         } catch (JwtException | IllegalArgumentException e) {
             throw new UnauthorizedException(SESION_VENCIDA);
         }
         Usuario usuario = usuarioRepository.findById(usuarioId)
             .filter(Usuario::isActivo)
             .orElseThrow(() -> new UnauthorizedException(SESION_VENCIDA));
+        if (emitidoAntesDelCambioDeContrasena(token, usuario)) {
+            throw new UnauthorizedException(SESION_VENCIDA);
+        }
         if (usuario.getOrganizacion().isSuspendida()) {
             throw new CuentaSuspendidaException();
         }
@@ -117,6 +125,13 @@ public class AuthService {
     private AuthResponse respuestaPara(Usuario usuario) {
         var autenticado = new AuthenticatedUser(usuario.getId(), usuario.getOrganizacion().getId(), usuario.getEmail());
         return AuthResponse.of(tokenService.generar(autenticado), UsuarioResponse.from(usuario));
+    }
+
+    /** Las sesiones abiertas antes de cambiar la contraseña se cierran (el JWT guarda la hora en segundos). */
+    private static boolean emitidoAntesDelCambioDeContrasena(Jwt token, Usuario usuario) {
+        Instant cambio = usuario.getCredencialesCambiadasAt();
+        return cambio != null && token.getIssuedAt() != null
+            && token.getIssuedAt().isBefore(cambio.truncatedTo(ChronoUnit.SECONDS));
     }
 
     private static String limpiar(String valor) {

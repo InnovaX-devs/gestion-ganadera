@@ -13,6 +13,16 @@ export function contratable(plan: Plan, precio?: number | null) {
   return !!plan.cobro?.habilitado && typeof precio === 'number' && precio > 0
 }
 
+/**
+ * Por qué el primer cobro de Mercado Pago es más adelante: arranca el día después de lo último que
+ * ya está cubierto, el pago por transferencia o la prueba gratis.
+ */
+export function motivoPrimerCobro(primerCobro: string, pagoManualHasta?: string | null) {
+  return pagoManualHasta && diaSiguiente(pagoManualHasta) === primerCobro
+    ? 'cuando termina lo pagado por transferencia'
+    : 'cuando termina la prueba gratis'
+}
+
 /** 'YYYY-MM-DD' + 1 día */
 export function diaSiguiente(fecha: string) {
   const [a, m, d] = fecha.split('-').map(Number)

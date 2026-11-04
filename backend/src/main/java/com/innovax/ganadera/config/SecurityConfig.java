@@ -42,6 +42,8 @@ public class SecurityConfig {
         "/api/auth/login",
         "/api/auth/refresh",
         "/api/activacion/*",
+        "/api/auth/olvide-contrasena",
+        "/api/restablecer/*",
         "/api/admin/auth/login",
         // Avisos de Mercado Pago (#35): se validan con la firma y consultando a Mercado Pago
         "/api/mercadopago/webhook",

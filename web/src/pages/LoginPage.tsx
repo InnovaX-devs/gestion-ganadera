@@ -70,6 +70,14 @@ export function LoginPage() {
           onChange={(e) => setPassword(e.target.value)}
           error={errores.password}
         />
+        <div className="-mt-2 text-right">
+          <Link
+            to="/olvide-contrasena"
+            className="text-brand-700 dark:text-brand-200 text-sm font-medium hover:underline"
+          >
+            ¿Olvidaste tu contraseña?
+          </Link>
+        </div>
         <Button type="submit" loading={enviando} className="w-full">
           Ingresar
         </Button>
