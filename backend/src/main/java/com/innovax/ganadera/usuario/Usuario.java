@@ -1,5 +1,6 @@
 package com.innovax.ganadera.usuario;
 
+import java.time.Instant;
 import java.util.Locale;
 
 import com.innovax.ganadera.common.tenant.BaseEntity;
@@ -53,6 +54,11 @@ public class Usuario extends BaseEntity {
     @Setter
     @Column(name = "alertas_email", nullable = false)
     private boolean alertasEmail = true;
+
+    /** Último cambio de contraseña: las sesiones (refresh tokens) anteriores dejan de servir. */
+    @Setter
+    @Column(name = "credenciales_cambiadas_at")
+    private Instant credencialesCambiadasAt;
 
     public Usuario(Organizacion organizacion, String email, String passwordHash, String nombre, String apellido) {
         this.organizacion = organizacion;

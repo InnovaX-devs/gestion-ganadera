@@ -57,6 +57,15 @@ public class AdminController {
         service.reenviarActivacion(id);
     }
 
+    /** Le manda al dueño un link para elegir una contraseña nueva (la elige él, nunca el panel). */
+    @PostMapping("/{id}/restablecer-contrasena")
+    public EnlaceEnviado restablecerContrasena(@PathVariable UUID id) {
+        return new EnlaceEnviado(service.restablecerContrasena(id));
+    }
+
+    public record EnlaceEnviado(String email) {
+    }
+
     /** Suspende o reactiva la cuenta: {@code { "suspendida": true }}. */
     @PutMapping("/{id}/suspension")
     public OrganizacionAdminResponse suspender(@PathVariable UUID id, @RequestBody Suspension request) {

@@ -5,6 +5,8 @@ import { AppLayout } from '@/layouts/AppLayout'
 import { AgrupacionesPage } from '@/pages/AgrupacionesPage'
 import { ImportarAnimalesPage } from '@/pages/ImportarAnimalesPage'
 import { ActivarCuentaPage } from '@/pages/ActivarCuentaPage'
+import { OlvideContrasenaPage } from '@/pages/OlvideContrasenaPage'
+import { RestablecerContrasenaPage } from '@/pages/RestablecerContrasenaPage'
 import { AdminLayout } from '@/layouts/AdminLayout'
 import { AdminLoginPage } from '@/pages/AdminLoginPage'
 import { AdminPage } from '@/pages/AdminPage'
@@ -60,6 +62,9 @@ export const router = createBrowserRouter([
   { path: '/invitacion/:token', element: <AceptarInvitacionPage /> },
   // Link para elegir la contraseña de una cuenta creada por el equipo de Innovax (#35)
   { path: '/activar/:token', element: <ActivarCuentaPage /> },
+  // "Olvidé mi contraseña": se abren con o sin sesión (el link puede llegar estando logueado)
+  { path: '/olvide-contrasena', element: <OlvideContrasenaPage /> },
+  { path: '/restablecer/:token', element: <RestablecerContrasenaPage /> },
   // Panel del equipo de Innovax (#35): login y sesión propios, aparte de las cuentas de clientes
   { path: '/admin/login', element: <AdminLoginPage /> },
   { path: '/admin', element: <AdminLayout />, children: [{ index: true, element: <AdminPage /> }] },

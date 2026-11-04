@@ -28,6 +28,7 @@ public class CobroWebConfig implements WebMvcConfigurer {
                 "/api/admin/**",
                 "/api/mercadopago/**",
                 "/api/activacion/**",
+                "/api/restablecer/**",
                 "/api/invitaciones/**",
                 "/api/health",
                 // Lo cargado sin señal antes del bloqueo se guarda igual (docs/sync.md)

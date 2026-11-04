@@ -22,6 +22,7 @@ import { NOMBRE, excedidosAlTerminarPrueba, limite, usado, usePlan } from '@/fea
 import {
   contratable,
   diaSiguiente,
+  motivoPrimerCobro,
   pesos,
   useCancelarSuscripcion,
   useSincronizarSuscripcion,
@@ -249,7 +250,7 @@ function EstadoCobro({ cobro }: { cobro: Cobro }) {
           </p>
           <p className="mt-1 text-sm text-amber-900/80 dark:text-amber-200/80">
             {p.primerCobro && p.primerCobro > hoyISO()
-              ? `Cargás tu tarjeta ahora y el primer cobro es el ${formatearFecha(p.primerCobro)}, cuando termina la prueba. `
+              ? `Cargás tu tarjeta ahora y el primer cobro es el ${formatearFecha(p.primerCobro)}, ${motivoPrimerCobro(p.primerCobro, cobro.pagoManualHasta)}. `
               : ''}
             Si ya pagaste, puede tardar unos minutos en confirmarse.
           </p>
@@ -293,7 +294,7 @@ function EstadoCobro({ cobro }: { cobro: Cobro }) {
                 Suscripción al plan {s.planNombre} · {pesos.format(s.monto)} por mes
               </p>
               <p className="mt-1 text-sm text-stone-600 dark:text-stone-400">
-                {textoSuscripcion(s, cobro.diasGracia)}
+                {textoSuscripcion(s, cobro.diasGracia, cobro.pagoManualHasta)}
               </p>
             </div>
             {(s.estado === 'ACTIVA' || s.estado === 'PAUSADA') && (
@@ -326,7 +327,11 @@ function EstadoCobro({ cobro }: { cobro: Cobro }) {
   )
 }
 
-function textoSuscripcion(s: NonNullable<Cobro['suscripcion']>, diasGracia: number): string {
+function textoSuscripcion(
+  s: NonNullable<Cobro['suscripcion']>,
+  diasGracia: number,
+  pagoManualHasta?: string | null,
+): string {
   const hasta = s.hasta ? formatearFecha(s.hasta) : null
   const baja = s.hasta ? formatearFecha(diaSiguiente(s.hasta)) : null
   switch (s.estado) {
@@ -346,7 +351,7 @@ function textoSuscripcion(s: NonNullable<Cobro['suscripcion']>, diasGracia: numb
         return `Al día: pagado hasta el ${formatearFecha(s.pagadoHasta)}. Se renueva sola todos los meses.`
       }
       return s.primerCobro && s.primerCobro > hoyISO()
-        ? `Activa. El primer cobro es el ${formatearFecha(s.primerCobro)}, cuando termina la prueba gratis.`
+        ? `Activa. El primer cobro es el ${formatearFecha(s.primerCobro)}, ${motivoPrimerCobro(s.primerCobro, pagoManualHasta)}.`
         : `Activa. Mercado Pago hace el primer cobro en los próximos minutos (tenés ${diasGracia} días de margen).`
   }
 }
@@ -390,7 +395,7 @@ function Planes({ datos }: { datos: Plan }) {
       </div>
       <p className="mt-4 text-sm text-stone-500">
         {habilitado
-          ? 'Se paga todos los meses con Mercado Pago (tarjeta o dinero en cuenta). Si estás en la prueba gratis, el primer cobro es cuando termina. Podés cancelar cuando quieras: tus datos nunca se borran.'
+          ? 'Se paga todos los meses con Mercado Pago: tarjeta de crédito o débito, o dinero en cuenta de Mercado Pago. Si estás en la prueba gratis o ya pagaste por transferencia, el primer cobro es cuando eso termina. Podés cancelar cuando quieras: tus datos nunca se borran.'
           : 'Pronto vas a poder cambiar de plan y pagar desde acá. Mientras tanto, para cambiar de plan hablá con nosotros.'}
       </p>
     </section>

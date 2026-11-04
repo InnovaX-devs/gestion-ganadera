@@ -94,6 +94,15 @@ public class TokenService {
         return UUID.fromString(refreshDecoder.decode(token).getSubject());
     }
 
+    /**
+     * Como {@link #validarRefreshToken}, pero devuelve el token entero (para saber cuándo se emitió).
+     *
+     * @throws JwtException si el token es inválido, está vencido o no es de tipo refresh
+     */
+    public Jwt decodificarRefreshToken(String token) {
+        return refreshDecoder.decode(token);
+    }
+
     /** Convierte un access token ya validado en el usuario logueado. */
     public static AuthenticatedUser usuarioDesde(Jwt jwt) {
         return new AuthenticatedUser(

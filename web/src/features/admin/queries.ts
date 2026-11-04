@@ -92,6 +92,16 @@ export function useReenviarActivacion() {
   })
 }
 
+/** Link para que el dueño elija una contraseña nueva. Devuelve a qué email se mandó. */
+export function useRestablecerContrasena() {
+  return useMutation({
+    mutationFn: (id: string) =>
+      adminApi
+        .post<{ email: string }>(`/organizaciones/${id}/restablecer-contrasena`)
+        .then((r) => r.data),
+  })
+}
+
 export function useSuspender() {
   const queryClient = useQueryClient()
   return useMutation({
