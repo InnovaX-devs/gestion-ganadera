@@ -37,6 +37,20 @@
             <artifactId>spring-boot-starter-mail</artifactId>
         </dependency>
 
+                <!-- Almacén de adjuntos en Cloudflare R2 (compatible con S3), ver docs/adjuntos.md.
+             Se queda en 2.29.x: desde la 2.30 el SDK agrega checksums por defecto que R2 no acepta. -->
+        <dependency>
+            <groupId>software.amazon.awssdk</groupId>
+            <artifactId>s3</artifactId>
+            <version>2.29.52</version>
+            <exclusions>
+                <exclusion>
+                    <groupId>software.amazon.awssdk</groupId>
+                    <artifactId>netty-nio-client</artifactId>
+                </exclusion>
+            </exclusions>
+        </dependency>
+        
         <!-- Seguridad -->
         <dependency>
             <groupId>org.springframework.boot</groupId>

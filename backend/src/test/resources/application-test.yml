@@ -15,6 +15,11 @@ app:
   mercado:
     # Los tests no salen a internet: usan fuentes falsas (ver MercadoControllerTest)
     fuentes-externas: false
+  adjuntos:
+    # Directorio descartable (target/ se limpia con mvn clean) y topes bajos para probarlos sin archivos grandes
+    directorio: target/test-adjuntos
+    tamanio-maximo: 1MB
+    maximo-por-elemento: 3
   sync:
     # En los tests lo recién guardado se tiene que ver enseguida
     margen: 0s

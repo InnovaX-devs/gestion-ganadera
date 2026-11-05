@@ -16,6 +16,8 @@ import { ConfirmDialog } from '@/components/ConfirmDialog'
 import { EmptyState } from '@/components/EmptyState'
 import { FormError } from '@/components/FormError'
 import { Paginacion } from '@/components/Paginacion'
+import { ArchivosAnimal } from '@/features/adjuntos/ArchivosAnimal'
+import { GaleriaAdjuntos } from '@/features/adjuntos/GaleriaAdjuntos'
 import { AnimalFormDialog } from '@/features/animales/AnimalFormDialog'
 import { CategoriaBadge } from '@/features/animales/CategoriaBadge'
 import { GraficoPeso } from '@/features/animales/GraficoPeso'
@@ -203,6 +205,11 @@ function Ficha({
 
         <div className="space-y-4 lg:col-span-2">
           <Peso animalId={animal.id} establecimientoId={establecimientoId} />
+          <ArchivosAnimal
+            establecimientoId={establecimientoId}
+            animal={{ id: animal.id, caravana: animal.caravana }}
+            puedeEditar={puedeEditar}
+          />
           <Historial
             animalId={animal.id}
             establecimientoId={establecimientoId}
@@ -511,6 +518,11 @@ function Historial({
                       {detalle}
                     </p>
                   )}
+                  <GaleriaAdjuntos
+                    establecimientoId={establecimientoId}
+                    adjuntos={e.adjuntos ?? []}
+                    puedeEliminar={puedeAnular(e.tipo) && !deOtroCampo(e)}
+                  />
                   <p className="mt-0.5 text-xs text-stone-500">
                     {e.registradoPor.nombre}
                     {deOtroCampo(e) && ` · en ${e.establecimiento?.nombre}`}

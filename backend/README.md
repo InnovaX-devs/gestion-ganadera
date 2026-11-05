@@ -45,6 +45,11 @@ Variables de entorno de producción:
 | `JWT_SECRET` | Clave para firmar los tokens, **obligatoria**, mínimo 32 caracteres (`openssl rand -base64 48`) |
 | `JWT_ACCESS_TTL` / `JWT_REFRESH_TTL` | Duración de los tokens (default `15m` y `7d`) |
 | `PORT` | Puerto HTTP (default 8080) |
+| `ADJUNTOS_ALMACEN` | Dónde se guardan las fotos y archivos: `disco` (default en dev) o `r2`. **Obligatoria en prod**, donde se usa `r2` |
+| `ADJUNTOS_DIR` | Carpeta de los archivos con `disco` (default dev `./data/adjuntos`) |
+| `ADJUNTOS_BUCKET` / `ADJUNTOS_ENDPOINT` / `ADJUNTOS_ACCESS_KEY` / `ADJUNTOS_SECRET_KEY` | Bucket y credenciales de Cloudflare R2 con `r2` (ver `docs/adjuntos.md`) |
+| `ADJUNTOS_TAMANIO_MAXIMO` | Tamaño máximo por archivo (default `10MB`) |
+| `ADJUNTOS_MAXIMO_POR_ELEMENTO` | Archivos por evento o animal (default `10`) |
 
 ## Estructura
 
@@ -56,6 +61,10 @@ com.innovax.ganadera
 │   └── health/      GET /api/health
 └── <modulo>/        Un paquete por módulo de negocio (establecimiento, animal, evento...)
 ```
+
+## Adjuntos
+
+Fotos y PDF de eventos y animales: ver [`docs/adjuntos.md`](../docs/adjuntos.md). Código en `adjunto/`.
 
 ## Autenticación
 

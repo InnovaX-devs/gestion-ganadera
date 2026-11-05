@@ -187,3 +187,5 @@ Si una carga es de otro establecimiento (no el activo), se indica de cuál.
 - Lo cargado sin conexión no aparece en el historial de eventos hasta que se sincroniza: mientras
   tanto se ve en el indicador de pendientes.
 - No hay sincronización con la app cerrada (ver ADR 0004).
+- Los adjuntos no se guardan en la caché offline: verlos requiere conexión. Los archivos elegidos sin
+  conexión se suben al sincronizar (ver [`adjuntos.md`](adjuntos.md)).

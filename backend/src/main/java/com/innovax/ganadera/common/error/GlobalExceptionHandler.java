@@ -13,6 +13,9 @@ import org.springframework.web.bind.MissingServletRequestParameterException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
 import org.springframework.web.method.annotation.MethodArgumentTypeMismatchException;
+import org.springframework.web.multipart.MaxUploadSizeExceededException;
+import org.springframework.web.multipart.MultipartException;
+import org.springframework.web.multipart.support.MissingServletRequestPartException;
 import org.springframework.web.servlet.resource.NoResourceFoundException;
 
 import com.innovax.ganadera.cobro.MercadoPagoException;
@@ -50,6 +53,18 @@ public class GlobalExceptionHandler {
     @ExceptionHandler(MissingServletRequestParameterException.class)
     ResponseEntity<ApiError> handleMissingParameter(MissingServletRequestParameterException ex, HttpServletRequest req) {
         return build(HttpStatus.BAD_REQUEST, "Falta el parámetro " + ex.getParameterName(), req);
+    }
+
+    /** Subida de archivos (#43): sin la parte "archivo" o con un multipart mal armado. */
+    @ExceptionHandler({MissingServletRequestPartException.class, MultipartException.class})
+    ResponseEntity<ApiError> handleMultipart(Exception ex, HttpServletRequest req) {
+        return build(HttpStatus.BAD_REQUEST, "No llegó el archivo a adjuntar", req);
+    }
+
+    /** Lo corta Spring antes de llegar al controller, con el tope de app.adjuntos.tamanio-maximo. */
+    @ExceptionHandler(MaxUploadSizeExceededException.class)
+    ResponseEntity<ApiError> handleArchivoGrande(MaxUploadSizeExceededException ex, HttpServletRequest req) {
+        return build(HttpStatus.PAYLOAD_TOO_LARGE, "El archivo es demasiado grande", req);
     }
 
     @ExceptionHandler({NotFoundException.class, NoResourceFoundException.class})

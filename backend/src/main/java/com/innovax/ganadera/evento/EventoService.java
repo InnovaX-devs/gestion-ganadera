@@ -20,6 +20,8 @@ import org.springframework.transaction.annotation.Transactional;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.innovax.ganadera.adjunto.AdjuntoService;
+import com.innovax.ganadera.adjunto.dto.AdjuntoResponse;
 import com.innovax.ganadera.agrupacion.Lote;
 import com.innovax.ganadera.agrupacion.LoteRepository;
 import com.innovax.ganadera.agrupacion.Rodeo;
@@ -62,6 +64,7 @@ public class EventoService {
     private final RodeoRepository rodeoRepository;
     private final UsuarioRepository usuarioRepository;
     private final AutorizacionService autorizacion;
+    private final AdjuntoService adjuntoService;
     private final ObjectMapper objectMapper;
     private final Validator validator;
     private final Map<TipoEvento, TipoEventoHandler<?>> handlers = new EnumMap<>(TipoEvento.class);
@@ -69,7 +72,7 @@ public class EventoService {
     public EventoService(EventoRepository repository, EstablecimientoRepository establecimientoRepository,
                          AnimalRepository animalRepository, LoteRepository loteRepository,
                          RodeoRepository rodeoRepository, UsuarioRepository usuarioRepository, AutorizacionService autorizacion,
-                         ObjectMapper objectMapper, Validator validator, List<TipoEventoHandler<?>> handlers) {
+                         AdjuntoService adjuntoService, ObjectMapper objectMapper, Validator validator, List<TipoEventoHandler<?>> handlers) {
         this.repository = repository;
         this.establecimientoRepository = establecimientoRepository;
         this.animalRepository = animalRepository;
@@ -77,6 +80,7 @@ public class EventoService {
         this.rodeoRepository = rodeoRepository;
         this.usuarioRepository = usuarioRepository;
         this.autorizacion = autorizacion;
+        this.adjuntoService = adjuntoService;
         this.objectMapper = objectMapper;
         this.validator = validator;
         for (TipoEventoHandler<?> handler : handlers) {
@@ -98,9 +102,9 @@ public class EventoService {
         // Un animal que cambió de campo conserva su historia: se ve también lo cargado en los anteriores
         boolean historialDelAnimal = filtro.animalId() != null
             && animalRepository.existsByIdAndEstablecimientoId(filtro.animalId(), establecimientoId);
-        return PaginaResponse.de(
-            repository.findAll(EventoSpecs.de(establecimientoId, filtro, historialDelAnimal), pageable),
-            this::aRespuesta);
+        var pagina = repository.findAll(EventoSpecs.de(establecimientoId, filtro, historialDelAnimal), pageable);
+        var adjuntos = adjuntosDe(pagina.getContent());
+        return PaginaResponse.de(pagina, e -> aRespuesta(e, adjuntos));
     }
 
     @Transactional(readOnly = true)
@@ -204,7 +208,7 @@ public class EventoService {
         repository.flush();
 
         return new OperacionResponse(operacionId, eventos.size(),
-            repository.findByOperacionIdOrderByCreatedAtAsc(operacionId).stream().map(this::aRespuesta).toList());
+            aRespuestas(repository.findByOperacionIdOrderByCreatedAtAsc(operacionId)));
     }
 
     /** Un animal y los datos propios que se le registran (ej: su peso en una grilla de pesajes). */
@@ -268,7 +272,7 @@ public class EventoService {
         repository.flush();
 
         return new OperacionResponse(operacion, eventos.size(),
-            repository.findByOperacionIdOrderByCreatedAtAsc(operacion).stream().map(this::aRespuesta).toList());
+            aRespuestas(repository.findByOperacionIdOrderByCreatedAtAsc(operacion)));
     }
 
     // ---------- Anulación ----------
@@ -373,10 +377,24 @@ public class EventoService {
             // El id ya se usó en otro establecimiento de la organización
             throw new BusinessException("Ese identificador de operación ya está en uso");
         }
-        return new OperacionResponse(operacionId, eventos.size(), eventos.stream().map(this::aRespuesta).toList());
+        return new OperacionResponse(operacionId, eventos.size(), aRespuestas(eventos));
+    }
+
+    private List<EventoResponse> aRespuestas(List<Evento> eventos) {
+        var adjuntos = adjuntosDe(eventos);
+        return eventos.stream().map(e -> aRespuesta(e, adjuntos)).toList();
+    }
+
+    /** Los adjuntos de todas las operaciones de estos eventos, en una sola consulta (#43). */
+    private Map<UUID, List<AdjuntoResponse>> adjuntosDe(List<Evento> eventos) {
+        return adjuntoService.deOperaciones(eventos.stream().map(Evento::getOperacionId).collect(Collectors.toSet()));
     }
 
     private EventoResponse aRespuesta(Evento e) {
+        return aRespuesta(e, adjuntosDe(List.of(e)));
+    }
+
+    private EventoResponse aRespuesta(Evento e, Map<UUID, List<AdjuntoResponse>> adjuntos) {
         Usuario u = e.getUsuario();
         String nombreUsuario = u.getApellido() == null ? u.getNombre() : u.getNombre() + " " + u.getApellido();
         return new EventoResponse(
@@ -389,7 +407,8 @@ public class EventoService {
             e.getLote() == null ? null : new EventoResponse.Referencia(e.getLote().getId(), e.getLote().getNombre()),
             leerJson(e.getDatos()),
             new EventoResponse.Referencia(u.getId(), nombreUsuario),
-            e.getCreatedAt());
+            e.getCreatedAt(),
+            adjuntos.getOrDefault(e.getOperacionId(), List.of()));
     }
 
     private JsonNode leerJson(String json) {

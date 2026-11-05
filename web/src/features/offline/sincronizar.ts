@@ -1,4 +1,5 @@
 import { isAxiosError } from 'axios'
+import { subirArchivosPendientes } from '@/features/adjuntos/subida'
 import { queryClient } from '@/lib/query-client'
 import { api } from '@/lib/api'
 import { borrarEstablecimiento, db, metaClave, TABLAS } from './db'
@@ -115,13 +116,22 @@ async function sincronizarUno(est: string) {
     if (!respuesta.hayMas && !quedan) break
   }
 
+  // Fotos y archivos (#43): recién ahora, con los eventos ya en el servidor. Si falla, que no tire abajo la sincronización
+  const subioArchivos = await subirArchivosPendientes(est).catch(() => false)
+
   cambiar({ ultima: { ...estado.ultima, [est]: new Date().toISOString() } })
   // Lo que se ve en pantalla puede haber cambiado
-  if (huboCambios) {
+  if (huboCambios || subioArchivos) {
     await Promise.all(
-      ['animales', 'eventos', 'agrupaciones', 'stock', 'productos-sanitarios', 'pesajes'].map((k) =>
-        queryClient.invalidateQueries({ queryKey: [k] }),
-      ),
+      [
+        'animales',
+        'eventos',
+        'agrupaciones',
+        'stock',
+        'productos-sanitarios',
+        'pesajes',
+        'adjuntos-animal',
+      ].map((k) => queryClient.invalidateQueries({ queryKey: [k] })),
     )
   }
 }
