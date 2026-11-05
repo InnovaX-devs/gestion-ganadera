@@ -35,4 +35,20 @@ línea de tiempo; al dar de baja un animal se borran sus archivos y los de event
 
 ## Configuración
 
-`ADJUNTOS_DIR`, `ADJUNTOS_TAMANIO_MAXIMO`, `ADJUNTOS_MAXIMO_POR_ELEMENTO` (ver `backend/README.md`).
+| Variable | Qué es |
+|----------|--------|
+| `ADJUNTOS_ALMACEN` | `disco` (default en desarrollo) o `r2`. **Obligatoria en producción.** |
+| `ADJUNTOS_DIR` | Carpeta de los archivos, con `disco` (default dev `./data/adjuntos`) |
+| `ADJUNTOS_BUCKET` | Nombre del bucket de R2 (con `r2`) |
+| `ADJUNTOS_ENDPOINT` | `https://<ACCOUNT_ID>.r2.cloudflarestorage.com` (con `r2`) |
+| `ADJUNTOS_ACCESS_KEY` / `ADJUNTOS_SECRET_KEY` | Claves del token de API de R2, con permiso Object Read & Write limitado al bucket |
+| `ADJUNTOS_TAMANIO_MAXIMO` | Tamaño máximo por archivo (default `10MB`) |
+| `ADJUNTOS_MAXIMO_POR_ELEMENTO` | Archivos por evento o animal (default `10`) |
+
+## Puesta en marcha de R2
+
+1. Cuenta en Cloudflare y activar R2 (plan gratuito; puede pedir tarjeta).
+2. Crear un bucket **privado**, clase Standard, sin acceso público ni dominio `r2.dev`.
+3. En R2, *Manage API tokens*: crear un token Object Read & Write limitado a ese bucket. El secret se ve una sola vez.
+4. Cargar las variables de arriba en el servicio del backend (Render). No van al repositorio.
+5. No hace falta CORS: el navegador nunca habla con R2, todo pasa por la API.
