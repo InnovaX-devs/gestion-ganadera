@@ -17,6 +17,7 @@ public final class DbCleaner {
         "tratamiento_planificado",
         "sync_baja",
         "cotizacion",
+        "adjunto",
         "evento",
         "cambio_categoria",
         "animal",

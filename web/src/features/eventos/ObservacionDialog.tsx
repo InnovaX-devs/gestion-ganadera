@@ -1,10 +1,13 @@
 import { type FormEvent, useState } from 'react'
+import { useQueryClient } from '@tanstack/react-query'
 import { Button } from '@/components/Button'
 import { Dialog } from '@/components/Dialog'
 import { FormError } from '@/components/FormError'
 import { SelectField } from '@/components/SelectField'
 import { TextAreaField } from '@/components/TextAreaField'
 import { TextField } from '@/components/TextField'
+import { SelectorArchivos } from '@/features/adjuntos/SelectorArchivos'
+import { subirArchivos } from '@/features/adjuntos/subida'
 import { useAgrupaciones } from '@/features/agrupaciones/queries'
 import { getErrorMessage, getFieldErrors } from '@/lib/api'
 import { hoyISO } from './fechas'
@@ -58,11 +61,17 @@ function Formulario({
   const conAnimales = (animalIds?.length ?? 0) > 0
   const { data: lotes } = useAgrupaciones('lotes', establecimientoId)
   const registrar = useRegistrarEvento<ObservacionDatos>(establecimientoId)
+  const queryClient = useQueryClient()
   const [fecha, setFecha] = useState(hoyISO)
   const [texto, setTexto] = useState('')
   const [loteId, setLoteId] = useState('')
+  const [archivos, setArchivos] = useState<File[]>([])
+  const [subiendo, setSubiendo] = useState(false)
+  // La observación ya se guardó pero algún archivo no: reintentar duplicaría la observación
+  const [guardadaSinArchivos, setGuardadaSinArchivos] = useState(false)
   const [errores, setErrores] = useState<Record<string, string>>({})
   const [error, setError] = useState<string | null>(null)
+  const ocupado = registrar.isPending || subiendo
 
   async function handleSubmit(e: FormEvent) {
     e.preventDefault()
@@ -73,7 +82,7 @@ function Formulario({
     }
     setErrores({})
     try {
-      await registrar.mutateAsync({
+      const operacion = await registrar.mutateAsync({
         // Generado acá: si la red falla y se reintenta, el backend no la duplica
         operacionId: crypto.randomUUID(),
         tipo: 'OBSERVACION',
@@ -82,11 +91,43 @@ function Formulario({
         loteId: !conAnimales && loteId ? loteId : null,
         datos: { texto: texto.trim() },
       })
+      if (archivos.length > 0) {
+        // Con la observación ya registrada (o guardada para enviar, sin señal) se suben las fotos
+        setSubiendo(true)
+        const resultado = await subirArchivos(
+          establecimientoId,
+          { tipo: 'EVENTO', operacionId: operacion.operacionId },
+          archivos,
+          'Fotos de la observación',
+        )
+        setSubiendo(false)
+        await queryClient.invalidateQueries({ queryKey: ['eventos'] })
+        if (resultado.fallidos.length > 0) {
+          setGuardadaSinArchivos(true)
+          setError(
+            'La observación se guardó, pero no se pudo adjuntar:\n' +
+              resultado.fallidos.map((f) => `${f.nombre}: ${f.mensaje}`).join('\n') +
+              '\nPodés volver a subirlos más tarde desde la ficha del animal.',
+          )
+          return
+        }
+      }
       onHecho()
     } catch (err) {
       setErrores(getFieldErrors(err))
       setError(getErrorMessage(err))
     }
+  }
+
+  if (guardadaSinArchivos) {
+    return (
+      <div className="space-y-4">
+        <FormError message={error} />
+        <div className="flex justify-end">
+          <Button onClick={onHecho}>Cerrar</Button>
+        </div>
+      </div>
+    )
   }
 
   return (
@@ -123,11 +164,12 @@ function Formulario({
         onChange={(e) => setTexto(e.target.value)}
         error={errores['datos.texto']}
       />
+      <SelectorArchivos archivos={archivos} onChange={setArchivos} disabled={ocupado} />
       <div className="flex justify-end gap-2 pt-2">
-        <Button variant="secondary" onClick={onClose} disabled={registrar.isPending}>
+        <Button variant="secondary" onClick={onClose} disabled={ocupado}>
           Cancelar
         </Button>
-        <Button type="submit" loading={registrar.isPending}>
+        <Button type="submit" loading={ocupado}>
           Guardar observación
         </Button>
       </div>

@@ -7,6 +7,7 @@
 - [`reportes.md`](reportes.md) — reportes exportables a Excel y PDF: qué muestra cada uno y cómo se calcula.
 - [`calendario-sanitario.md`](calendario-sanitario.md) — tratamientos planificados, alertas y avisos por email.
 - [`clima.md`](clima.md) — clima del establecimiento: Open-Meteo, sus condiciones de uso y la caché.
+- [`adjuntos.md`](adjuntos.md) — fotos y archivos adjuntos a eventos y animales: formatos, API y comportamiento offline.
 - Diagramas (modelo de datos, arquitectura) — se agregan a medida que se definen.
 
 ## Identidad (issue #1)

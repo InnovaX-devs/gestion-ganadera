@@ -1,3 +1,4 @@
+import type { Adjunto } from '@/features/adjuntos/types'
 import type { Sexo } from '@/features/animales/types'
 
 export type TipoEvento =
@@ -29,6 +30,11 @@ export interface Evento<D = Record<string, unknown>> {
   datos: D
   registradoPor: Referencia
   createdAt: string
+  /**
+   * Fotos y archivos de la operación (#43): en un evento grupal los ven todos. Faltan en lo guardado
+   * en el dispositivo para trabajar sin conexión (se ven al volver la señal).
+   */
+  adjuntos?: Adjunto[]
 }
 
 export interface EventoInput<D = Record<string, unknown>> {

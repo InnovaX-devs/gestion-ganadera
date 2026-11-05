@@ -2,3 +2,6 @@ target/
 !.mvn/wrapper/maven-wrapper.jar
 *.class
 HELP.md
+
+### Archivos adjuntos subidos en desarrollo (app.adjuntos.directorio) ###
+data/

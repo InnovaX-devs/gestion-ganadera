@@ -4,6 +4,7 @@ import {
   CloudCheck,
   CloudOff,
   CloudUpload,
+  FileImage,
   Info,
   RefreshCw,
   RotateCcw,
@@ -12,7 +13,14 @@ import {
 import { useEstablecimientoActivo } from '@/features/establecimientos/useEstablecimientoActivo'
 import { useDismiss } from '@/hooks/useDismiss'
 import { pedirSincronizacion, quitarAviso, quitarDeLaCola, reintentar } from './cola'
-import { useAvisosSync, useEnLinea, useEstadoSync, usePendientes } from './hooks'
+import type { ArchivoPendiente } from '@/features/adjuntos/types'
+import {
+  useArchivosPendientes,
+  useAvisosSync,
+  useEnLinea,
+  useEstadoSync,
+  usePendientes,
+} from './hooks'
 import type { AvisoSync, OperacionPendiente } from './tipos'
 
 /**
@@ -24,6 +32,7 @@ export function IndicadorSync() {
   const enLinea = useEnLinea()
   const { sincronizando, sinRed } = useEstadoSync()
   const pendientes = usePendientes()
+  const archivos = useArchivosPendientes()
   const avisos = useAvisosSync()
   const [abierto, setAbierto] = useState(false)
   const ref = useRef<HTMLDivElement>(null)
@@ -31,7 +40,8 @@ export function IndicadorSync() {
   useDismiss(ref, abierto, cerrar)
 
   const rechazadas = pendientes.filter((p) => p.estado === 'RECHAZADO')
-  const porEnviar = pendientes.length - rechazadas.length
+  // Las fotos y archivos guardados esperando señal (#43) cuentan como cargas por enviar
+  const porEnviar = pendientes.length - rechazadas.length + archivos.length
 
   const { Icono, etiqueta, color } =
     !enLinea || (sinRed && !sincronizando)
@@ -81,6 +91,7 @@ export function IndicadorSync() {
       {abierto && (
         <Panel
           pendientes={pendientes}
+          archivos={archivos}
           rechazadas={rechazadas}
           avisos={avisos}
           enLinea={enLinea}
@@ -93,12 +104,14 @@ export function IndicadorSync() {
 
 function Panel({
   pendientes,
+  archivos,
   rechazadas,
   avisos,
   enLinea,
   sincronizando,
 }: {
   pendientes: OperacionPendiente[]
+  archivos: ArchivoPendiente[]
   rechazadas: OperacionPendiente[]
   avisos: AvisoSync[]
   enLinea: boolean
@@ -153,7 +166,7 @@ function Panel({
       </div>
 
       <div className="max-h-[min(28rem,70vh)] overflow-y-auto">
-        {pendientes.length === 0 && avisos.length === 0 && (
+        {pendientes.length === 0 && archivos.length === 0 && avisos.length === 0 && (
           <p className="flex items-center gap-2 px-4 py-6 text-sm text-stone-500">
             <CloudCheck className="size-4 shrink-0" />
             No hay nada pendiente: todo lo cargado ya está en el servidor.
@@ -184,6 +197,28 @@ function Panel({
                     </span>
                   )}
                 </p>
+              </li>
+            ))}
+          </Seccion>
+        )}
+
+        {archivos.length > 0 && (
+          <Seccion titulo="Fotos y archivos" ayuda="Se suben solos cuando hay señal.">
+            {archivos.map((a) => (
+              <li key={a.id} className="flex gap-2 px-4 py-2.5">
+                <FileImage className="mt-0.5 size-4 shrink-0 text-stone-500" />
+                <div className="min-w-0 flex-1">
+                  <p className="truncate text-sm">{a.nombre}</p>
+                  <p className="text-xs text-stone-500">
+                    {[
+                      nombreDe(a.establecimientoId),
+                      a.descripcion,
+                      `guardado ${haceCuanto(a.creadoEn)}`,
+                    ]
+                      .filter(Boolean)
+                      .join(' · ')}
+                  </p>
+                </div>
               </li>
             ))}
           </Seccion>

@@ -61,6 +61,9 @@ public interface EventoRepository extends JpaRepository<Evento, UUID>, JpaSpecif
 
     boolean existsByOperacionId(UUID operacionId);
 
+    /** Si la operación tiene algún evento vigente registrado en ese establecimiento (para los adjuntos, #43). */
+    boolean existsByOperacionIdAndEstablecimientoIdAndDeletedAtIsNull(UUID operacionId, UUID establecimientoId);
+
     boolean existsByAnimalIdAndDeletedAtIsNull(UUID animalId);
 
     /** Eventos vigentes de un tipo para un animal, entre dos fechas (inclusive). */
@@ -69,6 +72,10 @@ public interface EventoRepository extends JpaRepository<Evento, UUID>, JpaSpecif
 
     /** Si el animal tiene otro evento vigente de ese tipo, sin contar el indicado. */
     boolean existsByAnimalIdAndTipoAndDeletedAtIsNullAndIdNot(UUID animalId, TipoEvento tipo, UUID id);
+
+    /** Operaciones de los eventos anulados del animal: se leen antes de borrarlos (ver {@link #borrarAnuladosDelAnimal}). */
+    @Query("select distinct e.operacionId from Evento e where e.animal.id = :animalId and e.deletedAt is not null")
+    List<UUID> operacionesAnuladasDelAnimal(@Param("animalId") UUID animalId);
 
     /** Al borrar un animal cargado por error se borran también sus eventos ya anulados. */
     @Modifying

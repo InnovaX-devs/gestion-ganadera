@@ -18,6 +18,12 @@ spring:
   jackson:
     default-property-inclusion: non_null
     time-zone: UTC
+  servlet:
+    multipart:
+      # Fotos y archivos adjuntos (#43). El tope por archivo es el mismo de app.adjuntos.tamanio-maximo.
+      # Sin tope de request: cada pedido lleva un solo archivo, que ya tiene el suyo.
+      max-file-size: ${app.adjuntos.tamanio-maximo}
+      max-request-size: -1
 
 server:
   port: ${PORT:8080}
@@ -115,6 +121,21 @@ app:
     # deja la cuenta pagada hasta este día del mes siguiente; el día después queda en solo lectura.
     dia-vencimiento-manual: ${COBRO_DIA_VENCIMIENTO:10}
     timeout: ${MP_TIMEOUT:15s}
+  adjuntos:
+    # Fotos y archivos adjuntos a eventos y animales (issue #43, ver docs/adjuntos.md).
+    # Dónde se guardan: "disco" (desarrollo y tests) o "r2" (Cloudflare R2, producción).
+    almacen: ${ADJUNTOS_ALMACEN:disco}
+    # Con almacen=disco los archivos van a este directorio. En producción tiene que ser un volumen persistente.
+    directorio: ${ADJUNTOS_DIR:./data/adjuntos}
+    # Con almacen=r2. El bucket tiene que ser privado: los archivos se sirven siempre a través de la API.
+    r2:
+      bucket: ${ADJUNTOS_BUCKET:}
+      endpoint: ${ADJUNTOS_ENDPOINT:}
+      access-key: ${ADJUNTOS_ACCESS_KEY:}
+      secret-key: ${ADJUNTOS_SECRET_KEY:}
+    tamanio-maximo: ${ADJUNTOS_TAMANIO_MAXIMO:10MB}
+    # Por animal y por operación de eventos. Si lo cambiás, cambiá también MAXIMO_ARCHIVOS en web/src/features/adjuntos/validacion.ts
+    maximo-por-elemento: ${ADJUNTOS_MAXIMO_POR_ELEMENTO:10}
   sync:
     # App offline (issue #30). El pull no entrega filas de los últimos `margen`: ver docs/sync.md.
     margen: ${SYNC_MARGEN:10s}

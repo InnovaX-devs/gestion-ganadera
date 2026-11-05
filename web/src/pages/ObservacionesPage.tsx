@@ -17,6 +17,7 @@ import { FormError } from '@/components/FormError'
 import { PageHeader } from '@/components/PageHeader'
 import { Paginacion } from '@/components/Paginacion'
 import { SelectField } from '@/components/SelectField'
+import { GaleriaAdjuntos } from '@/features/adjuntos/GaleriaAdjuntos'
 import { useAgrupaciones } from '@/features/agrupaciones/queries'
 import { puede } from '@/features/establecimientos/permisos'
 import { useEstablecimientoActivo } from '@/features/establecimientos/useEstablecimientoActivo'
@@ -164,6 +165,11 @@ function Listado({
                   <p className="mt-1.5 text-sm whitespace-pre-line text-stone-700 dark:text-stone-300">
                     {o.datos.texto}
                   </p>
+                  <GaleriaAdjuntos
+                    establecimientoId={establecimientoId}
+                    adjuntos={o.adjuntos ?? []}
+                    puedeEliminar={puedeRegistrar}
+                  />
                   <p className="mt-1.5 text-xs text-stone-500">{o.registradoPor.nombre}</p>
                 </div>
                 {puedeRegistrar && (
