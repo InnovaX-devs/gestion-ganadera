@@ -4,6 +4,7 @@ import java.util.Map;
 import java.util.UUID;
 
 import org.springframework.http.MediaType;
+import org.springframework.mock.web.MockMultipartFile;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.ResultActions;
 import org.springframework.test.web.servlet.request.MockHttpServletRequestBuilder;
@@ -62,6 +63,14 @@ public class ApiTestClient {
         return mockMvc.perform(conJson(conToken(MockMvcRequestBuildersAlias.post(url), token), body));
     }
 
+    /** Sube un archivo como multipart/form-data (parte "archivo") con parámetros opcionales, ej: cargaId. */
+    public ResultActions postArchivo(String token, String url, MockMultipartFile archivo, Map<String, String> params)
+        throws Exception {
+        var request = MockMvcRequestBuildersAlias.multipart(url).file(archivo);
+        params.forEach(request::param);
+        return mockMvc.perform(conToken(request, token));
+    }
+
     public ResultActions put(String token, String url, Object body) throws Exception {
         return mockMvc.perform(conJson(conToken(MockMvcRequestBuildersAlias.put(url), token), body));
     }
@@ -93,6 +102,10 @@ public class ApiTestClient {
 
         static MockHttpServletRequestBuilder post(String url) {
             return org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post(url);
+        }
+
+        static org.springframework.test.web.servlet.request.MockMultipartHttpServletRequestBuilder multipart(String url) {
+            return org.springframework.test.web.servlet.request.MockMvcRequestBuilders.multipart(url);
         }
 
         static MockHttpServletRequestBuilder put(String url) {

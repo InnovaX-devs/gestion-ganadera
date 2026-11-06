@@ -1,7 +1,8 @@
 import { useEffect } from 'react'
 import { useAuth } from '@/features/auth/useAuth'
 import { useEstablecimientoActivo } from '@/features/establecimientos/useEstablecimientoActivo'
-import { alCambiarLaCola, alPedirSincronizacion, establecimientosConPendientes } from './cola'
+import { establecimientosConEnvios } from './archivos'
+import { alCambiarLaCola, alPedirSincronizacion } from './cola'
 import { borrarTodo, db, metaClave } from './db'
 import { sincronizar } from './sincronizar'
 
@@ -15,7 +16,7 @@ const ESPERA_TRAS_CARGAR_MS = 1500
  * - al abrir la app y al cambiar de establecimiento;
  * - al recuperar la conexión y al volver a la app (si estaba en segundo plano);
  * - un momento después de guardar algo sin conexión;
- * - cada 30 segundos mientras haya cargas pendientes (no todos los celulares avisan bien cuando
+ * - cada 30 segundos mientras haya cargas o archivos pendientes (no todos los celulares avisan bien cuando
  *   vuelve la señal);
  * - cada 5 minutos mientras está abierta;
  * - cuando se toca "Sincronizar ahora".
@@ -34,7 +35,7 @@ export function SincronizacionAutomatica() {
 
     const correr = async () => {
       if (!vigente) return
-      const conPendientes = await establecimientosConPendientes()
+      const conPendientes = await establecimientosConEnvios()
       await sincronizar([...(activoId ? [activoId] : []), ...conPendientes])
     }
 
@@ -60,7 +61,7 @@ export function SincronizacionAutomatica() {
       CADA_CINCO_MINUTOS,
     )
     const reintento = setInterval(async () => {
-      if ((await establecimientosConPendientes()).length > 0) correr()
+      if ((await establecimientosConEnvios()).length > 0) correr()
     }, REINTENTO_PENDIENTES_MS)
     const dejarPedidos = alPedirSincronizacion(correr)
     window.addEventListener('online', correr)

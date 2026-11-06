@@ -36,6 +36,11 @@ app:
       api-key: ${RESEND_API_KEY:${MAIL_PASSWORD}}
   invitaciones:
     web-url: ${APP_WEB_URL}
+  adjuntos:
+    # Sin valor por defecto: hay que elegir a conciencia. En Render el disco se borra en cada despliegue,
+    # por eso en producción se usa "r2" (ver docs/adjuntos.md). "disco" solo con un volumen persistente.
+    almacen: ${ADJUNTOS_ALMACEN}
+    directorio: ${ADJUNTOS_DIR:}
 
 logging:
   level:

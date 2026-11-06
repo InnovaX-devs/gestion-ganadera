@@ -23,6 +23,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.innovax.ganadera.adjunto.AdjuntoService;
 import com.innovax.ganadera.agrupacion.Lote;
 import com.innovax.ganadera.agrupacion.LoteRepository;
 import com.innovax.ganadera.agrupacion.Rodeo;
@@ -73,6 +74,7 @@ public class AnimalService {
     private final CarenciaService carenciaService;
     private final EstadoReproductivoService estadoReproductivoService;
     private final EventoService eventoService;
+    private final AdjuntoService adjuntoService;
     private final ObjectMapper objectMapper;
     private final Clock reloj;
 
@@ -298,7 +300,11 @@ public class AnimalService {
         if (eventoRepository.existsByAnimalIdAndDeletedAtIsNull(id)) {
             throw new BusinessException("No se puede eliminar: tiene eventos registrados. Anulalos primero.");
         }
+        // Los archivos (#43) cuelgan de la operación del evento: se leen antes de borrar los eventos
+        var operaciones = eventoRepository.operacionesAnuladasDelAnimal(id);
         eventoRepository.borrarAnuladosDelAnimal(id);
+        adjuntoService.borrarDeAnimal(id);
+        adjuntoService.borrarDeOperacionesSinEventos(operaciones);
         repository.delete(animal);
     }
 

@@ -1,4 +1,6 @@
 import { useEffect, useState, useSyncExternalStore } from 'react'
+import type { ArchivoPendiente } from '@/features/adjuntos/types'
+import { listarArchivosPendientes } from './archivos'
 import { alCambiarLaCola, listarAvisos, listarCola } from './cola'
 import { alCambiarEstadoSync, leerEstadoSync } from './sincronizar'
 import type { AvisoSync, OperacionPendiente } from './tipos'
@@ -57,4 +59,23 @@ export function useAvisosSync(): AvisoSync[] {
     }
   }, [])
   return avisos
+}
+
+/** Fotos y archivos guardados en el dispositivo que todavía no se subieron (#43). */
+export function useArchivosPendientes(): ArchivoPendiente[] {
+  const [archivos, setArchivos] = useState<ArchivoPendiente[]>([])
+  useEffect(() => {
+    let activo = true
+    const leer = () =>
+      listarArchivosPendientes()
+        .then((lista) => activo && setArchivos(lista))
+        .catch(() => undefined)
+    leer()
+    const dejar = alCambiarLaCola(leer)
+    return () => {
+      activo = false
+      dejar()
+    }
+  }, [])
+  return archivos
 }
