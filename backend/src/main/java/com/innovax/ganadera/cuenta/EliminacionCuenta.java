@@ -8,14 +8,18 @@ import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.transaction.support.TransactionSynchronization;
+import org.springframework.transaction.support.TransactionSynchronizationManager;
 
 import com.innovax.ganadera.cobro.EstadoSuscripcion;
+import com.innovax.ganadera.adjunto.AlmacenArchivos;
 import com.innovax.ganadera.common.error.BusinessException;
 import com.innovax.ganadera.common.error.NotFoundException;
 import com.innovax.ganadera.organizacion.Organizacion;
 import com.innovax.ganadera.organizacion.OrganizacionRepository;
 
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 
 /**
  * Borra una cuenta entera desde el panel de Innovax: la organización, sus usuarios y todos sus datos.
@@ -25,12 +29,14 @@ import lombok.RequiredArgsConstructor;
  * <p><b>Al crear una tabla nueva con organizacion_id o usuario_id, agregarla acá</b> (igual que en
  * DbCleaner de los tests), antes de las tablas a las que referencia.
  */
+@Slf4j
 @Service
 @RequiredArgsConstructor
 public class EliminacionCuenta {
 
     /** Datos de la organización, en orden: primero lo que referencia a otras tablas. */
     private static final List<String> TABLAS_DE_LA_ORGANIZACION = List.of(
+        "adjunto",
         "alerta_enviada",
         "tratamiento_planificado",
         "sync_baja",
@@ -55,6 +61,7 @@ public class EliminacionCuenta {
     private final OrganizacionRepository organizacionRepository;
     private final EstadoCuentas estadoCuentas;
     private final JdbcTemplate jdbc;
+    private final AlmacenArchivos almacen;
 
     /**
      * @param confirmacion el nombre de la cuenta, escrito a mano en el panel
@@ -75,6 +82,9 @@ public class EliminacionCuenta {
             throw new BusinessException(
                 "La cuenta tiene una suscripción de Mercado Pago en curso: cancelala antes de eliminarla");
         }
+        // Las fotos y archivos están en el almacén (R2): se borran recién cuando la base ya se confirmó
+        List<String> archivos = jdbc.queryForList("SELECT clave FROM adjunto WHERE organizacion_id = ?", String.class,
+            organizacionId);
         try {
             jdbc.update("""
                 UPDATE animal SET madre_id = NULL, padre_id = NULL, evento_nacimiento_id = NULL
@@ -91,7 +101,32 @@ public class EliminacionCuenta {
                 + "establecimientos de otra cuenta. Suspendela en su lugar.");
         }
         estadoCuentas.olvidar(organizacionId);
+        borrarArchivosTrasElCommit(archivos);
         return nombre;
+    }
+
+    private void borrarArchivosTrasElCommit(List<String> claves) {
+        if (claves.isEmpty()) {
+            return;
+        }
+        Runnable borrar = () -> claves.forEach(clave -> {
+            try {
+                almacen.borrar(clave);
+            } catch (RuntimeException e) {
+                // La cuenta ya no existe: un archivo que quedó suelto no lo ve nadie
+                log.warn("No se pudo borrar del almacén el archivo {} de una cuenta eliminada", clave, e);
+            }
+        });
+        if (!TransactionSynchronizationManager.isSynchronizationActive()) {
+            borrar.run();
+            return;
+        }
+        TransactionSynchronizationManager.registerSynchronization(new TransactionSynchronization() {
+            @Override
+            public void afterCommit() {
+                borrar.run();
+            }
+        });
     }
 
     private static String normalizar(String texto) {
